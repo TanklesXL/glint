@@ -3,6 +3,13 @@ import glint.{CommandInput}
 import glint/flag
 import gleam/map
 
+pub fn unsupported_flag_test() {
+  glint.new()
+  |> glint.add_command(["cmd"], fn(_) { Nil }, [])
+  |> glint.execute(["--flag=1"])
+  |> should.be_error()
+}
+
 pub fn flag_default_test() {
   let args = ["arg1", "arg2"]
   let flags = flag.string("flag", "default")
@@ -82,6 +89,44 @@ pub fn bool_flag_test() {
   }
   glint.new()
   |> glint.add_command([], expect_flag_value_of_false, [flags])
+  |> glint.execute([flag_input])
+  |> should.be_ok()
+}
+
+pub fn string_list_flag_test() {
+  let flags = flag.string_list("flag", ["val1", "val2"])
+  let flag_input = "--flag=val3,val4"
+  let expect_flag_value_list = fn(in: CommandInput) {
+    in.flags
+    |> map.get("flag")
+    |> should.equal(Ok(flag.StringListFlag(["val3", "val4"])))
+  }
+  glint.new()
+  |> glint.add_command([], expect_flag_value_list, [flags])
+  |> glint.execute([flag_input])
+  |> should.be_ok()
+}
+
+pub fn int_list_flag_test() {
+  // fails to parse input for flag as int list, returns error
+  let flags = flag.int_list("flag", [1, 2])
+  let flag_input = "--flag=val3,val4"
+
+  glint.new()
+  |> glint.add_command([], fn(_) { Nil }, [flags])
+  |> glint.execute([flag_input])
+  |> should.be_error()
+
+  // parses flag input as int list, sets value
+  let flags = flag.int_list("flag", [1, 2])
+  let flag_input = "--flag=3,4"
+  let expect_flag_value_list = fn(in: CommandInput) {
+    in.flags
+    |> map.get("flag")
+    |> should.equal(Ok(flag.IntListFlag([3, 4])))
+  }
+  glint.new()
+  |> glint.add_command([], expect_flag_value_list, [flags])
   |> glint.execute([flag_input])
   |> should.be_ok()
 }

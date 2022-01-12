@@ -9,7 +9,9 @@ import snag.{Result, Snag}
 pub type FlagValue {
   BoolFlag(Bool)
   IntFlag(Int)
+  IntListFlag(List(Int))
   StringFlag(String)
+  StringListFlag(List(String))
 }
 
 /// Associates a name with a flag value
@@ -22,9 +24,19 @@ pub fn int(called name: String, default value: Int) -> Flag {
   Flag(name, IntFlag(value))
 }
 
+/// Creates a Flag(name, IntListFlag(value))
+pub fn int_list(called name: String, default value: List(Int)) -> Flag {
+  Flag(name, IntListFlag(value))
+}
+
 /// Creates a Flag(name, StringFlag(value))
 pub fn string(called name: String, default value: String) -> Flag {
   Flag(name, StringFlag(value))
+}
+
+/// Creates a Flag(name, StringListFlag(value))
+pub fn string_list(called name: String, default value: List(String)) -> Flag {
+  Flag(name, StringListFlag(value))
 }
 
 /// Creates a Flag(name, BoolFlag(value))
@@ -62,7 +74,21 @@ pub fn update_flags(flags: FlagMap, flag_input: String) -> Result(FlagMap) {
       |> int.parse()
       |> result.replace_error(int_flag_err(key, value))
       |> result.map(IntFlag)
+
+    IntListFlag(_) ->
+      value
+      |> string.split(",")
+      |> list.try_map(int.parse)
+      |> result.replace_error(int_list_flag_err(key, value))
+      |> result.map(IntListFlag)
+
     StringFlag(_) -> Ok(StringFlag(value))
+
+    StringListFlag(_) ->
+      value
+      |> string.split(",")
+      |> StringListFlag
+      |> Ok
 
     BoolFlag(_) ->
       case value {
@@ -96,6 +122,13 @@ fn undefined_flag_err(key: String) -> Snag {
 
 fn int_flag_err(key: String, value: String) -> Snag {
   ["cannot parse flag '", key, "' value '", value, "' as int"]
+  |> string.concat()
+  |> snag.new()
+  |> layer_invalid_flag(key)
+}
+
+fn int_list_flag_err(key: String, value: String) -> Snag {
+  ["cannot parse flag '", key, "' value '", value, "' as int list"]
   |> string.concat()
   |> snag.new()
   |> layer_invalid_flag(key)
