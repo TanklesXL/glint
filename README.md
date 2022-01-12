@@ -4,9 +4,14 @@
 
 Gleam command line argument parsing with basic flag support.
 
+
+Find glint on [hex.pm](https://hex.pm/packages/glint).
+
+Find the glint docs on [hexdocs.pm](https://hexdocs.pm/glint/)
+
 ## Installation
 
-If available on Hex this package can be added to your Gleam project.
+To install from hex:
 
 ```sh
 gleam add glint

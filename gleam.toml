@@ -5,7 +5,7 @@ version = "0.2.0"
 # your project to the Hex package manager.
 #
 licences = ["Apache-2.0"]
-description = "A simple command line runner for gleam"
+description = "Gleam command line argument parsing with basic flag support."
 repository = { type = "github", user = "TanklesXL", repo = "glint" }
 # links = [{ title = "Website", href = "https://gleam.run" }]
 
