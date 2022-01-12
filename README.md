@@ -1,5 +1,6 @@
 # glint
 
+<a href="https://github.com/TanklesXL/glint/releases"><img src="https://img.shields.io/github/release/TanklesXL/glint" alt="GitHub release"></a>
 Gleam command line argument parsing with basic flag support.
 
 ## Installation
