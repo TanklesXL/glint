@@ -1,6 +1,6 @@
 # glint
 
-A simple command line runner for gleam
+Gleam command line argument parsing with basic flag support.
 
 ## Installation
 
@@ -32,7 +32,7 @@ pub fn main() {
   }
 
   glint.new()
-  |> glint.add_command([], hello_world, [flag.string("caps")])
+  |> glint.add_command([], hello_world, [flag.string("caps", False)])
   |> glint.run(start_arguments())
 }
 ```
@@ -40,4 +40,4 @@ pub fn main() {
 Run it with either of:
 
 - `gleam run` which will print `Hello, World!`
-- `gleam run -- -caps=true` which will print `HELLO, WORLD!`
+- `gleam run -- --caps=true` which will print `HELLO, WORLD!`

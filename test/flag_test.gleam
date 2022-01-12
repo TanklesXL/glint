@@ -24,7 +24,7 @@ pub fn flag_default_test() {
 pub fn flag_value_test() {
   let args = ["arg1", "arg2"]
   let flags = flag.string("flag", "default")
-  let flag_input = "-flag=flag_value"
+  let flag_input = "--flag=flag_value"
   let flag_value_should_be_set = fn(in: CommandInput) {
     should.equal(in.args, args)
 
@@ -42,7 +42,7 @@ pub fn flag_value_test() {
 pub fn int_flag_test() {
   // fails to parse input for flag as int, returns error
   let flags = flag.int("flag", 1)
-  let flag_input = "-flag=X"
+  let flag_input = "--flag=X"
 
   glint.new()
   |> glint.add_command([], fn(_) { Nil }, [flags])
@@ -50,7 +50,7 @@ pub fn int_flag_test() {
   |> should.be_error()
 
   // parses flag input as int, sets value
-  let flag_input = "-flag=10"
+  let flag_input = "--flag=10"
   let expect_flag_value_of_10 = fn(in: CommandInput) {
     in.flags
     |> map.get("flag")
@@ -66,7 +66,7 @@ pub fn int_flag_test() {
 pub fn bool_flag_test() {
   // fails to parse input for flag as bool, returns error
   let flags = flag.bool("flag", True)
-  let flag_input = "-flag=X"
+  let flag_input = "--flag=X"
 
   glint.new()
   |> glint.add_command([], fn(_) { Nil }, [flags])
@@ -74,7 +74,7 @@ pub fn bool_flag_test() {
   |> should.be_error()
 
   // parses flag input as bool, sets value
-  let flag_input = "-flag=false"
+  let flag_input = "--flag=false"
   let expect_flag_value_of_false = fn(in: CommandInput) {
     in.flags
     |> map.get("flag")

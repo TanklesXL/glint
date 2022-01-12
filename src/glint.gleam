@@ -77,10 +77,10 @@ pub fn execute(cmd: Command, args: List(String)) -> Result(Nil) {
   case args {
     [] -> execute_root(cmd, [])
     [arg, ..rest] ->
-      case string.starts_with(arg, "-") {
+      case string.starts_with(arg, "--") {
         True -> {
           try new_flags =
-            flag.update_flags(cmd.flags, string.drop_left(arg, 1))
+            flag.update_flags(cmd.flags, string.drop_left(arg, 2))
             |> snag.context("failed to run command")
           execute(Command(..cmd, flags: new_flags), rest)
         }
