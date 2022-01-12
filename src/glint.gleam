@@ -37,26 +37,24 @@ pub fn add_command(
 ) -> Command {
   case path {
     [] -> Command(..root, do: Some(f), flags: flag.build_map(flags))
-    [x, ..xs] ->
+    [x, ..xs] -> {
+      let update_subcommand = fn(node) {
+        case node {
+          None ->
+            add_command(
+              Command(do: None, subcommands: map.new(), flags: map.new()),
+              xs,
+              f,
+              flags,
+            )
+          Some(node) -> add_command(node, xs, f, flags)
+        }
+      }
       Command(
         ..root,
-        subcommands: map.update(
-          root.subcommands,
-          x,
-          fn(node) {
-            case node {
-              None ->
-                add_command(
-                  Command(do: None, subcommands: map.new(), flags: map.new()),
-                  xs,
-                  f,
-                  flags,
-                )
-              Some(node) -> add_command(node, xs, f, flags)
-            }
-          },
-        ),
+        subcommands: map.update(root.subcommands, x, update_subcommand),
       )
+    }
   }
 }
 
