@@ -28,5 +28,5 @@
 
 - Initial argument parsing and flags support.
 
-[Unreleased]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.3.0...HEAD
-[0.3.0]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.2.0...v0.3.0
+[Unreleased]: https://github.com/TanklesXL/glint/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/TanklesXL/glint/compare/v0.2.0...v0.3.0
