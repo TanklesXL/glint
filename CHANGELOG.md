@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `flag` module gains support for float and float list flags.
+
 ## [0.2.0]
 
 - `flag` module gains support for string list and int list flags.
