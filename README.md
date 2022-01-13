@@ -30,7 +30,7 @@ import glint/flag
 
 pub fn main() {
   let hello_world = fn(input: CommandInput) {
-    assert Ok(flag.BoolFlag(caps)) = map.get(input.flags, "caps")
+    assert Ok(flag.B(caps)) = map.get(input.flags, "caps")
 
     case caps {
       True -> io.println("HELLO, WORLD!")

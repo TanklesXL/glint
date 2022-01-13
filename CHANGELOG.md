@@ -2,7 +2,10 @@
 
 ## [Unreleased]
 
+## [0.3.0]
+
 - `flag` module gains support for float and float list flags.
+- rename `FlagValue` constructors to be more concise.
 
 ## [0.2.0]
 
@@ -24,3 +27,6 @@
 ## [0.1.0]
 
 - Initial argument parsing and flags support.
+
+[Unreleased]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.2.0...v0.3.0

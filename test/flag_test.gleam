@@ -37,7 +37,7 @@ pub fn flag_value_test() {
 
     in.flags
     |> map.get("flag")
-    |> should.equal(Ok(flag.StringFlag("flag_value")))
+    |> should.equal(Ok(flag.S("flag_value")))
   }
 
   glint.new()
@@ -61,7 +61,7 @@ pub fn int_flag_test() {
   let expect_flag_value_of_10 = fn(in: CommandInput) {
     in.flags
     |> map.get("flag")
-    |> should.equal(Ok(flag.IntFlag(10)))
+    |> should.equal(Ok(flag.I(10)))
   }
 
   glint.new()
@@ -85,7 +85,7 @@ pub fn bool_flag_test() {
   let expect_flag_value_of_false = fn(in: CommandInput) {
     in.flags
     |> map.get("flag")
-    |> should.equal(Ok(flag.BoolFlag(False)))
+    |> should.equal(Ok(flag.B(False)))
   }
   glint.new()
   |> glint.add_command([], expect_flag_value_of_false, [flags])
@@ -99,7 +99,7 @@ pub fn string_list_flag_test() {
   let expect_flag_value_list = fn(in: CommandInput) {
     in.flags
     |> map.get("flag")
-    |> should.equal(Ok(flag.StringListFlag(["val3", "val4"])))
+    |> should.equal(Ok(flag.LS(["val3", "val4"])))
   }
   glint.new()
   |> glint.add_command([], expect_flag_value_list, [flags])
@@ -122,7 +122,7 @@ pub fn int_list_flag_test() {
   let expect_flag_value_list = fn(in: CommandInput) {
     in.flags
     |> map.get("flag")
-    |> should.equal(Ok(flag.IntListFlag([3, 4])))
+    |> should.equal(Ok(flag.LI([3, 4])))
   }
   glint.new()
   |> glint.add_command([], expect_flag_value_list, [flags])
@@ -145,7 +145,7 @@ pub fn float_flag_test() {
   let expect_flag_value_of_10 = fn(in: CommandInput) {
     in.flags
     |> map.get("flag")
-    |> should.equal(Ok(flag.FloatFlag(10.0)))
+    |> should.equal(Ok(flag.F(10.0)))
   }
 
   glint.new()
@@ -169,7 +169,7 @@ pub fn float_list_flag_test() {
   let expect_flag_value_list = fn(in: CommandInput) {
     in.flags
     |> map.get("flag")
-    |> should.equal(Ok(flag.FloatListFlag([3.0, 4.0])))
+    |> should.equal(Ok(flag.LF([3.0, 4.0])))
   }
   glint.new()
   |> glint.add_command([], expect_flag_value_list, [flags])

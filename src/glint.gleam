@@ -39,16 +39,9 @@ pub fn add_command(
     [] -> Command(..root, do: Some(f), flags: flag.build_map(flags))
     [x, ..xs] -> {
       let update_subcommand = fn(node) {
-        case node {
-          None ->
-            add_command(
-              Command(do: None, subcommands: map.new(), flags: map.new()),
-              xs,
-              f,
-              flags,
-            )
-          Some(node) -> add_command(node, xs, f, flags)
-        }
+        node
+        |> option.lazy_unwrap(new)
+        |> add_command(xs, f, flags)
       }
       Command(
         ..root,

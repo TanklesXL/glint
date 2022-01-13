@@ -9,25 +9,25 @@ import snag.{Result, Snag}
 /// Supported flag types.
 pub type FlagValue {
   /// Boolean flags, to be passed in as `--flag=true` or `--flag=false`
-  BoolFlag(Bool)
+  B(Bool)
 
   /// Int flags, to be passed in as `--flag=1`
-  IntFlag(Int)
+  I(Int)
 
   /// List(Int) flags, to be passed in as `--flag=1,2,3`
-  IntListFlag(List(Int))
+  LI(List(Int))
 
   /// Float flags, to be passed in as `--flag=1.0`
-  FloatFlag(Float)
+  F(Float)
 
   /// List(Float) flags, to be passed in as `--flag=1.0,2.0`
-  FloatListFlag(List(Float))
+  LF(List(Float))
 
   /// String flags, to be passed in as `--flag=hello`
-  StringFlag(String)
+  S(String)
 
   /// List(String) flags, to be passed in as `--flag=hello,world`
-  StringListFlag(List(String))
+  LS(List(String))
 }
 
 /// Associates a name with a flag value
@@ -35,39 +35,39 @@ pub type Flag {
   Flag(name: String, value: FlagValue)
 }
 
-/// Creates a Flag(name, IntFlag(value))
+/// Creates a Flag(name, I(value))
 pub fn int(called name: String, default value: Int) -> Flag {
-  Flag(name, IntFlag(value))
+  Flag(name, I(value))
 }
 
 /// Creates a Flag(name, FloagFlag(value))
 pub fn float(called name: String, default value: Float) -> Flag {
-  Flag(name, FloatFlag(value))
+  Flag(name, F(value))
 }
 
 /// Creates a Flag(name, FloagListFlag(value))
 pub fn float_list(called name: String, default value: List(Float)) -> Flag {
-  Flag(name, FloatListFlag(value))
+  Flag(name, LF(value))
 }
 
-/// Creates a Flag(name, IntListFlag(value))
+/// Creates a Flag(name, LI(value))
 pub fn int_list(called name: String, default value: List(Int)) -> Flag {
-  Flag(name, IntListFlag(value))
+  Flag(name, LI(value))
 }
 
-/// Creates a Flag(name, StringFlag(value))
+/// Creates a Flag(name, S(value))
 pub fn string(called name: String, default value: String) -> Flag {
-  Flag(name, StringFlag(value))
+  Flag(name, S(value))
 }
 
-/// Creates a Flag(name, StringListFlag(value))
+/// Creates a Flag(name, LS(value))
 pub fn string_list(called name: String, default value: List(String)) -> Flag {
-  Flag(name, StringListFlag(value))
+  Flag(name, LS(value))
 }
 
-/// Creates a Flag(name, BoolFlag(value))
+/// Creates a Flag(name, B(value))
 pub fn bool(called name: String, default value: Bool) -> Flag {
-  Flag(name, BoolFlag(value))
+  Flag(name, B(value))
 }
 
 /// Associate flag names to their current values.
@@ -94,17 +94,18 @@ pub fn update_flags(flags: FlagMap, flag_input: String) -> Result(FlagMap) {
     map.get(flags, key)
     |> result.replace_error(undefined_flag_err(key))
 
-  let parser = case default {
-    IntFlag(_) -> parse_int
-    IntListFlag(_) -> parse_int_list
-    FloatFlag(_) -> parse_float
-    FloatListFlag(_) -> parse_float_list
-    StringFlag(_) -> parse_string
-    StringListFlag(_) -> parse_string_list
-    BoolFlag(_) -> parse_bool
-  }
-
-  parser(key, value)
+  case default {
+    I(_) -> parse_int
+    LI(_) -> parse_int_list
+    F(_) -> parse_float
+    LF(_) -> parse_float_list
+    S(_) -> parse_string
+    LS(_) -> parse_string_list
+    B(_) -> parse_bool
+  }(
+    key,
+    value,
+  )
   |> result.map(map.insert(flags, key, _))
 }
 
@@ -112,55 +113,55 @@ pub fn update_flags(flags: FlagMap, flag_input: String) -> Result(FlagMap) {
 fn parse_int(key, value) {
   value
   |> int.parse()
+  |> result.map(I)
   |> result.replace_error(cannot_parse(key, value, "int"))
-  |> result.map(IntFlag)
 }
 
-fn parse_int_list(key: String, value: String) -> Result(FlagValue) {
+fn parse_int_list(key, value) {
   value
   |> string.split(",")
   |> list.try_map(int.parse)
+  |> result.map(LI)
   |> result.replace_error(cannot_parse(key, value, "int list"))
-  |> result.map(IntListFlag)
 }
 
 fn parse_float(key, value) {
   value
   |> float.parse()
+  |> result.map(F)
   |> result.replace_error(cannot_parse(key, value, "float"))
-  |> result.map(FloatFlag)
 }
 
-fn parse_float_list(key: String, value: String) -> Result(FlagValue) {
+fn parse_float_list(key, value) {
   value
   |> string.split(",")
   |> list.try_map(float.parse)
+  |> result.map(LF)
   |> result.replace_error(cannot_parse(key, value, "float list"))
-  |> result.map(FloatListFlag)
 }
 
 fn parse_bool(key, value) {
   case value {
-    "true" -> Ok(BoolFlag(True))
-    "false" -> Ok(BoolFlag(False))
+    "true" -> Ok(B(True))
+    "false" -> Ok(B(False))
     _ -> Error(cannot_parse(key, value, "bool"))
   }
 }
 
 fn parse_string(_key, value) {
   value
-  |> StringFlag
+  |> S
   |> Ok
 }
 
 fn parse_string_list(_key, value) {
   value
   |> string.split(",")
-  |> StringListFlag
+  |> LS
   |> Ok
 }
 
-// Error creation functions
+// Error creation and manipulation functions
 fn layer_invalid_flag(err: Snag, flag: String) -> Snag {
   ["invalid flag '", flag, "'"]
   |> string.concat()
