@@ -3,6 +3,32 @@ import glint.{CommandInput}
 import glint/flag
 import gleam/map
 
+pub fn update_flag_test() {
+  let flags =
+    [flag.string("sflag", "default"), flag.int("iflag", 0)]
+    |> flag.build_map()
+
+  // update non-existent flag fails
+  flags
+  |> flag.update_flags("not_a_flag=hello")
+  |> should.be_error()
+
+  // update string flag succeeds
+  flags
+  |> flag.update_flags("sflag=hello")
+  |> should.be_ok()
+
+  // updated int flag with non-int fails
+  flags
+  |> flag.update_flags("iflag=hello")
+  |> should.be_error()
+
+  // updated int flag with int succeeds
+  flags
+  |> flag.update_flags("iflag=1")
+  |> should.be_ok()
+}
+
 pub fn unsupported_flag_test() {
   glint.new()
   |> glint.add_command(["cmd"], fn(_) { Nil }, [])
