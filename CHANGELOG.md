@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `flag` parsing functions share common bases `parse_flag` and `parse_list_flag`
+
 ## [0.3.0]
 
 - `flag` module gains support for float and float list flags.

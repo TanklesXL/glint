@@ -1,9 +1,11 @@
+import gleam
 import gleam/map.{Map}
 import gleam/string
 import gleam/result
 import gleam/int
 import gleam/list
 import gleam/float
+import gleam/function
 import snag.{Result, Snag}
 
 /// Supported flag types.
@@ -111,32 +113,22 @@ pub fn update_flags(flags: FlagMap, flag_input: String) -> Result(FlagMap) {
 
 // Parser functions
 fn parse_int(key, value) {
-  value
-  |> int.parse()
-  |> result.map(I)
+  parse_flag(value, int.parse, I)
   |> result.replace_error(cannot_parse(key, value, "int"))
 }
 
 fn parse_int_list(key, value) {
-  value
-  |> string.split(",")
-  |> list.try_map(int.parse)
-  |> result.map(LI)
+  parse_list_flag(value, int.parse, LI)
   |> result.replace_error(cannot_parse(key, value, "int list"))
 }
 
 fn parse_float(key, value) {
-  value
-  |> float.parse()
-  |> result.map(F)
+  parse_flag(value, float.parse, F)
   |> result.replace_error(cannot_parse(key, value, "float"))
 }
 
 fn parse_float_list(key, value) {
-  value
-  |> string.split(",")
-  |> list.try_map(float.parse)
-  |> result.map(LF)
+  parse_list_flag(value, float.parse, LF)
   |> result.replace_error(cannot_parse(key, value, "float list"))
 }
 
@@ -149,16 +141,32 @@ fn parse_bool(key, value) {
 }
 
 fn parse_string(_key, value) {
-  value
-  |> S
-  |> Ok
+  parse_flag(value, Ok, S)
 }
 
 fn parse_string_list(_key, value) {
+  parse_list_flag(value, Ok, LS)
+}
+
+fn parse_flag(
+  value: String,
+  parse: fn(String) -> gleam.Result(a, b),
+  construct: fn(a) -> FlagValue,
+) -> gleam.Result(FlagValue, b) {
+  value
+  |> parse()
+  |> result.map(construct)
+}
+
+fn parse_list_flag(
+  value: String,
+  parse: fn(String) -> gleam.Result(a, b),
+  construct: fn(List(a)) -> FlagValue,
+) -> gleam.Result(FlagValue, b) {
   value
   |> string.split(",")
-  |> LS
-  |> Ok
+  |> list.try_map(parse)
+  |> result.map(construct)
 }
 
 // Error creation and manipulation functions
