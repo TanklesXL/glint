@@ -40,12 +40,12 @@ pub fn int(called name: String, default value: Int) -> Flag {
   Flag(name, I(value))
 }
 
-/// Creates a Flag(name, FloagFlag(value))
+/// Creates a Flag(name, F(value))
 pub fn float(called name: String, default value: Float) -> Flag {
   Flag(name, F(value))
 }
 
-/// Creates a Flag(name, FloagListFlag(value))
+/// Creates a Flag(name, LF(value))
 pub fn float_list(called name: String, default value: List(Float)) -> Flag {
   Flag(name, LF(value))
 }
