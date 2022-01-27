@@ -10,22 +10,22 @@ pub fn update_flag_test() {
 
   // update non-existent flag fails
   flags
-  |> flag.update_flags("not_a_flag=hello")
+  |> flag.update_flags("--not_a_flag=hello")
   |> should.be_error()
 
   // update string flag succeeds
   flags
-  |> flag.update_flags("sflag=hello")
+  |> flag.update_flags("--sflag=hello")
   |> should.be_ok()
 
   // updated int flag with non-int fails
   flags
-  |> flag.update_flags("iflag=hello")
+  |> flag.update_flags("--iflag=hello")
   |> should.be_error()
 
   // updated int flag with int succeeds
   flags
-  |> flag.update_flags("iflag=1")
+  |> flag.update_flags("--iflag=1")
   |> should.be_ok()
 }
 

@@ -1,7 +1,8 @@
 # Changelog
 
 ## [Unreleased]
-
+- flag string chopping has been moved into `flag` module
+- flags are split from args list, so flags are no longer positionally dependent
 - `flag` parsing functions share common bases `parse_flag` and `parse_list_flag`
 
 ## [0.3.0]

@@ -87,6 +87,7 @@ pub fn build_map(flags: List(Flag)) -> FlagMap {
 
 /// Updates a flag balue, ensuring that the new value can satisfy the required type.
 pub fn update_flags(flags: FlagMap, flag_input: String) -> Result(FlagMap) {
+  let flag_input = string.drop_left(flag_input, 2)
   try #(key, value) =
     flag_input
     |> string.split_once("=")

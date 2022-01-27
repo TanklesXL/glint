@@ -52,9 +52,19 @@ pub fn add_command(
 }
 
 /// Execute the current root command.
-fn execute_root(cmd: Command, args: List(String)) -> Result(Nil) {
+fn execute_root(
+  cmd: Command,
+  args: List(String),
+  flags: List(String),
+) -> Result(Nil) {
   case cmd.do {
-    Some(f) -> Ok(f(CommandInput(args, cmd.flags)))
+    Some(f) -> {
+      try new_flags =
+        list.try_fold(over: flags, from: cmd.flags, with: flag.update_flags)
+        |> snag.context("failed to run command")
+      Ok(f(CommandInput(args, new_flags)))
+    }
+
     None ->
       Error(
         snag.new("command not found")
@@ -65,23 +75,23 @@ fn execute_root(cmd: Command, args: List(String)) -> Result(Nil) {
 
 /// Determines which command to run and executes it.
 /// Sets any provided flags if necessary.
-/// Flags are parsed as any value starting with a '-'
+/// Flags are parsed as any value starting with a '--'
 pub fn execute(cmd: Command, args: List(String)) -> Result(Nil) {
+  let #(flags, args) = list.partition(args, string.starts_with(_, "--"))
+  do_execute(cmd, args, flags)
+}
+
+fn do_execute(
+  cmd: Command,
+  args: List(String),
+  flags: List(String),
+) -> Result(Nil) {
   case args {
-    [] -> execute_root(cmd, [])
+    [] -> execute_root(cmd, [], flags)
     [arg, ..rest] ->
-      case string.starts_with(arg, "--") {
-        True -> {
-          try new_flags =
-            flag.update_flags(cmd.flags, string.drop_left(arg, 2))
-            |> snag.context("failed to run command")
-          execute(Command(..cmd, flags: new_flags), rest)
-        }
-        False ->
-          case map.get(cmd.subcommands, arg) {
-            Ok(cmd) -> execute(cmd, rest)
-            Error(_) -> execute_root(cmd, args)
-          }
+      case map.get(cmd.subcommands, arg) {
+        Ok(cmd) -> do_execute(cmd, rest, flags)
+        Error(_) -> execute_root(cmd, args, flags)
       }
   }
 }
