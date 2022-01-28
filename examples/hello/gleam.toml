@@ -11,7 +11,7 @@ version = "0.1.0"
 
 [dependencies]
 gleam_stdlib = "~> 0.19"
-glint = "~> 0.3"
+glint = "~> 0.4"
 gleam_erlang = "~> 0.8"
 
 [dev-dependencies]
