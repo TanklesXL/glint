@@ -5,7 +5,15 @@ import gleam/map
 
 pub fn update_flag_test() {
   let flags =
-    [flag.string("sflag", "default"), flag.int("iflag", 0)]
+    [
+      flag.bool("bflag", False),
+      flag.string("sflag", "default"),
+      flag.string_list("lsflag", ["a", "b", "c"]),
+      flag.int("iflag", 0),
+      flag.int_list("liflag", [0, 1, 2, 3]),
+      flag.float("fflag", 1.0),
+      flag.float_list("lfflag", [0.0, 1.0, 2.0]),
+    ]
     |> flag.build_map()
 
   // update non-existent flag fails
@@ -13,20 +21,70 @@ pub fn update_flag_test() {
   |> flag.update_flags("--not_a_flag=hello")
   |> should.be_error()
 
+  // update bool flag succeeds
+  flags
+  |> flag.update_flags("--bflag=true")
+  |> should.be_ok()
+
+  // update bool flag with non-bool value fails
+  flags
+  |> flag.update_flags("--bflag=zzz")
+  |> should.be_error()
+
+  // toggle bool flag succeeds
+  flags
+  |> flag.update_flags("--bflag")
+  |> should.be_ok()
+
+  // toggle non-bool flag succeeds
+  flags
+  |> flag.update_flags("--sflag")
+  |> should.be_error()
+
   // update string flag succeeds
   flags
   |> flag.update_flags("--sflag=hello")
   |> should.be_ok()
 
-  // updated int flag with non-int fails
+  // update int flag with non-int fails
   flags
   |> flag.update_flags("--iflag=hello")
   |> should.be_error()
 
-  // updated int flag with int succeeds
+  // update int flag with int succeeds
   flags
   |> flag.update_flags("--iflag=1")
   |> should.be_ok()
+
+  // update int list flag with int list succeeds
+  flags
+  |> flag.update_flags("--liflag=1,2,3")
+  |> should.be_ok()
+
+  // update int list flag with non int list succeeds
+  flags
+  |> flag.update_flags("--liflag=a,b,c")
+  |> should.be_error()
+
+  // update float flag with non-int fails
+  flags
+  |> flag.update_flags("--fflag=hello")
+  |> should.be_error()
+
+  // update float flag with int succeeds
+  flags
+  |> flag.update_flags("--fflag=1.0")
+  |> should.be_ok()
+
+  // update float list flag with int list succeeds
+  flags
+  |> flag.update_flags("--lfflag=1.0,2.0,3.0")
+  |> should.be_ok()
+
+  // update float list flag with non int list succeeds
+  flags
+  |> flag.update_flags("--lfflag=a,b,c")
+  |> should.be_error()
 }
 
 pub fn unsupported_flag_test() {
@@ -201,4 +259,37 @@ pub fn float_list_flag_test() {
   |> glint.add_command([], expect_flag_value_list, [flags])
   |> glint.execute([flag_input])
   |> should.be_ok()
+}
+
+pub fn toggle_test() {
+  let flags = flag.bool("flag", False)
+
+  // fails to parse input for flag as bool, returns error
+  let flag_input = "--flag=X"
+  glint.new()
+  |> glint.add_command([], fn(_) { Nil }, [flags])
+  |> glint.execute([flag_input])
+  |> should.be_error()
+
+  // boolean flag is toggle, sets value to false
+  let flag_input = "--flag"
+  let expect_flag_value_of_true = fn(in: CommandInput) {
+    in.flags
+    |> map.get("flag")
+    |> should.equal(Ok(flag.B(True)))
+  }
+
+  glint.new()
+  |> glint.add_command([], expect_flag_value_of_true, [flags])
+  |> glint.execute([flag_input])
+  |> should.be_ok()
+
+  let flags = flag.int("flag", 1)
+
+  // cannot toggle non-bool flag
+  let flag_input = "--flag"
+  glint.new()
+  |> glint.add_command([], fn(_) { Nil }, [flags])
+  |> glint.execute([flag_input])
+  |> should.be_error()
 }

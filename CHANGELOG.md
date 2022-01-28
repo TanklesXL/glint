@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+- boolean flag toggle support added
 
 ## [0.4.0]
 

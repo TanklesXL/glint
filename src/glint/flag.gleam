@@ -1,4 +1,5 @@
 import gleam
+import gleam/bool
 import gleam/map.{Map}
 import gleam/string
 import gleam/result
@@ -88,28 +89,35 @@ pub fn build_map(flags: List(Flag)) -> FlagMap {
 /// Updates a flag balue, ensuring that the new value can satisfy the required type.
 pub fn update_flags(flags: FlagMap, flag_input: String) -> Result(FlagMap) {
   let flag_input = string.drop_left(flag_input, 2)
-  try #(key, value) =
-    flag_input
-    |> string.split_once("=")
-    |> result.replace_error(no_value_flag_err(flag_input))
-
-  try default =
-    map.get(flags, key)
-    |> result.replace_error(undefined_flag_err(key))
-
-  case default {
-    I(_) -> parse_int
-    LI(_) -> parse_int_list
-    F(_) -> parse_float
-    LF(_) -> parse_float_list
-    S(_) -> parse_string
-    LS(_) -> parse_string_list
-    B(_) -> parse_bool
-  }(
-    key,
-    value,
-  )
-  |> result.map(map.insert(flags, key, _))
+  case string.split_once(flag_input, "=") {
+    Error(_) -> {
+      try default =
+        map.get(flags, flag_input)
+        |> result.replace_error(undefined_flag_err(flag_input))
+      case default {
+        B(val) -> Ok(map.insert(flags, flag_input, B(bool.negate(val))))
+        _ -> Error(no_value_flag_err(flag_input))
+      }
+    }
+    Ok(#(key, value)) -> {
+      try default =
+        map.get(flags, key)
+        |> result.replace_error(undefined_flag_err(key))
+      case default {
+        I(_) -> parse_int
+        LI(_) -> parse_int_list
+        F(_) -> parse_float
+        LF(_) -> parse_float_list
+        S(_) -> parse_string
+        LS(_) -> parse_string_list
+        B(_) -> parse_bool
+      }(
+        key,
+        value,
+      )
+      |> result.map(map.insert(flags, key, _))
+    }
+  }
 }
 
 // Parser functions
