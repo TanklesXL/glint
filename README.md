@@ -52,7 +52,7 @@ pub fn main() {
 
 Run it with either of:
 
-- `gleam run Bob` which will print `Hello, Bob!`
-- `gleam run -- --caps Bob` which will print `HELLO, BOB!`
+- `gleam run Bob` or `gleam run -- --caps=false Bob`  which will print `Hello, Bob!`
+- `gleam run -- --caps Bob` or  `gleam run -- --caps=true Bob`  which will print `HELLO, BOB!`
 
 *Note*: Due to [this issue](https://github.com/gleam-lang/gleam/issues/1457) commands with flags immediately after `gleam run` must include the `--` as shown above

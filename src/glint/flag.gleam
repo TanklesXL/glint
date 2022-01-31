@@ -11,7 +11,9 @@ import snag.{Result, Snag}
 
 /// Supported flag types.
 pub type FlagValue {
-  /// Boolean flags, to be passed in as `--flag=true` or `--flag=false`
+  /// Boolean flags, to be passed in as `--flag=true` or `--flag=false`.
+  /// Can be toggled by omitting the desired value like `--flag`.
+  /// Toggling will negate the existing value.
   B(Bool)
 
   /// Int flags, to be passed in as `--flag=1`
