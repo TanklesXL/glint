@@ -87,37 +87,57 @@ pub fn build_map(flags: List(Flag)) -> FlagMap {
 }
 
 /// Updates a flag balue, ensuring that the new value can satisfy the required type.
-pub fn update_flags(flags: FlagMap, flag_input: String) -> Result(FlagMap) {
+/// Assumes that all flag inputs passed in start with --
+/// This function is only intended to be used from glint.execute_root
+pub fn update_flags(
+  in flags: FlagMap,
+  with flag_input: String,
+) -> Result(FlagMap) {
   let flag_input = string.drop_left(flag_input, 2)
   case string.split_once(flag_input, "=") {
     Error(_) -> {
-      try default =
-        map.get(flags, flag_input)
-        |> result.replace_error(undefined_flag_err(flag_input))
+      try default = access_flag(flags, flag_input)
       case default {
-        B(val) -> Ok(map.insert(flags, flag_input, B(bool.negate(val))))
+        B(val) ->
+          B(bool.negate(val))
+          |> map.insert(into: flags, for: flag_input)
+          |> Ok()
         _ -> Error(no_value_flag_err(flag_input))
       }
     }
     Ok(#(key, value)) -> {
-      try default =
-        map.get(flags, key)
-        |> result.replace_error(undefined_flag_err(key))
-      case default {
-        I(_) -> parse_int
-        LI(_) -> parse_int_list
-        F(_) -> parse_float
-        LF(_) -> parse_float_list
-        S(_) -> parse_string
-        LS(_) -> parse_string_list
-        B(_) -> parse_bool
-      }(
-        key,
-        value,
-      )
+      try default = access_flag(flags, key)
+      default
+      |> compute_flag(for: key, with: value)
       |> result.map(map.insert(flags, key, _))
     }
   }
+}
+
+/// Gets the current FlagValue for the associated flag
+fn access_flag(flags: FlagMap, name: String) -> Result(FlagValue) {
+  map.get(flags, name)
+  |> result.replace_error(undefined_flag_err(name))
+}
+
+/// Computes the new flag value given the input and the expected flag type 
+fn compute_flag(
+  for name: String,
+  with value: String,
+  given default: FlagValue,
+) -> Result(FlagValue) {
+  case default {
+    I(_) -> parse_int
+    LI(_) -> parse_int_list
+    F(_) -> parse_float
+    LF(_) -> parse_float_list
+    S(_) -> parse_string
+    LS(_) -> parse_string_list
+    B(_) -> parse_bool
+  }(
+    name,
+    value,
+  )
 }
 
 // Parser functions
