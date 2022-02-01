@@ -1,21 +1,23 @@
 # Changelog
 
-## [0.5.0]
+## [Unreleased]
+
+## [0.5.0] - 2022-01-31
 
 - boolean flag toggle support added
 
-## [0.4.0]
+## [0.4.0] - 2022-01-28
 
 - flag string chopping has been moved into `flag` module
 - flags are split from args list, so flags are no longer positionally dependent
 - `flag` parsing functions share common bases `parse_flag` and `parse_list_flag`
 
-## [0.3.0]
+## [0.3.0] - 2022-01-13
 
 - `flag` module gains support for float and float list flags.
 - rename `FlagValue` constructors to be more concise.
 
-## [0.2.0]
+## [0.2.0] - 2022-01-12
 
 - `flag` module gains support for string list and int list flags.
 
