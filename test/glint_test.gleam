@@ -8,6 +8,13 @@ pub fn main() {
   gleeunit.main()
 }
 
+pub fn path_clean_test() {
+  glint.new()
+  |> glint.add_command(["", " ", " cmd", "subcmd\t"], fn(_) { Nil }, [])
+  |> glint.execute(["cmd", "subcmd"])
+  |> should.be_ok()
+}
+
 pub fn root_command_test() {
   // expecting no args
   glint.new()
@@ -74,7 +81,7 @@ pub fn runner_test() {
     |> glint.add_command(at: [], do: fn(_) { Ok("success") }, with: [])
     |> glint.add_command(
       at: ["subcommand"],
-      do: fn(_) { Error(snag.new("failed")) },
+      do: fn(_) { snag.error("failed") },
       with: [],
     )
 

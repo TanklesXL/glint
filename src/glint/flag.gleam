@@ -9,6 +9,12 @@ import gleam/float
 import gleam/function
 import snag.{Result, Snag}
 
+/// Flag inputs must start with this prefix
+pub const prefix = "--"
+
+/// The separation character for flag names and their values
+const delimiter = "="
+
 /// Supported flag types.
 pub type FlagValue {
   /// Boolean flags, to be passed in as `--flag=true` or `--flag=false`.
@@ -95,8 +101,8 @@ pub fn update_flags(
   in flags: FlagMap,
   with flag_input: String,
 ) -> Result(FlagMap) {
-  let flag_input = string.drop_left(flag_input, 2)
-  case string.split_once(flag_input, "=") {
+  let flag_input = string.drop_left(flag_input, string.length(prefix))
+  case string.split_once(flag_input, delimiter) {
     Error(_) -> {
       try default = access_flag(flags, flag_input)
       case default {

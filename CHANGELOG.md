@@ -3,6 +3,9 @@
 ## [Unreleased]
 
 - `Runner` returns a generic type
+- sanitize command paths
+- make flag prefix a const
+- make flag delimiter a const
 
 ## [0.5.0] - 2022-01-31
 

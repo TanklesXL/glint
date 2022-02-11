@@ -5,6 +5,8 @@ import gleam/io
 import gleam/int
 import gleam/result
 import gleam/string
+import gleam/bool
+import gleam/function
 import snag.{Result}
 import glint/flag.{Flag, FlagMap}
 
@@ -35,6 +37,14 @@ pub fn new() -> Command(a) {
   Command(do: None, subcommands: map.new(), flags: map.new())
 }
 
+/// Trim each path element and remove any resulting empty strings.
+///
+fn sanitize_path(path: List(String)) -> List(String) {
+  path
+  |> list.map(string.trim)
+  |> list.filter(function.compose(string.is_empty, bool.negate))
+}
+
 /// Adds a new command to be run at the specified path.
 ///
 /// If the path is [], the root command is set with the provided function and
@@ -46,13 +56,24 @@ pub fn add_command(
   do f: Runner(a),
   with flags: List(Flag),
 ) -> Command(a) {
+  path
+  |> sanitize_path
+  |> do_add_command(to: root, do: f, with: flags)
+}
+
+fn do_add_command(
+  to root: Command(a),
+  at path: List(String),
+  do f: Runner(a),
+  with flags: List(Flag),
+) -> Command(a) {
   case path {
     [] -> Command(..root, do: Some(f), flags: flag.build_map(flags))
     [x, ..xs] -> {
       let update_subcommand = fn(node) {
         node
         |> option.lazy_unwrap(new)
-        |> add_command(xs, f, flags)
+        |> do_add_command(xs, f, flags)
       }
       Command(
         ..root,
@@ -95,7 +116,7 @@ fn execute_root(
 /// Each value prefixed with `--` is parsed as a flag.
 ///
 pub fn execute(cmd: Command(a), args: List(String)) -> Result(a) {
-  let #(flags, args) = list.partition(args, string.starts_with(_, "--"))
+  let #(flags, args) = list.partition(args, string.starts_with(_, flag.prefix))
   do_execute(cmd, args, flags)
 }
 
