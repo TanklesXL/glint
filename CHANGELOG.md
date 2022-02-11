@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `Runner` returns a generic type
+
 ## [0.5.0] - 2022-01-31
 
 - boolean flag toggle support added
