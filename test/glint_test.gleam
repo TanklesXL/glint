@@ -1,3 +1,4 @@
+import gleam/result
 import gleeunit
 import gleeunit/should
 import glint.{CommandInput}
@@ -65,4 +66,27 @@ pub fn nested_commands_test() {
   cmd
   |> glint.execute(["subcommand", "subsubcommand", ..args])
   |> should.be_ok()
+}
+
+pub fn runner_test() {
+  let cmd =
+    glint.new()
+    |> glint.add_command(at: [], do: fn(_) { Ok("success") }, with: [])
+    |> glint.add_command(
+      at: ["subcommand"],
+      do: fn(_) { Error(snag.new("failed")) },
+      with: [],
+    )
+
+  // command returns its own successful result
+  cmd
+  |> glint.execute([])
+  |> result.flatten
+  |> should.equal(Ok("success"))
+
+  // command returns its own error result
+  cmd
+  |> glint.execute(["subcommand"])
+  |> result.flatten
+  |> should.be_error()
 }
