@@ -8,11 +8,11 @@ pub fn update_flag_test() {
     [
       flag.bool("bflag", False),
       flag.string("sflag", "default"),
-      flag.string_list("lsflag", ["a", "b", "c"]),
+      flag.strings("lsflag", ["a", "b", "c"]),
       flag.int("iflag", 0),
-      flag.int_list("liflag", [0, 1, 2, 3]),
+      flag.ints("liflag", [0, 1, 2, 3]),
       flag.float("fflag", 1.0),
-      flag.float_list("lfflag", [0.0, 1.0, 2.0]),
+      flag.floats("lfflag", [0.0, 1.0, 2.0]),
     ]
     |> flag.build_map()
 
@@ -177,8 +177,8 @@ pub fn bool_flag_test() {
   |> should.be_ok()
 }
 
-pub fn string_list_flag_test() {
-  let flags = flag.string_list("flag", ["val1", "val2"])
+pub fn strings_flag_test() {
+  let flags = flag.strings("flag", ["val1", "val2"])
   let flag_input = "--flag=val3,val4"
   let expect_flag_value_list = fn(in: CommandInput) {
     in.flags
@@ -191,8 +191,8 @@ pub fn string_list_flag_test() {
   |> should.be_ok()
 }
 
-pub fn int_list_flag_test() {
-  let flags = flag.int_list("flag", [1, 2])
+pub fn ints_flag_test() {
+  let flags = flag.ints("flag", [1, 2])
 
   // fails to parse input for flag as int list, returns error
   let flag_input = "--flag=val3,val4"
@@ -238,8 +238,8 @@ pub fn float_flag_test() {
   |> should.be_ok()
 }
 
-pub fn float_list_flag_test() {
-  let flags = flag.float_list("flag", [1.0, 2.0])
+pub fn floats_flag_test() {
+  let flags = flag.floats("flag", [1.0, 2.0])
 
   // fails to parse input for flag as float list, returns error
   let flag_input = "--flag=val3,val4"
