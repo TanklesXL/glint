@@ -16,7 +16,7 @@ pub const prefix = "--"
 const delimiter = "="
 
 /// Supported flag types.
-pub type FlagValue {
+pub type Value {
   /// Boolean flags, to be passed in as `--flag=true` or `--flag=false`.
   /// Can be toggled by omitting the desired value like `--flag`.
   /// Toggling will negate the existing value.
@@ -43,7 +43,7 @@ pub type FlagValue {
 
 /// Associates a name with a flag value
 pub type Flag {
-  Flag(name: String, value: FlagValue)
+  Flag(name: String, value: Value)
 }
 
 /// Creates a Flag(name, I(value))
@@ -83,7 +83,7 @@ pub fn bool(called name: String, default value: Bool) -> Flag {
 
 /// Associate flag names to their current values.
 pub type FlagMap =
-  Map(String, FlagValue)
+  Map(String, Value)
 
 /// Convert a list of flags to a FlagMap.
 pub fn build_map(flags: List(Flag)) -> FlagMap {
@@ -122,8 +122,8 @@ pub fn update_flags(
   }
 }
 
-/// Gets the current FlagValue for the associated flag
-fn access_flag(flags: FlagMap, name: String) -> Result(FlagValue) {
+/// Gets the current Value for the associated flag
+fn access_flag(flags: FlagMap, name: String) -> Result(Value) {
   map.get(flags, name)
   |> result.replace_error(undefined_flag_err(name))
 }
@@ -132,8 +132,8 @@ fn access_flag(flags: FlagMap, name: String) -> Result(FlagValue) {
 fn compute_flag(
   for name: String,
   with value: String,
-  given default: FlagValue,
-) -> Result(FlagValue) {
+  given default: Value,
+) -> Result(Value) {
   case default {
     I(_) -> parse_int
     LI(_) -> parse_int_list
@@ -188,8 +188,8 @@ fn parse_string_list(_key, value) {
 fn parse_flag(
   value: String,
   parse: fn(String) -> gleam.Result(a, b),
-  construct: fn(a) -> FlagValue,
-) -> gleam.Result(FlagValue, b) {
+  construct: fn(a) -> Value,
+) -> gleam.Result(Value, b) {
   value
   |> parse()
   |> result.map(construct)
@@ -198,8 +198,8 @@ fn parse_flag(
 fn parse_list_flag(
   value: String,
   parse: fn(String) -> gleam.Result(a, b),
-  construct: fn(List(a)) -> FlagValue,
-) -> gleam.Result(FlagValue, b) {
+  construct: fn(List(a)) -> Value,
+) -> gleam.Result(Value, b) {
   value
   |> string.split(",")
   |> list.try_map(parse)
