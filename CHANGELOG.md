@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- rename flag `*_list` functions
+- rename `flag.FlagValue` to `flag.Value`
+- rename `flag.FlagMap` to `flag.Map`
+
 ## [0.6.0] - 2022-02-11
 
 - `Runner` returns a generic type
