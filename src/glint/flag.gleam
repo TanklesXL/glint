@@ -1,6 +1,6 @@
 import gleam
 import gleam/bool
-import gleam/map.{Map}
+import gleam/map
 import gleam/string
 import gleam/result
 import gleam/int
@@ -82,11 +82,11 @@ pub fn bool(called name: String, default value: Bool) -> Flag {
 }
 
 /// Associate flag names to their current values.
-pub type FlagMap =
-  Map(String, Value)
+pub type Map =
+  map.Map(String, Value)
 
-/// Convert a list of flags to a FlagMap.
-pub fn build_map(flags: List(Flag)) -> FlagMap {
+/// Convert a list of flags to a Map.
+pub fn build_map(flags: List(Flag)) -> Map {
   list.fold(
     flags,
     map.new(),
@@ -97,10 +97,7 @@ pub fn build_map(flags: List(Flag)) -> FlagMap {
 /// Updates a flag balue, ensuring that the new value can satisfy the required type.
 /// Assumes that all flag inputs passed in start with --
 /// This function is only intended to be used from glint.execute_root
-pub fn update_flags(
-  in flags: FlagMap,
-  with flag_input: String,
-) -> Result(FlagMap) {
+pub fn update_flags(in flags: Map, with flag_input: String) -> Result(Map) {
   let flag_input = string.drop_left(flag_input, string.length(prefix))
   case string.split_once(flag_input, delimiter) {
     Error(_) -> {
@@ -123,7 +120,7 @@ pub fn update_flags(
 }
 
 /// Gets the current Value for the associated flag
-fn access_flag(flags: FlagMap, name: String) -> Result(Value) {
+fn access_flag(flags: Map, name: String) -> Result(Value) {
   map.get(flags, name)
   |> result.replace_error(undefined_flag_err(name))
 }
