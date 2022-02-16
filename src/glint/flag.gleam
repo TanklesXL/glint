@@ -128,7 +128,7 @@ fn access_flag(flags: Map, name: String) -> Result(Value) {
 /// Computes the new flag value given the input and the expected flag type 
 fn compute_flag(
   for name: String,
-  with value: String,
+  with input: String,
   given default: Value,
 ) -> Result(Value) {
   case default {
@@ -141,7 +141,7 @@ fn compute_flag(
     B(_) -> parse_bool
   }(
     name,
-    value,
+    input,
   )
 }
 
