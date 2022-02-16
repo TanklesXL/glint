@@ -1,6 +1,6 @@
 import gleam
 import gleam/bool
-import gleam/map.{Map}
+import gleam/map
 import gleam/string
 import gleam/result
 import gleam/int
@@ -16,7 +16,7 @@ pub const prefix = "--"
 const delimiter = "="
 
 /// Supported flag types.
-pub type FlagValue {
+pub type Value {
   /// Boolean flags, to be passed in as `--flag=true` or `--flag=false`.
   /// Can be toggled by omitting the desired value like `--flag`.
   /// Toggling will negate the existing value.
@@ -43,12 +43,17 @@ pub type FlagValue {
 
 /// Associates a name with a flag value
 pub type Flag {
-  Flag(name: String, value: FlagValue)
+  Flag(name: String, value: Value)
 }
 
 /// Creates a Flag(name, I(value))
 pub fn int(called name: String, default value: Int) -> Flag {
   Flag(name, I(value))
+}
+
+/// Creates a Flag(name, LI(value))
+pub fn ints(called name: String, default value: List(Int)) -> Flag {
+  Flag(name, LI(value))
 }
 
 /// Creates a Flag(name, F(value))
@@ -57,13 +62,8 @@ pub fn float(called name: String, default value: Float) -> Flag {
 }
 
 /// Creates a Flag(name, LF(value))
-pub fn float_list(called name: String, default value: List(Float)) -> Flag {
+pub fn floats(called name: String, default value: List(Float)) -> Flag {
   Flag(name, LF(value))
-}
-
-/// Creates a Flag(name, LI(value))
-pub fn int_list(called name: String, default value: List(Int)) -> Flag {
-  Flag(name, LI(value))
 }
 
 /// Creates a Flag(name, S(value))
@@ -72,7 +72,7 @@ pub fn string(called name: String, default value: String) -> Flag {
 }
 
 /// Creates a Flag(name, LS(value))
-pub fn string_list(called name: String, default value: List(String)) -> Flag {
+pub fn strings(called name: String, default value: List(String)) -> Flag {
   Flag(name, LS(value))
 }
 
@@ -82,11 +82,11 @@ pub fn bool(called name: String, default value: Bool) -> Flag {
 }
 
 /// Associate flag names to their current values.
-pub type FlagMap =
-  Map(String, FlagValue)
+pub type Map =
+  map.Map(String, Value)
 
-/// Convert a list of flags to a FlagMap.
-pub fn build_map(flags: List(Flag)) -> FlagMap {
+/// Convert a list of flags to a Map.
+pub fn build_map(flags: List(Flag)) -> Map {
   list.fold(
     flags,
     map.new(),
@@ -97,10 +97,7 @@ pub fn build_map(flags: List(Flag)) -> FlagMap {
 /// Updates a flag balue, ensuring that the new value can satisfy the required type.
 /// Assumes that all flag inputs passed in start with --
 /// This function is only intended to be used from glint.execute_root
-pub fn update_flags(
-  in flags: FlagMap,
-  with flag_input: String,
-) -> Result(FlagMap) {
+pub fn update_flags(in flags: Map, with flag_input: String) -> Result(Map) {
   let flag_input = string.drop_left(flag_input, string.length(prefix))
   case string.split_once(flag_input, delimiter) {
     Error(_) -> {
@@ -122,8 +119,8 @@ pub fn update_flags(
   }
 }
 
-/// Gets the current FlagValue for the associated flag
-fn access_flag(flags: FlagMap, name: String) -> Result(FlagValue) {
+/// Gets the current Value for the associated flag
+fn access_flag(flags: Map, name: String) -> Result(Value) {
   map.get(flags, name)
   |> result.replace_error(undefined_flag_err(name))
 }
@@ -132,8 +129,8 @@ fn access_flag(flags: FlagMap, name: String) -> Result(FlagValue) {
 fn compute_flag(
   for name: String,
   with value: String,
-  given default: FlagValue,
-) -> Result(FlagValue) {
+  given default: Value,
+) -> Result(Value) {
   case default {
     I(_) -> parse_int
     LI(_) -> parse_int_list
@@ -188,8 +185,8 @@ fn parse_string_list(_key, value) {
 fn parse_flag(
   value: String,
   parse: fn(String) -> gleam.Result(a, b),
-  construct: fn(a) -> FlagValue,
-) -> gleam.Result(FlagValue, b) {
+  construct: fn(a) -> Value,
+) -> gleam.Result(Value, b) {
   value
   |> parse()
   |> result.map(construct)
@@ -198,8 +195,8 @@ fn parse_flag(
 fn parse_list_flag(
   value: String,
   parse: fn(String) -> gleam.Result(a, b),
-  construct: fn(List(a)) -> FlagValue,
-) -> gleam.Result(FlagValue, b) {
+  construct: fn(List(a)) -> Value,
+) -> gleam.Result(Value, b) {
   value
   |> string.split(",")
   |> list.try_map(parse)

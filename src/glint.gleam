@@ -8,7 +8,7 @@ import gleam/string
 import gleam/bool
 import gleam/function
 import snag.{Result}
-import glint/flag.{Flag, FlagMap}
+import glint/flag.{Flag, Map as FlagMap}
 
 /// Input type for `Runner`.
 ///
