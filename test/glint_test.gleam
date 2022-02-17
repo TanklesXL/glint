@@ -156,7 +156,7 @@ pub fn help_test() {
 
   glint.execute(cli, [flag.help_flag()])
   |> should.equal(Ok(Help(
-    "\nThis is the root command
+    "This is the root command
 
 USAGE:
 \tgleam run <FLAGS>

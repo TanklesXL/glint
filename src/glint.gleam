@@ -220,37 +220,46 @@ const usage = "USAGE:\n\t"
 
 // Help Message Functions
 fn cmd_help(path: List(String), command: Command(a)) -> String {
+  // recreate the path of the current command
   let name =
     path
     |> list.reverse
     |> string.join(" ")
 
-  let desc = case command.do {
-    None -> name
-    Some(Contents(_, desc)) -> string.join([name, desc_to_string(desc)], "\n")
+  // create the name, description  and usage help block
+  let Description(desc, usage) = case command.do {
+    None -> Description("", "")
+    Some(Contents(_, desc)) ->
+      Description(..desc, usage: usage_to_string(desc.usage))
   }
 
+  let header_items =
+    [name, desc]
+    |> list.filter(function.compose(string.is_empty, bool.negate))
+    |> string.join("\n")
+
+  // create the flags help block
   let flags = case map.size(command.flags) {
     0 -> ""
     _ -> string.append(flags, flag.flags_help(command.flags))
   }
 
+  // create the subcommands help block
   let subcommands = case map.size(command.subcommands) {
     0 -> ""
     _ -> string.append(subcommands, subcommands_help(command.subcommands))
   }
 
-  [desc, flags, subcommands]
+  // join the resulting help blocks into the final help message
+  [header_items, usage, flags, subcommands]
   |> list.filter(fn(s) { s != "" })
   |> string.join("\n\n")
 }
 
-fn desc_to_string(desc: Description) -> String {
-  case desc.description, desc.usage {
-    "", "" -> ""
-    "", _ -> string.append(usage, desc.usage)
-    _, "" -> desc.description
-    _, _ -> string.concat([desc.description, "\n\n", usage, desc.usage])
+fn usage_to_string(u: String) -> String {
+  case u {
+    "" -> ""
+    _ -> string.append(usage, u)
   }
 }
 
