@@ -235,7 +235,9 @@ fn cmd_help(path: List(String), command: Command(a)) -> String {
     _ -> string.append(subcommands, subcommands_help(command.subcommands))
   }
 
-  string.join([desc, flags, subcommands], "\n\n")
+  [desc, flags, subcommands]
+  |> list.filter(fn(s) { s != "" })
+  |> string.join("\n\n")
 }
 
 fn desc_to_string(desc: Description) -> String {

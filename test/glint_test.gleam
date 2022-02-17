@@ -141,7 +141,7 @@ pub fn help_test() {
       do: nil,
       with: [flag.string("flag4", "a", "This is flag4")],
       described: "This is cmd4",
-      used: "gleam run cmd1 cmd4",
+      used: "gleam run cmd1 cmd4 <FLAGS>",
     )
     |> glint.add_command(
       at: ["cmd2"],
@@ -184,5 +184,17 @@ FLAGS:
 SUBCOMMANDS:
 \tcmd3\t\tThis is cmd3
 \tcmd4\t\tThis is cmd4",
+  )))
+
+  glint.execute(cli, ["cmd1", "cmd4", flag.help_flag()])
+  |> should.equal(Error(glint.Help(
+    "cmd1 cmd4
+This is cmd4
+
+USAGE:
+\tgleam run cmd1 cmd4 <FLAGS>
+
+FLAGS:
+\t--flag4=<FLAG4>\t\tThis is flag4",
   )))
 }
