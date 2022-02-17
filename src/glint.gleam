@@ -164,13 +164,16 @@ fn do_execute(
   command_path: List(String),
 ) -> CmdResult(a) {
   case args {
+    // when there are no more available arguments
+    // and help flag has been passed, generate help message
     [] if help ->
       command_path
       |> cmd_help(cmd)
       |> Help
       |> Error
 
-    // when there are no more available arguments, run the current command
+    // when there are no more available arguments
+    // run the current command
     [] -> execute_root(cmd, [], flags)
 
     // when there are arguments remaining
