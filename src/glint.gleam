@@ -8,7 +8,7 @@ import gleam/string
 import gleam/bool
 import gleam/function
 import gleam
-import snag
+import snag.{Result}
 import glint/flag.{Flag, Map as FlagMap}
 
 /// Input type for `Runner`.
@@ -98,13 +98,17 @@ fn do_add_command(
   }
 }
 
-pub type Err {
-  Snag(snag.Snag)
+/// Ok type for command execution 
+pub type Out(a) {
+  /// Container for the command return value
+  Out(a)
+  /// Container for the generated help string
   Help(String)
 }
 
+/// Result type for command execution
 pub type CmdResult(a) =
-  Result(a, Err)
+  Result(Out(a))
 
 /// Executes the current root command.
 ///
@@ -119,17 +123,15 @@ fn execute_root(
         flags
         |> list.try_fold(from: cmd.flags, with: flag.update_flags)
         |> snag.context("failed to run command")
-        |> result.map_error(Snag)
       args
       |> CommandInput(new_flags)
       |> f
+      |> Out
       |> Ok
     }
     None ->
-      snag.new("command not found")
-      |> snag.layer("failed to run command")
-      |> Snag
-      |> Error
+      snag.error("command not found")
+      |> snag.context("failed to run command")
   }
 }
 
@@ -170,7 +172,7 @@ fn do_execute(
       command_path
       |> cmd_help(cmd)
       |> Help
-      |> Error
+      |> Ok
 
     // when there are no more available arguments
     // run the current command
@@ -188,7 +190,7 @@ fn do_execute(
           command_path
           |> cmd_help(cmd)
           |> Help
-          |> Error
+          |> Ok
         // subcommand not found, but help flag has not been passed
         // execute the current command
         _ -> execute_root(cmd, args, flags)
@@ -201,11 +203,11 @@ fn do_execute(
 ///
 pub fn run(cmd: Command(a), args: List(String)) -> Nil {
   case execute(cmd, args) {
-    Error(Help(help)) -> io.println(help)
-    Error(Snag(err)) ->
+    Error(err) ->
       err
       |> snag.pretty_print
       |> io.println
+    Ok(Help(help)) -> io.println(help)
     _ -> Nil
   }
 }
@@ -248,7 +250,7 @@ fn desc_to_string(desc: Description) -> String {
     "", "" -> ""
     "", _ -> string.append(usage, desc.usage)
     _, "" -> desc.description
-    _, _ -> string.concat([desc.description, "\n\n", "USAGE:\n\t", desc.usage])
+    _, _ -> string.concat([desc.description, "\n\n", usage, desc.usage])
   }
 }
 
@@ -259,7 +261,7 @@ fn subcommands_help(cmds: Map(String, Command(a))) -> String {
   |> string.join("\n\t")
 }
 
-fn subcommand_help(name: String, cmd: Command(a)) {
+fn subcommand_help(name: String, cmd: Command(a)) -> String {
   case cmd.do {
     None -> ""
     Some(Contents(_, Description(desc, _))) ->

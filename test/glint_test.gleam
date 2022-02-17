@@ -1,7 +1,7 @@
 import gleam/result
 import gleeunit
 import gleeunit/should
-import glint.{CommandInput}
+import glint.{CommandInput, Help, Out}
 import glint/flag
 import gleam/function
 import snag
@@ -100,12 +100,12 @@ pub fn runner_test() {
   // command returns its own successful result
   cmd
   |> glint.execute([])
-  |> should.equal(Ok(Ok("success")))
+  |> should.equal(Ok(glint.Out(Ok("success"))))
 
   // command returns its own error result
   cmd
   |> glint.execute(["subcommand"])
-  |> should.equal(Ok(snag.error("failed")))
+  |> should.equal(Ok(Out(snag.error("failed"))))
 }
 
 pub fn help_test() {
@@ -152,10 +152,10 @@ pub fn help_test() {
     )
 
   glint.execute(cli, [])
-  |> should.equal(Ok(Nil))
+  |> should.equal(Ok(Out(Nil)))
 
   glint.execute(cli, [flag.help_flag()])
-  |> should.equal(Error(glint.Help(
+  |> should.equal(Ok(Help(
     "\nThis is the root command
 
 USAGE:
@@ -170,7 +170,7 @@ SUBCOMMANDS:
   )))
 
   glint.execute(cli, ["cmd1", flag.help_flag()])
-  |> should.equal(Error(glint.Help(
+  |> should.equal(Ok(Help(
     "cmd1
 This is cmd1
 
@@ -187,7 +187,7 @@ SUBCOMMANDS:
   )))
 
   glint.execute(cli, ["cmd1", "cmd4", flag.help_flag()])
-  |> should.equal(Error(glint.Help(
+  |> should.equal(Ok(Help(
     "cmd1 cmd4
 This is cmd4
 
