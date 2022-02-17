@@ -7,7 +7,8 @@ import gleam/result
 import gleam/string
 import gleam/bool
 import gleam/function
-import snag.{Result}
+import gleam
+import snag
 import glint/flag.{Flag, Map as FlagMap}
 
 /// Input type for `Runner`.
@@ -21,11 +22,19 @@ pub type CommandInput {
 pub type Runner(a) =
   fn(CommandInput) -> a
 
+pub type Description {
+  Description(description: String, usage: String)
+}
+
+pub type Contents(a) {
+  Contents(do: Runner(a), desc: Description)
+}
+
 /// Command tree representation.
 ///
 pub opaque type Command(a) {
   Command(
-    do: Option(Runner(a)),
+    do: Option(Contents(a)),
     subcommands: Map(String, Command(a)),
     flags: FlagMap,
   )
@@ -55,25 +64,31 @@ pub fn add_command(
   at path: List(String),
   do f: Runner(a),
   with flags: List(Flag),
+  described description: String,
+  used usage: String,
 ) -> Command(a) {
   path
   |> sanitize_path
-  |> do_add_command(to: root, do: f, with: flags)
+  |> do_add_command(
+    to: root,
+    put: Contents(f, Description(description, usage)),
+    with: flags,
+  )
 }
 
 fn do_add_command(
   to root: Command(a),
   at path: List(String),
-  do f: Runner(a),
+  put contents: Contents(a),
   with flags: List(Flag),
 ) -> Command(a) {
   case path {
-    [] -> Command(..root, do: Some(f), flags: flag.build_map(flags))
+    [] -> Command(..root, do: Some(contents), flags: flag.build_map(flags))
     [x, ..xs] -> {
       let update_subcommand = fn(node) {
         node
         |> option.lazy_unwrap(new)
-        |> do_add_command(xs, f, flags)
+        |> do_add_command(xs, contents, flags)
       }
       Command(
         ..root,
@@ -83,28 +98,37 @@ fn do_add_command(
   }
 }
 
+pub type Err {
+  Snag(snag.Snag)
+  Help(String)
+}
+
+pub type CmdResult(a) =
+  Result(a, Err)
+
 /// Executes the current root command.
 ///
 fn execute_root(
   cmd: Command(a),
   args: List(String),
   flags: List(String),
-) -> Result(a) {
+) -> CmdResult(a) {
   case cmd.do {
-    Some(f) -> {
+    Some(Contents(f, _)) -> {
       try new_flags =
         flags
         |> list.try_fold(from: cmd.flags, with: flag.update_flags)
         |> snag.context("failed to run command")
+        |> result.map_error(Snag)
       args
       |> CommandInput(new_flags)
       |> f
       |> Ok
     }
-
     None ->
       snag.new("command not found")
       |> snag.layer("failed to run command")
+      |> Snag
       |> Error
   }
 }
@@ -115,21 +139,55 @@ fn execute_root(
 ///
 /// Each value prefixed with `--` is parsed as a flag.
 ///
-pub fn execute(cmd: Command(a), args: List(String)) -> Result(a) {
+pub fn execute(cmd: Command(a), args: List(String)) -> CmdResult(a) {
+  // create help flag to check for
+  let help_flag = flag.help_flag()
+
+  // check if help flag is present
+  let #(help, args) = case list.pop(args, fn(s) { s == help_flag }) {
+    Ok(#(_, args)) -> #(True, args)
+    _ -> #(False, args)
+  }
+
+  // split flags out from the args list
   let #(flags, args) = list.partition(args, string.starts_with(_, flag.prefix))
-  do_execute(cmd, args, flags)
+
+  // search for command and execute
+  do_execute(cmd, args, flags, help, [])
 }
 
 fn do_execute(
   cmd: Command(a),
   args: List(String),
   flags: List(String),
-) -> Result(a) {
+  help: Bool,
+  command_path: List(String),
+) -> CmdResult(a) {
   case args {
+    [] if help ->
+      command_path
+      |> cmd_help(cmd)
+      |> Help
+      |> Error
+
+    // when there are no more available arguments, run the current command
     [] -> execute_root(cmd, [], flags)
+
+    // when there are arguments remaining
+    // check if the next one is a subcommand of the current command
     [arg, ..rest] ->
       case map.get(cmd.subcommands, arg) {
-        Ok(cmd) -> do_execute(cmd, rest, flags)
+        // subcommand found, continue
+        Ok(cmd) -> do_execute(cmd, rest, flags, help, [arg, ..command_path])
+        // subcommand not found, but help flag has been passed
+        // generate and return help message
+        _ if help ->
+          command_path
+          |> cmd_help(cmd)
+          |> Help
+          |> Error
+        // subcommand not found, but help flag has not been passed
+        // execute the current command
         _ -> execute_root(cmd, args, flags)
       }
   }
@@ -140,10 +198,66 @@ fn do_execute(
 ///
 pub fn run(cmd: Command(a), args: List(String)) -> Nil {
   case execute(cmd, args) {
-    Error(err) ->
+    Error(Help(help)) -> io.println(help)
+    Error(Snag(err)) ->
       err
       |> snag.pretty_print
       |> io.println
     _ -> Nil
+  }
+}
+
+const flags = "FLAGS:\n\t"
+
+const subcommands = "SUBCOMMANDS:\n\t"
+
+const usage = "USAGE:\n\t"
+
+// Help Message Functions
+fn cmd_help(path: List(String), command: Command(a)) -> String {
+  let name =
+    path
+    |> list.reverse
+    |> string.join(" ")
+
+  let desc = case command.do {
+    None -> name
+    Some(Contents(_, desc)) -> string.join([name, desc_to_string(desc)], "\n")
+  }
+
+  let flags = case map.size(command.flags) {
+    0 -> ""
+    _ -> string.append(flags, flag.flags_help(command.flags))
+  }
+
+  let subcommands = case map.size(command.subcommands) {
+    0 -> ""
+    _ -> string.append(subcommands, subcommands_help(command.subcommands))
+  }
+
+  string.join([desc, flags, subcommands], "\n\n")
+}
+
+fn desc_to_string(desc: Description) -> String {
+  case desc.description, desc.usage {
+    "", "" -> ""
+    "", _ -> string.append(usage, desc.usage)
+    _, "" -> desc.description
+    _, _ -> string.concat([desc.description, "\n\n", "USAGE:\n\t", desc.usage])
+  }
+}
+
+fn subcommands_help(cmds: Map(String, Command(a))) -> String {
+  cmds
+  |> map.map_values(subcommand_help)
+  |> map.values
+  |> string.join("\n\t")
+}
+
+fn subcommand_help(name: String, cmd: Command(a)) {
+  case cmd.do {
+    None -> ""
+    Some(Contents(_, Description(desc, _))) ->
+      string.concat([name, "\t\t", desc])
   }
 }
