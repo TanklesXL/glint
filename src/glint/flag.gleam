@@ -286,5 +286,6 @@ pub fn flags_help(flags: Map) {
   flags
   |> map.map_values(flag_help)
   |> map.values
+  |> list.sort(string.compare)
   |> string.join("\n\t")
 }

@@ -27,23 +27,19 @@ pub type Description {
 }
 
 pub type Contents(a) {
-  Contents(do: Runner(a), desc: Description)
+  Contents(do: Runner(a), flags: FlagMap, desc: Description)
 }
 
 /// Command tree representation.
 ///
 pub opaque type Command(a) {
-  Command(
-    do: Option(Contents(a)),
-    subcommands: Map(String, Command(a)),
-    flags: FlagMap,
-  )
+  Command(contents: Option(Contents(a)), subcommands: Map(String, Command(a)))
 }
 
 /// Creates a new command tree.
 ///
 pub fn new() -> Command(a) {
-  Command(do: None, subcommands: map.new(), flags: map.new())
+  Command(contents: None, subcommands: map.new())
 }
 
 /// Trim each path element and remove any resulting empty strings.
@@ -51,7 +47,7 @@ pub fn new() -> Command(a) {
 fn sanitize_path(path: List(String)) -> List(String) {
   path
   |> list.map(string.trim)
-  |> list.filter(function.compose(string.is_empty, bool.negate))
+  |> list.filter(is_not_empty)
 }
 
 /// Adds a new command to be run at the specified path.
@@ -71,8 +67,7 @@ pub fn add_command(
   |> sanitize_path
   |> do_add_command(
     to: root,
-    put: Contents(f, Description(description, usage)),
-    with: flags,
+    put: Contents(f, flag.build_map(flags), Description(description, usage)),
   )
 }
 
@@ -80,15 +75,14 @@ fn do_add_command(
   to root: Command(a),
   at path: List(String),
   put contents: Contents(a),
-  with flags: List(Flag),
 ) -> Command(a) {
   case path {
-    [] -> Command(..root, do: Some(contents), flags: flag.build_map(flags))
+    [] -> Command(..root, contents: Some(contents))
     [x, ..xs] -> {
       let update_subcommand = fn(node) {
         node
         |> option.lazy_unwrap(new)
-        |> do_add_command(xs, contents, flags)
+        |> do_add_command(xs, contents)
       }
       Command(
         ..root,
@@ -117,15 +111,15 @@ fn execute_root(
   args: List(String),
   flags: List(String),
 ) -> CmdResult(a) {
-  case cmd.do {
-    Some(Contents(f, _)) -> {
+  case cmd.contents {
+    Some(contents) -> {
       try new_flags =
         flags
-        |> list.try_fold(from: cmd.flags, with: flag.update_flags)
+        |> list.try_fold(from: contents.flags, with: flag.update_flags)
         |> snag.context("failed to run command")
       args
       |> CommandInput(new_flags)
-      |> f
+      |> contents.do
       |> Out
       |> Ok
     }
@@ -212,11 +206,15 @@ pub fn run(cmd: Command(a), args: List(String)) -> Nil {
   }
 }
 
-const flags = "FLAGS:\n\t"
+const flags_heading = "FLAGS:\n\t"
 
-const subcommands = "SUBCOMMANDS:\n\t"
+const subcommands_heading = "SUBCOMMANDS:\n\t"
 
-const usage = "USAGE:\n\t"
+const usage_heading = "USAGE:\n\t"
+
+fn is_not_empty(s: String) -> Bool {
+  s != ""
+}
 
 // Help Message Functions
 fn cmd_help(path: List(String), command: Command(a)) -> String {
@@ -227,39 +225,44 @@ fn cmd_help(path: List(String), command: Command(a)) -> String {
     |> string.join(" ")
 
   // create the name, description  and usage help block
-  let Description(desc, usage) = case command.do {
-    None -> Description("", "")
-    Some(Contents(_, desc)) ->
-      Description(..desc, usage: usage_to_string(desc.usage))
+  let #(flags, description, usage) = case command.contents {
+    None -> #("", "", "")
+    Some(Contents(_, flags, desc)) -> #(
+      flag.flags_help(flags),
+      desc.description,
+      usage_help(desc.usage),
+    )
   }
 
+  // create the header block from the name and description
   let header_items =
-    [name, desc]
-    |> list.filter(function.compose(string.is_empty, bool.negate))
+    [name, description]
+    |> list.filter(is_not_empty)
     |> string.join("\n")
 
   // create the flags help block
-  let flags = case map.size(command.flags) {
-    0 -> ""
-    _ -> string.append(flags, flag.flags_help(command.flags))
+  let flags = case flags {
+    "" -> ""
+    _ -> string.append(flags_heading, flags)
   }
 
   // create the subcommands help block
   let subcommands = case map.size(command.subcommands) {
     0 -> ""
-    _ -> string.append(subcommands, subcommands_help(command.subcommands))
+    _ ->
+      string.append(subcommands_heading, subcommands_help(command.subcommands))
   }
 
   // join the resulting help blocks into the final help message
   [header_items, usage, flags, subcommands]
-  |> list.filter(fn(s) { s != "" })
+  |> list.filter(is_not_empty)
   |> string.join("\n\n")
 }
 
-fn usage_to_string(u: String) -> String {
+fn usage_help(u: String) -> String {
   case u {
     "" -> ""
-    _ -> string.append(usage, u)
+    _ -> string.append(usage_heading, u)
   }
 }
 
@@ -267,13 +270,14 @@ fn subcommands_help(cmds: Map(String, Command(a))) -> String {
   cmds
   |> map.map_values(subcommand_help)
   |> map.values
+  |> list.sort(string.compare)
   |> string.join("\n\t")
 }
 
 fn subcommand_help(name: String, cmd: Command(a)) -> String {
-  case cmd.do {
-    None -> ""
-    Some(Contents(_, Description(desc, _))) ->
+  case cmd.contents {
+    None -> name
+    Some(Contents(_, _, Description(desc, _))) ->
       string.concat([name, "\t\t", desc])
   }
 }

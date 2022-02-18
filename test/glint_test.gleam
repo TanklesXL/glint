@@ -146,14 +146,23 @@ pub fn help_test() {
     |> glint.add_command(
       at: ["cmd2"],
       do: nil,
-      with: [flag.string("flag6", "a", "This is flag6")],
+      with: [],
       described: "This is cmd2",
       used: "gleam run cmd2",
     )
+    |> glint.add_command(
+      at: ["cmd5", "cmd6"],
+      do: nil,
+      with: [],
+      described: "This is cmd6",
+      used: "gleam run cmd6",
+    )
 
+  // execute root command
   glint.execute(cli, [])
   |> should.equal(Ok(Out(Nil)))
 
+  // help message for root command
   glint.execute(cli, [flag.help_flag()])
   |> should.equal(Ok(Help(
     "This is the root command
@@ -166,9 +175,11 @@ FLAGS:
 
 SUBCOMMANDS:
 \tcmd1\t\tThis is cmd1
-\tcmd2\t\tThis is cmd2",
+\tcmd2\t\tThis is cmd2
+\tcmd5",
   )))
 
+  // help message for command
   glint.execute(cli, ["cmd1", flag.help_flag()])
   |> should.equal(Ok(Help(
     "cmd1
@@ -186,6 +197,7 @@ SUBCOMMANDS:
 \tcmd4\t\tThis is cmd4",
   )))
 
+  // help message for nested command
   glint.execute(cli, ["cmd1", "cmd4", flag.help_flag()])
   |> should.equal(Ok(Help(
     "cmd1 cmd4

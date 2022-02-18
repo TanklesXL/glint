@@ -293,3 +293,18 @@ pub fn toggle_test() {
   |> glint.execute([flag_input])
   |> should.be_error()
 }
+
+pub fn flags_help_test() {
+  [
+    flag.string("string", "", "a string flag"),
+    flag.int("int", 0, "an int flag"),
+    flag.float("float", 0.0, "a float flag"),
+  ]
+  |> flag.build_map()
+  |> flag.flags_help()
+  |> should.equal(
+    "--float=<FLOAT>\t\ta float flag
+\t--int=<INT>\t\tan int flag
+\t--string=<STRING>\t\ta string flag",
+  )
+}
