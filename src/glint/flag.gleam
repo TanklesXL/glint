@@ -264,9 +264,11 @@ fn cannot_parse(flag key: String, with value: String, is kind: String) -> Snag {
   |> layer_invalid_flag(key)
 }
 
+const help_flag_name = "help"
+
 // Help Message Functions
 pub fn help_flag() -> String {
-  string.append(prefix, "help")
+  string.append(prefix, help_flag_name)
 }
 
 fn flag_help(name: String, contents: Contents) -> String {
@@ -282,10 +284,13 @@ fn flag_help(name: String, contents: Contents) -> String {
   ])
 }
 
+const help_flag_message = "--help\t\tPrint help information"
+
 pub fn flags_help(flags: Map) {
   flags
   |> map.map_values(flag_help)
   |> map.values
   |> list.sort(string.compare)
+  |> fn(l) { [help_flag_message, ..l] }
   |> string.join("\n\t")
 }
