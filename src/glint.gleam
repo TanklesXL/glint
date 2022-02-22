@@ -217,6 +217,8 @@ const subcommands_heading = "SUBCOMMANDS:\n\t"
 
 const usage_heading = "USAGE:\n\t"
 
+const help_flag_message = "--help\t\tPrint help information"
+
 /// Helper for filtering out empty strings
 fn is_not_empty(s: String) -> Bool {
   s != ""
@@ -239,7 +241,10 @@ fn cmd_help(path: List(String), command: Command(a)) -> String {
       let flags =
         flags
         |> flag.flags_help()
-        |> append_if_msg_not_empty(flags_heading, _)
+        |> append_if_msg_not_empty("\n\t", _)
+        |> string.append(help_flag_message, _)
+        |> string.append(flags_heading, _)
+      // create the usage help block
       let usage = append_if_msg_not_empty(usage_heading, desc.usage)
       #(flags, desc.description, usage)
     }
@@ -252,11 +257,10 @@ fn cmd_help(path: List(String), command: Command(a)) -> String {
     |> string.join("\n")
 
   // create the subcommands help block
-  let subcommands = case map.size(command.subcommands) {
-    0 -> ""
-    _ ->
-      string.append(subcommands_heading, subcommands_help(command.subcommands))
-  }
+  let subcommands =
+    command.subcommands
+    |> subcommands_help
+    |> append_if_msg_not_empty(subcommands_heading, _)
 
   // join the resulting help blocks into the final help message
   [header_items, usage, flags, subcommands]

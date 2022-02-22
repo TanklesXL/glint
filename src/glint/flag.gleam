@@ -284,13 +284,10 @@ fn flag_help(name: String, contents: Contents) -> String {
   ])
 }
 
-const help_flag_message = "--help\t\tPrint help information"
-
 pub fn flags_help(flags: Map) {
   flags
   |> map.map_values(flag_help)
   |> map.values
   |> list.sort(string.compare)
-  |> fn(l) { [help_flag_message, ..l] }
   |> string.join("\n\t")
 }

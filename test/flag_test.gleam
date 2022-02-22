@@ -303,8 +303,7 @@ pub fn flags_help_test() {
   |> flag.build_map()
   |> flag.flags_help()
   |> should.equal(
-    "--help\t\tPrint help information
-\t--float=<FLOAT>\t\ta float flag
+    "--float=<FLOAT>\t\ta float flag
 \t--int=<INT>\t\tan int flag
 \t--string=<STRING>\t\ta string flag",
   )

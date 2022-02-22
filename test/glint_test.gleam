@@ -212,4 +212,17 @@ FLAGS:
 \t--help\t\tPrint help information
 \t--flag4=<FLAG4>\t\tThis is flag4",
   )))
+
+  // help message for command with no additional flags
+  glint.execute(cli, ["cmd2", flag.help_flag()])
+  |> should.equal(Ok(Help(
+    "cmd2
+This is cmd2
+
+USAGE:
+\tgleam run cmd2
+
+FLAGS:
+\t--help\t\tPrint help information",
+  )))
 }
