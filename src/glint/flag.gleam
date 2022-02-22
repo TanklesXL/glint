@@ -131,7 +131,7 @@ pub fn update_flags(in flags: Map, with flag_input: String) -> Result(Map) {
   let flag_input = string.drop_left(flag_input, string.length(prefix))
   case string.split_once(flag_input, delimiter) {
     Error(_) -> {
-      try Contents(default, desc) = access_flag(flags, flag_input)
+      try Contents(default, desc) = access(flags, flag_input)
       case default {
         B(val) ->
           val
@@ -144,7 +144,7 @@ pub fn update_flags(in flags: Map, with flag_input: String) -> Result(Map) {
       }
     }
     Ok(#(key, value)) -> {
-      try Contents(default, desc) = access_flag(flags, key)
+      try Contents(default, desc) = access(flags, key)
       default
       |> compute_flag(for: key, with: value)
       |> result.map(Contents(_, desc))
@@ -153,10 +153,16 @@ pub fn update_flags(in flags: Map, with flag_input: String) -> Result(Map) {
   }
 }
 
-/// Gets the current Value for the associated flag
-fn access_flag(flags: Map, name: String) -> Result(Contents) {
+/// Access the contents for the associated flag
+fn access(flags: Map, name: String) -> Result(Contents) {
   map.get(flags, name)
   |> result.replace_error(undefined_flag_err(name))
+}
+
+/// Gets the current Value for the associated flag
+pub fn get_value(flags: Map, name: String) -> gleam.Result(Value, Nil) {
+  try contents = map.get(flags, name)
+  Ok(contents.value)
 }
 
 /// Computes the new flag value given the input and the expected flag type 

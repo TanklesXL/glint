@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.7.1] - 2022-02-22
+
+- `flag.access_flag` renamed to `flag.access`
+- `flag.get_value` added
+
 ## [0.7.0] - 2022-02-22
 
 - rename flag `*_list` functions
@@ -52,7 +57,8 @@
 
 - Initial argument parsing and flags support.
 
-[Unreleased]: https://github.com/TanklesXL/glint/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/TanklesXL/glint/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/TanklesXL/glint/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/TanklesXL/glint/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/TanklesXL/glint/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/TanklesXL/glint/compare/v0.4.0...v0.5.0

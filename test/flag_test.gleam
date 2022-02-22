@@ -122,6 +122,10 @@ pub fn flag_value_test() {
     in.flags
     |> map.get("flag")
     |> should.equal(Ok(Contents(S("flag_value"), "")))
+
+    in.flags
+    |> flag.get_value("flag")
+    |> should.equal(Ok(S("flag_value")))
   }
 
   glint.new()
