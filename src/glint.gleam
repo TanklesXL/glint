@@ -77,7 +77,9 @@ fn do_add_command(
   put contents: Contents(a),
 ) -> Command(a) {
   case path {
+    // update current command with provided contents
     [] -> Command(..root, contents: Some(contents))
+    // continue down the path, creating empty command nodes along the way
     [x, ..xs] -> {
       let update_subcommand = fn(node) {
         node
@@ -93,6 +95,7 @@ fn do_add_command(
 }
 
 /// Ok type for command execution 
+///
 pub type Out(a) {
   /// Container for the command return value
   Out(a)
@@ -101,6 +104,7 @@ pub type Out(a) {
 }
 
 /// Result type for command execution
+///
 pub type CmdResult(a) =
   Result(Out(a))
 
@@ -206,12 +210,14 @@ pub fn run(cmd: Command(a), args: List(String)) -> Nil {
   }
 }
 
+// constants for setting up sections of the help message
 const flags_heading = "FLAGS:\n\t"
 
 const subcommands_heading = "SUBCOMMANDS:\n\t"
 
 const usage_heading = "USAGE:\n\t"
 
+/// Helper for filtering out empty strings
 fn is_not_empty(s: String) -> Bool {
   s != ""
 }
@@ -219,6 +225,7 @@ fn is_not_empty(s: String) -> Bool {
 // Help Message Functions
 fn cmd_help(path: List(String), command: Command(a)) -> String {
   // recreate the path of the current command
+  // reverse the path because it is created by prepending each section as do_execute walks down the tree
   let name =
     path
     |> list.reverse
@@ -227,11 +234,15 @@ fn cmd_help(path: List(String), command: Command(a)) -> String {
   // create the name, description  and usage help block
   let #(flags, description, usage) = case command.contents {
     None -> #("", "", "")
-    Some(Contents(_, flags, desc)) -> #(
-      flag.flags_help(flags),
-      desc.description,
-      usage_help(desc.usage),
-    )
+    Some(Contents(_, flags, desc)) -> {
+      // create the flags help block
+      let flags =
+        flags
+        |> flag.flags_help()
+        |> append_if_msg_not_empty(flags_heading, _)
+      let usage = append_if_msg_not_empty(usage_heading, desc.usage)
+      #(flags, desc.description, usage)
+    }
   }
 
   // create the header block from the name and description
@@ -239,12 +250,6 @@ fn cmd_help(path: List(String), command: Command(a)) -> String {
     [name, description]
     |> list.filter(is_not_empty)
     |> string.join("\n")
-
-  // create the flags help block
-  let flags = case flags {
-    "" -> ""
-    _ -> string.append(flags_heading, flags)
-  }
 
   // create the subcommands help block
   let subcommands = case map.size(command.subcommands) {
@@ -259,10 +264,10 @@ fn cmd_help(path: List(String), command: Command(a)) -> String {
   |> string.join("\n\n")
 }
 
-fn usage_help(u: String) -> String {
-  case u {
+fn append_if_msg_not_empty(prefix: String, message: String) -> String {
+  case message {
     "" -> ""
-    _ -> string.append(usage_heading, u)
+    _ -> string.append(prefix, message)
   }
 }
 
