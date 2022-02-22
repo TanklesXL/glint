@@ -5,6 +5,7 @@
 - rename flag `*_list` functions
 - rename `flag.FlagValue` to `flag.Value`
 - rename `flag.FlagMap` to `flag.Map`
+- generate help messages for commands and flags
 
 ## [0.6.0] - 2022-02-11
 

@@ -41,57 +41,87 @@ pub type Value {
   LS(List(String))
 }
 
-/// Associates a name with a flag value
-pub type Flag {
-  Flag(name: String, value: Value)
+pub type Description =
+  String
+
+pub type Contents {
+  Contents(value: Value, description: Description)
 }
 
+/// Associates a name with a flag value
+pub type Flag =
+  #(String, Contents)
+
 /// Creates a Flag(name, I(value))
-pub fn int(called name: String, default value: Int) -> Flag {
-  Flag(name, I(value))
+pub fn int(
+  called name: String,
+  default value: Int,
+  explained description: Description,
+) -> Flag {
+  #(name, Contents(I(value), description))
 }
 
 /// Creates a Flag(name, LI(value))
-pub fn ints(called name: String, default value: List(Int)) -> Flag {
-  Flag(name, LI(value))
+pub fn ints(
+  called name: String,
+  default value: List(Int),
+  explained description: Description,
+) -> Flag {
+  #(name, Contents(LI(value), description))
 }
 
 /// Creates a Flag(name, F(value))
-pub fn float(called name: String, default value: Float) -> Flag {
-  Flag(name, F(value))
+pub fn float(
+  called name: String,
+  default value: Float,
+  explained description: Description,
+) -> Flag {
+  #(name, Contents(F(value), description))
 }
 
 /// Creates a Flag(name, LF(value))
-pub fn floats(called name: String, default value: List(Float)) -> Flag {
-  Flag(name, LF(value))
+pub fn floats(
+  called name: String,
+  default value: List(Float),
+  explained description: Description,
+) -> Flag {
+  #(name, Contents(LF(value), description))
 }
 
 /// Creates a Flag(name, S(value))
-pub fn string(called name: String, default value: String) -> Flag {
-  Flag(name, S(value))
+pub fn string(
+  called name: String,
+  default value: String,
+  explained description: Description,
+) -> Flag {
+  #(name, Contents(S(value), description))
 }
 
 /// Creates a Flag(name, LS(value))
-pub fn strings(called name: String, default value: List(String)) -> Flag {
-  Flag(name, LS(value))
+pub fn strings(
+  called name: String,
+  default value: List(String),
+  explained description: Description,
+) -> Flag {
+  #(name, Contents(LS(value), description))
 }
 
 /// Creates a Flag(name, B(value))
-pub fn bool(called name: String, default value: Bool) -> Flag {
-  Flag(name, B(value))
+pub fn bool(
+  called name: String,
+  default value: Bool,
+  explained description: Description,
+) -> Flag {
+  #(name, Contents(B(value), description))
 }
 
 /// Associate flag names to their current values.
 pub type Map =
-  map.Map(String, Value)
+  map.Map(String, Contents)
 
 /// Convert a list of flags to a Map.
 pub fn build_map(flags: List(Flag)) -> Map {
-  list.fold(
-    flags,
-    map.new(),
-    fn(m, flag: Flag) { map.insert(m, flag.name, flag.value) },
-  )
+  map.from_list(flags)
 }
 
 /// Updates a flag balue, ensuring that the new value can satisfy the required type.
@@ -101,26 +131,30 @@ pub fn update_flags(in flags: Map, with flag_input: String) -> Result(Map) {
   let flag_input = string.drop_left(flag_input, string.length(prefix))
   case string.split_once(flag_input, delimiter) {
     Error(_) -> {
-      try default = access_flag(flags, flag_input)
+      try Contents(default, desc) = access_flag(flags, flag_input)
       case default {
         B(val) ->
-          B(bool.negate(val))
+          val
+          |> bool.negate
+          |> B
+          |> Contents(desc)
           |> map.insert(into: flags, for: flag_input)
           |> Ok()
         _ -> Error(no_value_flag_err(flag_input))
       }
     }
     Ok(#(key, value)) -> {
-      try default = access_flag(flags, key)
+      try Contents(default, desc) = access_flag(flags, key)
       default
       |> compute_flag(for: key, with: value)
+      |> result.map(Contents(_, desc))
       |> result.map(map.insert(flags, key, _))
     }
   }
 }
 
 /// Gets the current Value for the associated flag
-fn access_flag(flags: Map, name: String) -> Result(Value) {
+fn access_flag(flags: Map, name: String) -> Result(Contents) {
   map.get(flags, name)
   |> result.replace_error(undefined_flag_err(name))
 }
@@ -228,4 +262,32 @@ fn cannot_parse(flag key: String, with value: String, is kind: String) -> Snag {
   |> string.concat()
   |> snag.new()
   |> layer_invalid_flag(key)
+}
+
+const help_flag_name = "help"
+
+// Help Message Functions
+pub fn help_flag() -> String {
+  string.append(prefix, help_flag_name)
+}
+
+fn flag_help(name: String, contents: Contents) -> String {
+  string.concat([
+    prefix,
+    name,
+    delimiter,
+    "<",
+    string.uppercase(name),
+    ">",
+    "\t\t",
+    contents.description,
+  ])
+}
+
+pub fn flags_help(flags: Map) {
+  flags
+  |> map.map_values(flag_help)
+  |> map.values
+  |> list.sort(string.compare)
+  |> string.join("\n\t")
 }

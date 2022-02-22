@@ -1,2 +1,2 @@
-gleam ref:main
+gleam 0.20.0-rc1
 erlang 24.2

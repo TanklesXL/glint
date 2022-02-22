@@ -20,7 +20,7 @@ gleam add glint
 You can import `glint` as a dependency and use it as follows:
 (found in `examples/hello/src/hello.gleam` directory)
 
-```rust
+```gleam
 import gleam/io
 import gleam/map
 import gleam/string.{join, uppercase}
