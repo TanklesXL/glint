@@ -10,49 +10,62 @@ import gleam/function
 import snag.{Result, Snag}
 
 /// Flag inputs must start with this prefix
+///
 pub const prefix = "--"
 
 /// The separation character for flag names and their values
 const delimiter = "="
 
 /// Supported flag types.
+///
 pub type Value {
   /// Boolean flags, to be passed in as `--flag=true` or `--flag=false`.
   /// Can be toggled by omitting the desired value like `--flag`.
   /// Toggling will negate the existing value.
+  ///
   B(Bool)
 
   /// Int flags, to be passed in as `--flag=1`
+  ///
   I(Int)
 
   /// List(Int) flags, to be passed in as `--flag=1,2,3`
+  ///
   LI(List(Int))
 
   /// Float flags, to be passed in as `--flag=1.0`
+  ///
   F(Float)
 
   /// List(Float) flags, to be passed in as `--flag=1.0,2.0`
+  ///
   LF(List(Float))
 
   /// String flags, to be passed in as `--flag=hello`
+  ///
   S(String)
 
   /// List(String) flags, to be passed in as `--flag=hello,world`
+  ///
   LS(List(String))
 }
 
 pub type Description =
   String
 
+/// Flag data and descriptions
+///
 pub type Contents {
   Contents(value: Value, description: Description)
 }
 
 /// Associates a name with a flag value
+///
 pub type Flag =
   #(String, Contents)
 
 /// Creates a Flag(name, I(value))
+///
 pub fn int(
   called name: String,
   default value: Int,
@@ -62,6 +75,7 @@ pub fn int(
 }
 
 /// Creates a Flag(name, LI(value))
+///
 pub fn ints(
   called name: String,
   default value: List(Int),
@@ -71,6 +85,7 @@ pub fn ints(
 }
 
 /// Creates a Flag(name, F(value))
+///
 pub fn float(
   called name: String,
   default value: Float,
@@ -80,6 +95,7 @@ pub fn float(
 }
 
 /// Creates a Flag(name, LF(value))
+///
 pub fn floats(
   called name: String,
   default value: List(Float),
@@ -89,6 +105,7 @@ pub fn floats(
 }
 
 /// Creates a Flag(name, S(value))
+///
 pub fn string(
   called name: String,
   default value: String,
@@ -98,6 +115,7 @@ pub fn string(
 }
 
 /// Creates a Flag(name, LS(value))
+///
 pub fn strings(
   called name: String,
   default value: List(String),
@@ -107,6 +125,7 @@ pub fn strings(
 }
 
 /// Creates a Flag(name, B(value))
+///
 pub fn bool(
   called name: String,
   default value: Bool,
@@ -116,6 +135,7 @@ pub fn bool(
 }
 
 /// Associate flag names to their current values.
+///
 pub type Map =
   map.Map(String, Contents)
 
@@ -127,6 +147,7 @@ pub fn build_map(flags: List(Flag)) -> Map {
 /// Updates a flag balue, ensuring that the new value can satisfy the required type.
 /// Assumes that all flag inputs passed in start with --
 /// This function is only intended to be used from glint.execute_root
+///
 pub fn update_flags(in flags: Map, with flag_input: String) -> Result(Map) {
   let flag_input = string.drop_left(flag_input, string.length(prefix))
   case string.split_once(flag_input, delimiter) {
@@ -154,18 +175,21 @@ pub fn update_flags(in flags: Map, with flag_input: String) -> Result(Map) {
 }
 
 /// Access the contents for the associated flag
+///
 fn access(flags: Map, name: String) -> Result(Contents) {
   map.get(flags, name)
   |> result.replace_error(undefined_flag_err(name))
 }
 
 /// Gets the current Value for the associated flag
+///
 pub fn get_value(from flags: Map, for name: String) -> gleam.Result(Value, Nil) {
   try contents = map.get(flags, name)
   Ok(contents.value)
 }
 
 /// Computes the new flag value given the input and the expected flag type 
+///
 fn compute_flag(
   for name: String,
   with input: String,
@@ -292,6 +316,8 @@ fn flag_help(name: String, contents: Contents) -> String {
   ])
 }
 
+/// Generate help messages for all flags
+///
 pub fn flags_help(flags: Map) {
   flags
   |> map.map_values(flag_help)
