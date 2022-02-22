@@ -160,7 +160,7 @@ fn access(flags: Map, name: String) -> Result(Contents) {
 }
 
 /// Gets the current Value for the associated flag
-pub fn get_value(flags: Map, name: String) -> gleam.Result(Value, Nil) {
+pub fn get_value(from flags: Map, for name: String) -> gleam.Result(Value, Nil) {
   try contents = map.get(flags, name)
   Ok(contents.value)
 }
@@ -270,7 +270,9 @@ fn cannot_parse(flag key: String, with value: String, is kind: String) -> Snag {
   |> layer_invalid_flag(key)
 }
 
-const help_flag_name = "help"
+pub const help_flag_name = "help"
+
+pub const help_flag_message = "--help\t\t\tPrint help information"
 
 // Help Message Functions
 pub fn help_flag() -> String {

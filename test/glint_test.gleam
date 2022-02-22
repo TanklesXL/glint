@@ -171,7 +171,7 @@ USAGE:
 \tgleam run <FLAGS>
 
 FLAGS:
-\t--help\t\tPrint help information
+\t--help\t\t\tPrint help information
 \t--flag1=<FLAG1>\t\tThis is flag1
 
 SUBCOMMANDS:
@@ -190,7 +190,7 @@ USAGE:
 \tgleam run cmd1 <FLAGS>
 
 FLAGS:
-\t--help\t\tPrint help information
+\t--help\t\t\tPrint help information
 \t--flag2=<FLAG2>\t\tThis is flag2
 \t--flag5=<FLAG5>\t\tThis is flag5
 
@@ -209,7 +209,7 @@ USAGE:
 \tgleam run cmd1 cmd4 <FLAGS>
 
 FLAGS:
-\t--help\t\tPrint help information
+\t--help\t\t\tPrint help information
 \t--flag4=<FLAG4>\t\tThis is flag4",
   )))
 
@@ -223,6 +223,6 @@ USAGE:
 \tgleam run cmd2
 
 FLAGS:
-\t--help\t\tPrint help information",
+\t--help\t\t\tPrint help information",
   )))
 }

@@ -217,8 +217,6 @@ const subcommands_heading = "SUBCOMMANDS:\n\t"
 
 const usage_heading = "USAGE:\n\t"
 
-const help_flag_message = "--help\t\tPrint help information"
-
 /// Helper for filtering out empty strings
 fn is_not_empty(s: String) -> Bool {
   s != ""
@@ -242,7 +240,7 @@ fn cmd_help(path: List(String), command: Command(a)) -> String {
         flags
         |> flag.flags_help()
         |> append_if_msg_not_empty("\n\t", _)
-        |> string.append(help_flag_message, _)
+        |> string.append(flag.help_flag_message, _)
         |> string.append(flags_heading, _)
       // create the usage help block
       let usage = append_if_msg_not_empty(usage_heading, desc.usage)
