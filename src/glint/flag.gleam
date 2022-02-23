@@ -55,7 +55,7 @@ pub type Description =
 
 /// Flag data and descriptions
 ///
-pub type Contents {
+pub opaque type Contents {
   Contents(value: Value, description: Description)
 }
 
@@ -140,6 +140,7 @@ pub type Map =
   map.Map(String, Contents)
 
 /// Convert a list of flags to a Map.
+///
 pub fn build_map(flags: List(Flag)) -> Map {
   map.from_list(flags)
 }

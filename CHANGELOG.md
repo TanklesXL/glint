@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- make `flag.Contents` opaque
+
 ## [0.7.2] - 2022-02-22
 
 - add argument labels to `flag.get_value`

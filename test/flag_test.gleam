@@ -1,6 +1,6 @@
 import gleeunit/should
 import glint.{CommandInput}
-import glint/flag.{B, Contents, F, I, LF, LI, LS, S}
+import glint/flag.{B, F, I, LF, LI, LS, S}
 import gleam/map
 
 pub fn update_flag_test() {
@@ -120,10 +120,6 @@ pub fn flag_value_test() {
     should.equal(in.args, args)
 
     in.flags
-    |> map.get("flag")
-    |> should.equal(Ok(Contents(S("flag_value"), "")))
-
-    in.flags
     |> flag.get_value("flag")
     |> should.equal(Ok(S("flag_value")))
   }
@@ -148,8 +144,8 @@ pub fn int_flag_test() {
   let flag_input = "--flag=10"
   let expect_flag_value_of_10 = fn(in: CommandInput) {
     in.flags
-    |> map.get("flag")
-    |> should.equal(Ok(Contents(I(10), "")))
+    |> flag.get_value("flag")
+    |> should.equal(Ok(I(10)))
   }
 
   glint.new()
@@ -172,8 +168,8 @@ pub fn bool_flag_test() {
   let flag_input = "--flag=false"
   let expect_flag_value_of_false = fn(in: CommandInput) {
     in.flags
-    |> map.get("flag")
-    |> should.equal(Ok(Contents(flag.B(False), "")))
+    |> flag.get_value("flag")
+    |> should.equal(Ok(flag.B(False)))
   }
   glint.new()
   |> glint.add_command([], expect_flag_value_of_false, [flags], "", "")
@@ -186,8 +182,8 @@ pub fn strings_flag_test() {
   let flag_input = "--flag=val3,val4"
   let expect_flag_value_list = fn(in: CommandInput) {
     in.flags
-    |> map.get("flag")
-    |> should.equal(Ok(Contents(LS(["val3", "val4"]), "")))
+    |> flag.get_value("flag")
+    |> should.equal(Ok(LS(["val3", "val4"])))
   }
   glint.new()
   |> glint.add_command([], expect_flag_value_list, [flags], "", "")
@@ -209,8 +205,8 @@ pub fn ints_flag_test() {
   let flag_input = "--flag=3,4"
   let expect_flag_value_list = fn(in: CommandInput) {
     in.flags
-    |> map.get("flag")
-    |> should.equal(Ok(Contents(LI([3, 4]), "")))
+    |> flag.get_value("flag")
+    |> should.equal(Ok(LI([3, 4])))
   }
   glint.new()
   |> glint.add_command([], expect_flag_value_list, [flags], "", "")
@@ -232,8 +228,8 @@ pub fn float_flag_test() {
   let flag_input = "--flag=10.0"
   let expect_flag_value_of_10 = fn(in: CommandInput) {
     in.flags
-    |> map.get("flag")
-    |> should.equal(Ok(Contents(F(10.0), "")))
+    |> flag.get_value("flag")
+    |> should.equal(Ok(F(10.0)))
   }
 
   glint.new()
@@ -256,8 +252,8 @@ pub fn floats_flag_test() {
   let flag_input = "--flag=3.0,4.0"
   let expect_flag_value_list = fn(in: CommandInput) {
     in.flags
-    |> map.get("flag")
-    |> should.equal(Ok(Contents(LF([3.0, 4.0]), "")))
+    |> flag.get_value("flag")
+    |> should.equal(Ok(LF([3.0, 4.0])))
   }
   glint.new()
   |> glint.add_command([], expect_flag_value_list, [flags], "", "")
@@ -279,8 +275,8 @@ pub fn toggle_test() {
   let flag_input = "--flag"
   let expect_flag_value_of_true = fn(in: CommandInput) {
     in.flags
-    |> map.get("flag")
-    |> should.equal(Ok(Contents(B(True), "")))
+    |> flag.get_value(for: "flag")
+    |> should.equal(Ok(B(True)))
   }
 
   glint.new()
