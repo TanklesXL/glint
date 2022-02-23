@@ -59,7 +59,22 @@ pub fn main() {
 
 Run it with either of:
 
-- `gleam run Bob` or `gleam run -- --caps=false Bob`  which will print `Hello, Bob!`
-- `gleam run -- --caps Bob` or  `gleam run -- --caps=true Bob`  which will print `HELLO, BOB!`
+- `gleam run Bob`, `gleam run -- --caps=false Bob`, or `gleam run Bob --caps=false`  which will print `Hello, Bob!`
+- `gleam run -- --caps Bob` or  `gleam run -- --caps=true Bob`, or `gleam run Bob --caps` which will print `HELLO, BOB!`
+
+### Built-In Help messages
+
+Run `gleam run -- --help` to print the generated help message, which in this case will look like:
+
+```text
+Prints Hello, <NAME>!
+
+USAGE:
+        'gleam run <NAME>' or 'gleam run <NAME> --caps'
+
+FLAGS:
+        --help                  Print help information
+        --caps=<CAPS>           Capitalize the provided name
+```
 
 *Note*: Due to [this issue](https://github.com/gleam-lang/gleam/issues/1457) commands with flags immediately after `gleam run` must include the `--` as shown above
