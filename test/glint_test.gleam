@@ -163,7 +163,7 @@ pub fn help_test() {
   |> should.equal(Ok(Out(Nil)))
 
   // help message for root command
-  glint.execute(cli, [flag.help_flag()])
+  glint.execute(cli, [glint.help_flag()])
   |> should.equal(Ok(Help(
     "This is the root command
 
@@ -181,7 +181,7 @@ SUBCOMMANDS:
   )))
 
   // help message for command
-  glint.execute(cli, ["cmd1", flag.help_flag()])
+  glint.execute(cli, ["cmd1", glint.help_flag()])
   |> should.equal(Ok(Help(
     "cmd1
 This is cmd1
@@ -200,7 +200,7 @@ SUBCOMMANDS:
   )))
 
   // help message for nested command
-  glint.execute(cli, ["cmd1", "cmd4", flag.help_flag()])
+  glint.execute(cli, ["cmd1", "cmd4", glint.help_flag()])
   |> should.equal(Ok(Help(
     "cmd1 cmd4
 This is cmd4
@@ -214,7 +214,7 @@ FLAGS:
   )))
 
   // help message for command with no additional flags
-  glint.execute(cli, ["cmd2", flag.help_flag()])
+  glint.execute(cli, ["cmd2", glint.help_flag()])
   |> should.equal(Ok(Help(
     "cmd2
 This is cmd2

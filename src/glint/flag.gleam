@@ -295,15 +295,7 @@ fn cannot_parse(flag key: String, with value: String, is kind: String) -> Snag {
   |> layer_invalid_flag(key)
 }
 
-pub const help_flag_name = "help"
-
-pub const help_flag_message = "--help\t\t\tPrint help information"
-
 // Help Message Functions
-pub fn help_flag() -> String {
-  string.append(prefix, help_flag_name)
-}
-
 fn flag_help(name: String, contents: Contents) -> String {
   string.concat([
     prefix,

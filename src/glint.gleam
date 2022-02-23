@@ -141,7 +141,7 @@ fn execute_root(
 ///
 pub fn execute(cmd: Command(a), args: List(String)) -> CmdResult(a) {
   // create help flag to check for
-  let help_flag = flag.help_flag()
+  let help_flag = help_flag()
 
   // check if help flag is present
   let #(help, args) = case list.pop(args, fn(s) { s == help_flag }) {
@@ -218,8 +218,17 @@ const subcommands_heading = "SUBCOMMANDS:\n\t"
 const usage_heading = "USAGE:\n\t"
 
 /// Helper for filtering out empty strings
+///
 fn is_not_empty(s: String) -> Bool {
   s != ""
+}
+
+const help_flag_name = "help"
+
+const help_flag_message = "--help\t\t\tPrint help information"
+
+pub fn help_flag() -> String {
+  string.append(flag.prefix, help_flag_name)
 }
 
 // Help Message Functions
@@ -240,7 +249,7 @@ fn cmd_help(path: List(String), command: Command(a)) -> String {
         flags
         |> flag.flags_help()
         |> append_if_msg_not_empty("\n\t", _)
-        |> string.append(flag.help_flag_message, _)
+        |> string.append(help_flag_message, _)
         |> string.append(flags_heading, _)
       // create the usage help block
       let usage = append_if_msg_not_empty(usage_heading, desc.usage)
