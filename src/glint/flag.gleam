@@ -64,7 +64,7 @@ pub type Contents {
 pub type Flag =
   #(String, Contents)
 
-/// Creates a Flag(name, I(value))
+/// Creates a  #(name, Contents(I(value), description))
 ///
 pub fn int(
   called name: String,
@@ -74,7 +74,7 @@ pub fn int(
   #(name, Contents(I(value), description))
 }
 
-/// Creates a Flag(name, LI(value))
+/// Creates a #(name, Contents(LI(value), description))
 ///
 pub fn ints(
   called name: String,
@@ -84,7 +84,7 @@ pub fn ints(
   #(name, Contents(LI(value), description))
 }
 
-/// Creates a Flag(name, F(value))
+/// Creates a #(name, Contents(F(value), description))
 ///
 pub fn float(
   called name: String,
@@ -94,7 +94,7 @@ pub fn float(
   #(name, Contents(F(value), description))
 }
 
-/// Creates a Flag(name, LF(value))
+/// Creates a  #(name, Contents(LF(value), description))
 ///
 pub fn floats(
   called name: String,
@@ -104,7 +104,7 @@ pub fn floats(
   #(name, Contents(LF(value), description))
 }
 
-/// Creates a Flag(name, S(value))
+/// Creates a #(name, Contents(S(value), description))
 ///
 pub fn string(
   called name: String,
@@ -114,7 +114,7 @@ pub fn string(
   #(name, Contents(S(value), description))
 }
 
-/// Creates a Flag(name, LS(value))
+/// Creates a #(name, Contents(LS(value), description))
 ///
 pub fn strings(
   called name: String,
@@ -124,7 +124,7 @@ pub fn strings(
   #(name, Contents(LS(value), description))
 }
 
-/// Creates a Flag(name, B(value))
+/// Creates a #(name, Contents(B(value), description))
 ///
 pub fn bool(
   called name: String,
