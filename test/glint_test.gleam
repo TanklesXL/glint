@@ -1,4 +1,3 @@
-import gleam/result
 import gleeunit
 import gleeunit/should
 import glint.{CommandInput, Help, Out}

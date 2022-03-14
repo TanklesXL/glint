@@ -6,7 +6,6 @@ import gleam/result
 import gleam/int
 import gleam/list
 import gleam/float
-import gleam/function
 import snag.{Result, Snag}
 
 /// Flag inputs must start with this prefix

@@ -2,12 +2,7 @@ import gleam/map.{Map}
 import gleam/option.{None, Option, Some}
 import gleam/list
 import gleam/io
-import gleam/int
-import gleam/result
 import gleam/string
-import gleam/bool
-import gleam/function
-import gleam
 import snag.{Result}
 import glint/flag.{Flag, Map as FlagMap}
 
@@ -243,7 +238,7 @@ fn cmd_help(path: List(String), command: Command(a)) -> String {
   // create the name, description  and usage help block
   let #(flags, description, usage) = case command.contents {
     None -> #("", "", "")
-    Some(Contents(_, flags, desc)) -> {
+    Some(Contents(flags: flags, desc: desc, ..)) -> {
       // create the flags help block
       let flags =
         flags
@@ -293,7 +288,7 @@ fn subcommands_help(cmds: Map(String, Command(a))) -> String {
 fn subcommand_help(name: String, cmd: Command(a)) -> String {
   case cmd.contents {
     None -> name
-    Some(Contents(_, _, Description(desc, _))) ->
+    Some(Contents(desc: Description(desc, ..), ..)) ->
       string.concat([name, "\t\t", desc])
   }
 }
