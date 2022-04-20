@@ -195,7 +195,7 @@ fn compute_flag(
   with input: String,
   given default: Value,
 ) -> Result(Value) {
-  case default {
+  let parse = case default {
     I(_) -> parse_int
     LI(_) -> parse_int_list
     F(_) -> parse_float
@@ -203,10 +203,9 @@ fn compute_flag(
     S(_) -> parse_string
     LS(_) -> parse_string_list
     B(_) -> parse_bool
-  }(
-    name,
-    input,
-  )
+  }
+
+  parse(name, input)
 }
 
 // Parser functions
