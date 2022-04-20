@@ -21,4 +21,5 @@ jobs:
           gleam-version: ${{ matrix.gleam }}
       - run: gleam format --check src test
       - run: gleam deps download
-      - run: gleam test
+      - run: gleam test --target=erlang
+      - run: gleam test --target=javascript
