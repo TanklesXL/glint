@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- refactor: negation operator in `flag.gleam` instead of bool.negate
+- refactor: split `flag.update_flags` into calling `update_flag_value` or `attempt_toggle_flag`
+
 ## [0.7.3] - 2022-02-23
 
 - make `flag.Contents` opaque

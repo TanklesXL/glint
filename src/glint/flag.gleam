@@ -1,5 +1,4 @@
 import gleam
-import gleam/bool
 import gleam/map
 import gleam/string
 import gleam/result
@@ -150,27 +149,32 @@ pub fn build_map(flags: List(Flag)) -> Map {
 ///
 pub fn update_flags(in flags: Map, with flag_input: String) -> Result(Map) {
   let flag_input = string.drop_left(flag_input, string.length(prefix))
+
   case string.split_once(flag_input, delimiter) {
-    Error(_) -> {
-      try Contents(default, desc) = access(flags, flag_input)
-      case default {
-        B(val) ->
-          val
-          |> bool.negate
-          |> B
-          |> Contents(desc)
-          |> map.insert(into: flags, for: flag_input)
-          |> Ok()
-        _ -> Error(no_value_flag_err(flag_input))
-      }
-    }
-    Ok(#(key, value)) -> {
-      try Contents(default, desc) = access(flags, key)
-      default
-      |> compute_flag(for: key, with: value)
-      |> result.map(Contents(_, desc))
-      |> result.map(map.insert(flags, key, _))
-    }
+    Ok(data) -> update_flag_value(flags, data)
+    Error(_) -> attempt_toggle_flag(flags, flag_input)
+  }
+}
+
+fn update_flag_value(in flags: Map, with data: #(String, String)) -> Result(Map) {
+  let #(key, value) = data
+  try Contents(default, desc) = access(flags, key)
+  default
+  |> compute_flag(for: key, with: value)
+  |> result.map(Contents(_, desc))
+  |> result.map(map.insert(flags, key, _))
+}
+
+fn attempt_toggle_flag(in flags: Map, at key: String) -> Result(Map) {
+  try Contents(default, desc) = access(flags, key)
+  case default {
+    B(val) ->
+      !val
+      |> B
+      |> Contents(desc)
+      |> map.insert(into: flags, for: key)
+      |> Ok()
+    _ -> Error(no_value_flag_err(key))
   }
 }
 
