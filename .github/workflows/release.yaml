@@ -15,6 +15,7 @@ jobs:
         uses: softprops/action-gh-release@v1
   hexpm-publish:
     runs-on: ubuntu-latest
+    environment: publish
     steps:
       - uses: actions/checkout@v2.0.0
       - uses: erlef/setup-beam@v1
@@ -22,4 +23,8 @@ jobs:
           otp-version: "24.2"
           gleam-version: "nightly"
       - run: gleam format --check src test
-      - run: gleam publish -y
+      - name: publish to hex
+        env:
+          HEXPM_USER: ${{ secrets.HEXPM_USER }}
+          HEXPM_PASS: ${{ secrets.HEXPM_PASS }}
+        run: gleam publish -y
