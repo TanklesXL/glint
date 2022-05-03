@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.7.4] - 2022-05-03
 
 - refactor: negation operator in `flag.gleam` instead of bool.negate
 - refactor: split `flag.update_flags` into calling `update_flag_value` or `attempt_toggle_flag`
@@ -68,7 +68,8 @@
 
 - Initial argument parsing and flags support.
 
-[Unreleased]: https://github.com/TanklesXL/glint/compare/v0.7.3...HEAD
+[Unreleased]: https://github.com/TanklesXL/glint/compare/v0.7.4...HEAD
+[0.7.4]: https://github.com/TanklesXL/glint/compare/v0.7.3...v0.7.4
 [0.7.3]: https://github.com/TanklesXL/glint/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/TanklesXL/glint/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/TanklesXL/glint/compare/v0.7.0...v0.7.1
