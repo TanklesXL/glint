@@ -1,0 +1,19 @@
+name: main
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        gleam: ["0.21.0"]
+        erlang: ["24.2"]
+        node: ["16.14.2"]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/test
+        with:
+          gleam-version: ${{ matrix.gleam }}
+          erlang-version: ${{ matrix.erlang }}
+          node-version: ${{ matrix.node }}

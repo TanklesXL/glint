@@ -1,0 +1,38 @@
+name: test
+
+description: run gleam checks and tests
+
+inputs:
+  gleam-version:
+    description: gleam version
+    required: false
+    default: 0.21.0
+  erlang-version:
+    description: erlang-otp version
+    required: false
+    default: 24.3.4
+  node-version:
+    description: nodeJS version
+    required: false
+    default: 16.15.0
+
+runs:
+  using: composite
+  steps:
+    - uses: erlef/setup-beam@v1
+      with:
+        otp-version: ${{ inputs.erlang-version }}
+        gleam-version: ${{ inputs.gleam-version }}
+    - uses: actions/setup-node@v2
+      with:
+        node-version: ${{ inputs.node-version }}
+    - run: gleam format --check src test
+      shell: bash
+    - run: gleam deps download
+      shell: bash
+    - run: gleam check
+      shell: bash
+    - run: gleam test --target=erlang
+      shell: bash
+    - run: gleam test --target=javascript
+      shell: bash

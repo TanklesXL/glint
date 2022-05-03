@@ -17,12 +17,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: publish
     steps:
-      - uses: actions/checkout@v2.0.0
-      - uses: erlef/setup-beam@v1
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/test
         with:
-          otp-version: "24.2"
-          gleam-version: "nightly"
-      - run: gleam format --check src test
+          gleam-version: nightly
       - name: publish to hex
         env:
           HEXPM_USER: ${{ secrets.HEXPM_USER }}
