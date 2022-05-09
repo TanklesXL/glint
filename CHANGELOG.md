@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.8.0] - 2022-05-09
+
 - `flag.Contents` is no longer opaque
 - `glint` module gains `Stub` type to create constant commands and `add_command_from_stub` to add the resulting commands
 
@@ -74,6 +76,7 @@
 - Initial argument parsing and flags support.
 
 [Unreleased]: https://github.com/TanklesXL/glint/compare/v0.7.4...HEAD
+[0.8.0]: https://github.com/TanklesXL/glint/compare/v0.7.4...v0.8.0
 [0.7.4]: https://github.com/TanklesXL/glint/compare/v0.7.3...v0.7.4
 [0.7.3]: https://github.com/TanklesXL/glint/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/TanklesXL/glint/compare/v0.7.1...v0.7.2
