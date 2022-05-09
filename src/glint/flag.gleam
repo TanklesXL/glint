@@ -53,7 +53,7 @@ pub type Description =
 
 /// Flag data and descriptions
 ///
-pub opaque type Contents {
+pub type Contents {
   Contents(value: Value, description: Description)
 }
 

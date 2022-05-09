@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+- `flag.Contents` is no longer opaque
+- `glint` module gains `Stub` type to create constant commands and `add_command_from_stub` to add the resulting commands
+
 ## [0.7.4] - 2022-05-03
 
 - refactor: negation operator in `flag.gleam` instead of bool.negate

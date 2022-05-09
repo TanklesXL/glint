@@ -31,6 +31,34 @@ pub opaque type Command(a) {
   Command(contents: Option(Contents(a)), subcommands: Map(String, Command(a)))
 }
 
+/// Create command stubs to be used in `add_command_from_stub`
+///
+pub type Stub(a) {
+  Stub(
+    path: List(String),
+    run: Runner(a),
+    flags: List(Flag),
+    description: String,
+    usage: String,
+  )
+}
+
+/// Add a command to the root given a stub 
+///
+pub fn add_command_from_stub(
+  to root: Command(a),
+  with stub: Stub(a),
+) -> Command(a) {
+  add_command(
+    to: root,
+    at: stub.path,
+    do: stub.run,
+    with: stub.flags,
+    described: stub.description,
+    used: stub.usage,
+  )
+}
+
 /// Creates a new command tree.
 ///
 pub fn new() -> Command(a) {
@@ -49,6 +77,8 @@ fn sanitize_path(path: List(String)) -> List(String) {
 ///
 /// If the path is [], the root command is set with the provided function and
 /// flags.
+///
+/// Note: all command paths are sanitized by stripping whitespace and removing any empty string elements.
 ///
 pub fn add_command(
   to root: Command(a),
