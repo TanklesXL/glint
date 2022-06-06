@@ -3,8 +3,22 @@ import gleam/option.{None, Option, Some}
 import gleam/list
 import gleam/io
 import gleam/string
+import gleam/erlang
 import snag.{Result}
 import glint/flag.{Flag, Map as FlagMap}
+import shellout
+
+/// Glint container type for config and commands
+///
+pub type Glint(a) {
+  Glint(config: Config, cmd: Command(a))
+}
+
+/// Config for glint
+///
+pub type Config {
+  Config(pretty_help: Bool)
+}
 
 /// Input type for `Runner`.
 ///
@@ -45,12 +59,9 @@ pub type Stub(a) {
 
 /// Add a command to the root given a stub 
 ///
-pub fn add_command_from_stub(
-  to root: Command(a),
-  with stub: Stub(a),
-) -> Command(a) {
+pub fn add_command_from_stub(to glint: Glint(a), with stub: Stub(a)) -> Glint(a) {
   add_command(
-    to: root,
+    to: glint,
     at: stub.path,
     do: stub.run,
     with: stub.flags,
@@ -61,8 +72,30 @@ pub fn add_command_from_stub(
 
 /// Creates a new command tree.
 ///
-pub fn new() -> Command(a) {
+pub fn new() -> Glint(a) {
+  Glint(config: default_config(), cmd: empty_command())
+}
+
+/// Creates a new command tree with the provided Config
+///
+pub fn new_with_config(config: Config) -> Glint(a) {
+  Glint(config: config, cmd: empty_command())
+}
+
+/// Create a default Config
+///
+pub fn default_config() -> Config {
+  Config(pretty_help: False)
+}
+
+/// Helper for initializing empty commands
+///
+fn empty_command() -> Command(a) {
   Command(contents: None, subcommands: map.new())
+}
+
+pub fn enable_pretty_help(glint: Glint(a)) -> Glint(a) {
+  Glint(..glint, config: Config(pretty_help: True))
 }
 
 /// Trim each path element and remove any resulting empty strings.
@@ -81,18 +114,21 @@ fn sanitize_path(path: List(String)) -> List(String) {
 /// Note: all command paths are sanitized by stripping whitespace and removing any empty string elements.
 ///
 pub fn add_command(
-  to root: Command(a),
+  to glint: Glint(a),
   at path: List(String),
   do f: Runner(a),
   with flags: List(Flag),
   described description: String,
   used usage: String,
-) -> Command(a) {
-  path
-  |> sanitize_path
-  |> do_add_command(
-    to: root,
-    put: Contents(f, flag.build_map(flags), Description(description, usage)),
+) -> Glint(a) {
+  Glint(
+    ..glint,
+    cmd: path
+    |> sanitize_path
+    |> do_add_command(
+      to: glint.cmd,
+      put: Contents(f, flag.build_map(flags), Description(description, usage)),
+    ),
   )
 }
 
@@ -108,7 +144,7 @@ fn do_add_command(
     [x, ..xs] -> {
       let update_subcommand = fn(node) {
         node
-        |> option.lazy_unwrap(new)
+        |> option.lazy_unwrap(empty_command)
         |> do_add_command(xs, contents)
       }
       Command(
@@ -164,7 +200,7 @@ fn execute_root(
 ///
 /// Each value prefixed with `--` is parsed as a flag.
 ///
-pub fn execute(cmd: Command(a), args: List(String)) -> CmdResult(a) {
+pub fn execute(glint: Glint(a), args: List(String)) -> CmdResult(a) {
   // create help flag to check for
   let help_flag = help_flag()
 
@@ -178,10 +214,11 @@ pub fn execute(cmd: Command(a), args: List(String)) -> CmdResult(a) {
   let #(flags, args) = list.partition(args, string.starts_with(_, flag.prefix))
 
   // search for command and execute
-  do_execute(cmd, args, flags, help, [])
+  do_execute(glint.config, glint.cmd, args, flags, help, [])
 }
 
 fn do_execute(
+  config: Config,
   cmd: Command(a),
   args: List(String),
   flags: List(String),
@@ -193,7 +230,7 @@ fn do_execute(
     // and help flag has been passed, generate help message
     [] if help ->
       command_path
-      |> cmd_help(cmd)
+      |> cmd_help(config, cmd)
       |> Help
       |> Ok
 
@@ -206,12 +243,13 @@ fn do_execute(
     [arg, ..rest] ->
       case map.get(cmd.subcommands, arg) {
         // subcommand found, continue
-        Ok(cmd) -> do_execute(cmd, rest, flags, help, [arg, ..command_path])
+        Ok(cmd) ->
+          do_execute(config, cmd, rest, flags, help, [arg, ..command_path])
         // subcommand not found, but help flag has been passed
         // generate and return help message
         _ if help ->
           command_path
-          |> cmd_help(cmd)
+          |> cmd_help(config, cmd)
           |> Help
           |> Ok
         // subcommand not found, but help flag has not been passed
@@ -224,8 +262,8 @@ fn do_execute(
 /// A wrapper for `execute` that discards output and prints any errors
 /// encountered.
 ///
-pub fn run(cmd: Command(a), args: List(String)) -> Nil {
-  case execute(cmd, args) {
+pub fn run(glint: Glint(a), args: List(String)) -> Nil {
+  case execute(glint, args) {
     Error(err) ->
       err
       |> snag.pretty_print
@@ -236,11 +274,11 @@ pub fn run(cmd: Command(a), args: List(String)) -> Nil {
 }
 
 // constants for setting up sections of the help message
-const flags_heading = "FLAGS:\n\t"
+const flags_heading = "FLAGS:"
 
-const subcommands_heading = "SUBCOMMANDS:\n\t"
+const subcommands_heading = "SUBCOMMANDS:"
 
-const usage_heading = "USAGE:\n\t"
+const usage_heading = "USAGE:"
 
 /// Helper for filtering out empty strings
 ///
@@ -256,8 +294,35 @@ pub fn help_flag() -> String {
   string.append(flag.prefix, help_flag_name)
 }
 
+const lookups: shellout.Lookups = [
+  #(
+    ["color", "background"],
+    [
+      #("buttercup", ["252", "226", "174"]),
+      #("mint", ["182", "255", "234"]),
+      #("pink", ["255", "175", "243"]),
+    ],
+  ),
+]
+
+const heading_display: List(String) = ["bold", "italic", "underline"]
+
+fn heading_style(pretty: Bool, heading: String, colour: String) -> String {
+  case pretty {
+    True ->
+      shellout.style(
+        heading,
+        with: shellout.display(heading_display)
+        |> map.merge(shellout.color([colour])),
+        custom: lookups,
+      )
+    False -> heading
+  }
+  |> string.append("\n\t")
+}
+
 // Help Message Functions
-fn cmd_help(path: List(String), command: Command(a)) -> String {
+fn cmd_help(path: List(String), config: Config, command: Command(a)) -> String {
   // recreate the path of the current command
   // reverse the path because it is created by prepending each section as do_execute walks down the tree
   let name =
@@ -275,9 +340,16 @@ fn cmd_help(path: List(String), command: Command(a)) -> String {
         |> flag.flags_help()
         |> append_if_msg_not_empty("\n\t", _)
         |> string.append(help_flag_message, _)
-        |> string.append(flags_heading, _)
+        |> string.append(
+          heading_style(config.pretty_help, flags_heading, "pink"),
+          _,
+        )
       // create the usage help block
-      let usage = append_if_msg_not_empty(usage_heading, desc.usage)
+      let usage =
+        append_if_msg_not_empty(
+          heading_style(config.pretty_help, usage_heading, "mint"),
+          desc.usage,
+        )
       #(flags, desc.description, usage)
     }
   }
@@ -292,7 +364,10 @@ fn cmd_help(path: List(String), command: Command(a)) -> String {
   let subcommands =
     command.subcommands
     |> subcommands_help
-    |> append_if_msg_not_empty(subcommands_heading, _)
+    |> append_if_msg_not_empty(
+      heading_style(config.pretty_help, subcommands_heading, "buttercup"),
+      _,
+    )
 
   // join the resulting help blocks into the final help message
   [header_items, usage, flags, subcommands]
