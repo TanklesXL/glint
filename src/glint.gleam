@@ -3,7 +3,6 @@ import gleam/option.{None, Option, Some}
 import gleam/list
 import gleam/io
 import gleam/string
-import gleam/erlang
 import snag.{Result}
 import glint/flag.{Flag, Map as FlagMap}
 import shellout
