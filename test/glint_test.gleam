@@ -226,26 +226,27 @@ FLAGS:
   )))
 }
 
-pub fn pretty_help_test() {
-  glint.new()
-  |> glint.enable_pretty_help
-  |> glint.add_command(
-    [],
-    fn(_) { Nil },
-    [],
-    "this is the root command, it doesn't do anyhting",
-    "gleam run",
-  )
-  |> glint.add_command(
-    ["subcommand"],
-    fn(_) { Nil },
-    [],
-    "this is the subcommand, it doesn't do anything either",
-    "gleam run subcommand",
-  )
-  |> glint.execute(["--help"])
-  |> should.equal(Ok(Help(
-    "this is the root command, it doesn't do anyhting
+if erlang {
+  pub fn pretty_help_test() {
+    glint.new()
+    |> glint.enable_pretty_help
+    |> glint.add_command(
+      [],
+      fn(_) { Nil },
+      [],
+      "this is the root command, it doesn't do anyhting",
+      "gleam run",
+    )
+    |> glint.add_command(
+      ["subcommand"],
+      fn(_) { Nil },
+      [],
+      "this is the subcommand, it doesn't do anything either",
+      "gleam run subcommand",
+    )
+    |> glint.execute(["--help"])
+    |> should.equal(Ok(Help(
+      "this is the root command, it doesn't do anyhting
 
 \e[1;3;4;38;2;182;255;234mUSAGE:\e[0m\e[K
 \tgleam run
@@ -255,5 +256,6 @@ pub fn pretty_help_test() {
 
 \e[1;3;4;38;2;252;226;174mSUBCOMMANDS:\e[0m\e[K
 \tsubcommand\t\tthis is the subcommand, it doesn't do anything either",
-  )))
+    )))
+  }
 }

@@ -30,11 +30,15 @@ pub type CommandInput {
 pub type Runner(a) =
   fn(CommandInput) -> a
 
+///  Command description, used for generating help text
+///
 pub type Description {
   Description(description: String, usage: String)
 }
 
-pub type Contents(a) {
+/// Command contents
+///
+pub opaque type Contents(a) {
   Contents(do: Runner(a), flags: FlagMap, desc: Description)
 }
 
