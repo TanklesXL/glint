@@ -313,18 +313,41 @@ const heading_display: List(String) = ["bold", "italic", "underline"]
 fn heading_style(pretty: Bool, heading: String, colour: String) -> String {
   case pretty {
     True ->
-      shellout.style(
-        heading,
-        with: shellout.display(heading_display)
-        |> map.merge(shellout.color([colour])),
-        custom: lookups,
-      )
+      [#("display", heading_display), #("color", [colour])]
+      |> map.from_list()
+      |> shellout.style(heading, with: _, custom: lookups)
     False -> heading
   }
   |> string.append("\n\t")
 }
 
 // Help Message Functions
+fn contents_help(
+  config: Config,
+  contents: Contents(a),
+) -> #(String, String, String) {
+  // create the flags help block
+  let flags =
+    contents.flags
+    |> flag.flags_help()
+    |> append_if_msg_not_empty("\n\t", _)
+    |> string.append(help_flag_message, _)
+    |> string.append(
+      heading_style(config.pretty_help, flags_heading, "pink"),
+      _,
+    )
+
+  // create the usage help block
+  let usage =
+    contents.desc.usage
+    |> append_if_msg_not_empty(
+      heading_style(config.pretty_help, usage_heading, "mint"),
+      _,
+    )
+
+  #(flags, contents.desc.description, usage)
+}
+
 fn cmd_help(path: List(String), config: Config, command: Command(a)) -> String {
   // recreate the path of the current command
   // reverse the path because it is created by prepending each section as do_execute walks down the tree
@@ -336,25 +359,7 @@ fn cmd_help(path: List(String), config: Config, command: Command(a)) -> String {
   // create the name, description  and usage help block
   let #(flags, description, usage) = case command.contents {
     None -> #("", "", "")
-    Some(Contents(flags: flags, desc: desc, ..)) -> {
-      // create the flags help block
-      let flags =
-        flags
-        |> flag.flags_help()
-        |> append_if_msg_not_empty("\n\t", _)
-        |> string.append(help_flag_message, _)
-        |> string.append(
-          heading_style(config.pretty_help, flags_heading, "pink"),
-          _,
-        )
-      // create the usage help block
-      let usage =
-        append_if_msg_not_empty(
-          heading_style(config.pretty_help, usage_heading, "mint"),
-          desc.usage,
-        )
-      #(flags, desc.description, usage)
-    }
+    Some(contents) -> contents_help(config, contents)
   }
 
   // create the header block from the name and description
