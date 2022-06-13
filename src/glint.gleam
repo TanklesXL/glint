@@ -38,13 +38,13 @@ pub type Description {
 
 /// Command contents
 ///
-pub opaque type Contents(a) {
+pub type Contents(a) {
   Contents(do: Runner(a), flags: FlagMap, desc: Description)
 }
 
 /// Command tree representation.
 ///
-pub opaque type Command(a) {
+pub type Command(a) {
   Command(contents: Option(Contents(a)), subcommands: Map(String, Command(a)))
 }
 
