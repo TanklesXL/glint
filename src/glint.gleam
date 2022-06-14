@@ -5,6 +5,7 @@ import gleam/io
 import gleam/string
 import snag.{Result}
 import glint/flag.{Flag, Map as FlagMap}
+import glint/style.{PrettyHelp}
 import shellout
 
 /// Glint container type for config and commands
@@ -16,8 +17,12 @@ pub type Glint(a) {
 /// Config for glint
 ///
 pub type Config {
-  Config(pretty_help: Bool)
+  Config(pretty_help: Option(PrettyHelp))
 }
+
+/// Default config
+///
+pub const default_config = Config(pretty_help: None)
 
 /// Input type for `Runner`.
 ///
@@ -76,7 +81,7 @@ pub fn add_command_from_stub(to glint: Glint(a), with stub: Stub(a)) -> Glint(a)
 /// Creates a new command tree.
 ///
 pub fn new() -> Glint(a) {
-  Glint(config: default_config(), cmd: empty_command())
+  Glint(config: default_config, cmd: empty_command())
 }
 
 /// Creates a new command tree with the provided Config
@@ -85,20 +90,14 @@ pub fn new_with_config(config: Config) -> Glint(a) {
   Glint(config: config, cmd: empty_command())
 }
 
-/// Create a default Config
-///
-pub fn default_config() -> Config {
-  Config(pretty_help: False)
-}
-
 /// Helper for initializing empty commands
 ///
 fn empty_command() -> Command(a) {
   Command(contents: None, subcommands: map.new())
 }
 
-pub fn enable_pretty_help(glint: Glint(a)) -> Glint(a) {
-  Glint(..glint, config: Config(pretty_help: True))
+pub fn enable_pretty_help(glint: Glint(a), pretty: PrettyHelp) -> Glint(a) {
+  Glint(..glint, config: Config(pretty_help: Some(pretty)))
 }
 
 /// Trim each path element and remove any resulting empty strings.
@@ -297,33 +296,20 @@ pub fn help_flag() -> String {
   string.append(flag.prefix, help_flag_name)
 }
 
-const lookups: shellout.Lookups = [
-  #(
-    ["color", "background"],
-    [
-      #("buttercup", ["252", "226", "174"]),
-      #("mint", ["182", "255", "234"]),
-      #("pink", ["255", "175", "243"]),
-    ],
-  ),
-]
-
-const heading_display: List(String) = ["bold", "italic", "underline"]
-
-fn heading_style(pretty: Bool, heading: String, colour: String) -> String {
-  case pretty {
-    True ->
-      [#("display", heading_display), #("color", [colour])]
-      |> map.from_list()
-      |> shellout.style(heading, with: _, custom: lookups)
-    False -> heading
-  }
+fn style_heading(
+  lookups: Option(shellout.Lookups),
+  heading: String,
+  colour: String,
+) -> String {
+  lookups
+  |> option.map(style.heading(_, heading, colour))
+  |> option.unwrap(heading)
   |> string.append("\n\t")
 }
 
 // Help Message Functions
 fn contents_help(
-  config: Config,
+  styling: Option(shellout.Lookups),
   contents: Contents(a),
 ) -> #(String, String, String) {
   // create the flags help block
@@ -332,16 +318,13 @@ fn contents_help(
     |> flag.flags_help()
     |> append_if_msg_not_empty("\n\t", _)
     |> string.append(help_flag_message, _)
-    |> string.append(
-      heading_style(config.pretty_help, flags_heading, "pink"),
-      _,
-    )
+    |> string.append(style_heading(styling, flags_heading, style.flags_key), _)
 
   // create the usage help block
   let usage =
     contents.desc.usage
     |> append_if_msg_not_empty(
-      heading_style(config.pretty_help, usage_heading, "mint"),
+      style_heading(styling, usage_heading, style.usage_key),
       _,
     )
 
@@ -349,6 +332,8 @@ fn contents_help(
 }
 
 fn cmd_help(path: List(String), config: Config, command: Command(a)) -> String {
+  let styling = option.map(config.pretty_help, style.lookups)
+
   // recreate the path of the current command
   // reverse the path because it is created by prepending each section as do_execute walks down the tree
   let name =
@@ -359,7 +344,7 @@ fn cmd_help(path: List(String), config: Config, command: Command(a)) -> String {
   // create the name, description  and usage help block
   let #(flags, description, usage) = case command.contents {
     None -> #("", "", "")
-    Some(contents) -> contents_help(config, contents)
+    Some(contents) -> contents_help(styling, contents)
   }
 
   // create the header block from the name and description
@@ -373,7 +358,7 @@ fn cmd_help(path: List(String), config: Config, command: Command(a)) -> String {
     command.subcommands
     |> subcommands_help
     |> append_if_msg_not_empty(
-      heading_style(config.pretty_help, subcommands_heading, "buttercup"),
+      style_heading(styling, subcommands_heading, style.subcommands_key),
       _,
     )
 

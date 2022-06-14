@@ -2,6 +2,8 @@
 
 ## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.8.0...HEAD)
 
+- help text can now be set to use configurable shell colours.
+- added the `style` module to handle coloured output
 - `glint` gains the `Glint(a)` wrapper type
 - `glint` gains the `Config` type
 - `glint.new` returns a `Glint(a)` instead of a `Command(a)`

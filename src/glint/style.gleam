@@ -1,0 +1,66 @@
+import shellout
+import gleam/map
+
+/// Colour configuration type for help text headings.
+/// the List(String) values can be RGB colour values or ANSI colour codes
+/// 
+pub type PrettyHelp {
+  PrettyHelp(
+    usage: List(String),
+    flags: List(String),
+    subcommands: List(String),
+  )
+}
+
+/// Default pretty help colouring
+/// mint colour for usage
+/// pink colour for flags
+/// buttercup colour for subcommands
+pub const default_pretty_help = PrettyHelp(
+  usage: ["182", "255", "234"],
+  flags: ["255", "175", "243"],
+  subcommands: ["252", "226", "174"],
+)
+
+/// key for looking up the style of the usage heading
+///
+pub const usage_key = "usage"
+
+/// key for looking up the style of the flags heading
+///
+pub const flags_key = "flags"
+
+/// key for looking up the style of the subcommands heading
+///
+pub const subcommands_key = "subcommands"
+
+/// create shellout lookups from the provided pretty help
+/// this is only intended for use within glint itself.
+///
+pub fn lookups(pretty: PrettyHelp) -> shellout.Lookups {
+  [
+    #(
+      ["color", "background"],
+      [
+        #(usage_key, pretty.usage),
+        #(flags_key, pretty.flags),
+        #(subcommands_key, pretty.subcommands),
+      ],
+    ),
+  ]
+}
+
+const heading_display: List(String) = ["bold", "italic", "underline"]
+
+/// style heading text with the provided lookups
+/// this is only intended for use within glint itself.
+///
+pub fn heading(
+  lookups: shellout.Lookups,
+  heading: String,
+  colour: String,
+) -> String {
+  [#("display", heading_display), #("color", [colour])]
+  |> map.from_list()
+  |> shellout.style(heading, with: _, custom: lookups)
+}
