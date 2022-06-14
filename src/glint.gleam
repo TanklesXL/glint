@@ -17,12 +17,12 @@ pub type Glint(a) {
 /// Config for glint
 ///
 pub type Config {
-  Config(pretty_help: Option(PrettyHelp))
+  Config(pretty_help: Option(PrettyHelp), pretty_err: Bool)
 }
 
 /// Default config
 ///
-pub const default_config = Config(pretty_help: None)
+pub const default_config = Config(pretty_help: None, pretty_err: False)
 
 /// Input type for `Runner`.
 ///
@@ -96,8 +96,17 @@ fn empty_command() -> Command(a) {
   Command(contents: None, subcommands: map.new())
 }
 
+/// Enable custom colours for help text headers
+/// For a pre-made colouring use `style.default_pretty_help`
+/// 
 pub fn enable_pretty_help(glint: Glint(a), pretty: PrettyHelp) -> Glint(a) {
-  Glint(..glint, config: Config(pretty_help: Some(pretty)))
+  Glint(..glint, config: Config(..glint.config, pretty_help: Some(pretty)))
+}
+
+/// Enable coloured error 1st line
+/// 
+pub fn enable_pretty_err(glint: Glint(a)) -> Glint(a) {
+  Glint(..glint, config: Config(..glint.config, pretty_err: True))
 }
 
 /// Trim each path element and remove any resulting empty strings.
@@ -183,17 +192,15 @@ fn execute_root(
       try new_flags =
         flags
         |> list.try_fold(from: contents.flags, with: flag.update_flags)
-        |> snag.context("failed to run command")
       args
       |> CommandInput(new_flags)
       |> contents.do
       |> Out
       |> Ok
     }
-    None ->
-      snag.error("command not found")
-      |> snag.context("failed to run command")
+    None -> snag.error("command not found")
   }
+  |> snag.context("failed to run command")
 }
 
 /// Determines which command to run and executes it.
@@ -261,6 +268,17 @@ fn do_execute(
   }
 }
 
+fn make_first_line_red(s: String, active: Bool) -> String {
+  case active {
+    False -> s
+    True ->
+      case string.split_once(s, "\n") {
+        Ok(#(h, t)) -> string.concat([style.err_style(h), "\n", t])
+        Error(_) -> s
+      }
+  }
+}
+
 /// A wrapper for `execute` that discards output and prints any errors
 /// encountered.
 ///
@@ -269,6 +287,7 @@ pub fn run(glint: Glint(a), args: List(String)) -> Nil {
     Error(err) ->
       err
       |> snag.pretty_print
+      |> make_first_line_red(glint.config.pretty_err)
       |> io.println
     Ok(Help(help)) -> io.println(help)
     _ -> Nil

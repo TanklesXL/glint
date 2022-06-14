@@ -12,10 +12,11 @@ pub type PrettyHelp {
   )
 }
 
-/// Default pretty help colouring
+/// Default pretty help heading colouring
 /// mint colour for usage
 /// pink colour for flags
 /// buttercup colour for subcommands
+///
 pub const default_pretty_help = PrettyHelp(
   usage: ["182", "255", "234"],
   flags: ["255", "175", "243"],
@@ -60,7 +61,19 @@ pub fn heading(
   heading: String,
   colour: String,
 ) -> String {
-  [#("display", heading_display), #("color", [colour])]
-  |> map.from_list()
+  shellout.display(heading_display)
+  |> map.merge(shellout.color([colour]))
   |> shellout.style(heading, with: _, custom: lookups)
+}
+
+// bold and italic are built-in to shellout so we don't need to define them ourselves
+const err_display: List(String) = ["bold", "italic"]
+
+// brightred is built-in to shellout so we don't need to define it ourselves
+const err_colours: List(String) = ["brightred"]
+
+pub fn err_style(s: String) {
+  shellout.display(err_display)
+  |> map.merge(shellout.color(err_colours))
+  |> shellout.style(s, _, [])
 }
