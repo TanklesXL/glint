@@ -11,7 +11,7 @@ import shellout
 /// Glint container type for config and commands
 ///
 pub type Glint(a) {
-  Glint(config: Config, cmd: Command(a))
+  Glint(config: Config, cmd: Command(a), global_flags: FlagMap)
 }
 
 /// Config for glint
@@ -80,14 +80,22 @@ pub fn add_command_from_stub(to glint: Glint(a), with stub: Stub(a)) -> Glint(a)
 
 /// Creates a new command tree.
 ///
-pub fn new() -> Glint(a) {
-  Glint(config: default_config, cmd: empty_command())
+pub fn new(flags: List(Flag)) -> Glint(a) {
+  Glint(
+    config: default_config,
+    cmd: empty_command(),
+    global_flags: flag.build_map(flags),
+  )
 }
 
 /// Creates a new command tree with the provided Config
 ///
-pub fn new_with_config(config: Config) -> Glint(a) {
-  Glint(config: config, cmd: empty_command())
+pub fn new_with_config(flags: List(Flag), config: Config) -> Glint(a) {
+  Glint(
+    config: config,
+    cmd: empty_command(),
+    global_flags: flag.build_map(flags),
+  )
 }
 
 /// Helper for initializing empty commands
@@ -184,14 +192,18 @@ pub type CmdResult(a) =
 ///
 fn execute_root(
   cmd: Command(a),
+  global_flags: FlagMap,
   args: List(String),
-  flags: List(String),
+  flag_inputs: List(String),
 ) -> CmdResult(a) {
   case cmd.contents {
     Some(contents) -> {
       try new_flags =
-        flags
-        |> list.try_fold(from: contents.flags, with: flag.update_flags)
+        flag_inputs
+        |> list.try_fold(
+          from: map.merge(global_flags, contents.flags),
+          with: flag.update_flags,
+        )
       args
       |> CommandInput(new_flags)
       |> contents.do
@@ -223,12 +235,11 @@ pub fn execute(glint: Glint(a), args: List(String)) -> CmdResult(a) {
   let #(flags, args) = list.partition(args, string.starts_with(_, flag.prefix))
 
   // search for command and execute
-  do_execute(glint.config, glint.cmd, args, flags, help, [])
+  do_execute(glint, args, flags, help, [])
 }
 
 fn do_execute(
-  config: Config,
-  cmd: Command(a),
+  glint: Glint(a),
   args: List(String),
   flags: List(String),
   help: Bool,
@@ -239,31 +250,37 @@ fn do_execute(
     // and help flag has been passed, generate help message
     [] if help ->
       command_path
-      |> cmd_help(config, cmd)
+      |> cmd_help(glint)
       |> Help
       |> Ok
 
     // when there are no more available arguments
     // run the current command
-    [] -> execute_root(cmd, [], flags)
+    [] -> execute_root(glint.cmd, glint.global_flags, [], flags)
 
     // when there are arguments remaining
     // check if the next one is a subcommand of the current command
     [arg, ..rest] ->
-      case map.get(cmd.subcommands, arg) {
+      case map.get(glint.cmd.subcommands, arg) {
         // subcommand found, continue
         Ok(cmd) ->
-          do_execute(config, cmd, rest, flags, help, [arg, ..command_path])
+          do_execute(
+            Glint(..glint, cmd: cmd),
+            rest,
+            flags,
+            help,
+            [arg, ..command_path],
+          )
         // subcommand not found, but help flag has been passed
         // generate and return help message
         _ if help ->
           command_path
-          |> cmd_help(config, cmd)
+          |> cmd_help(glint)
           |> Help
           |> Ok
         // subcommand not found, but help flag has not been passed
         // execute the current command
-        _ -> execute_root(cmd, args, flags)
+        _ -> execute_root(glint.cmd, glint.global_flags, args, flags)
       }
   }
 }
@@ -330,10 +347,11 @@ fn style_heading(
 fn contents_help(
   styling: Option(shellout.Lookups),
   contents: Contents(a),
+  global_flags: FlagMap,
 ) -> #(String, String, String) {
   // create the flags help block
   let flags =
-    contents.flags
+    map.merge(global_flags, contents.flags)
     |> flag.flags_help()
     |> append_if_msg_not_empty("\n\t", _)
     |> string.append(help_flag_message, _)
@@ -350,8 +368,8 @@ fn contents_help(
   #(flags, contents.desc.description, usage)
 }
 
-fn cmd_help(path: List(String), config: Config, command: Command(a)) -> String {
-  let styling = option.map(config.pretty_help, style.lookups)
+fn cmd_help(path: List(String), glint: Glint(a)) -> String {
+  let styling = option.map(glint.config.pretty_help, style.lookups)
 
   // recreate the path of the current command
   // reverse the path because it is created by prepending each section as do_execute walks down the tree
@@ -361,9 +379,9 @@ fn cmd_help(path: List(String), config: Config, command: Command(a)) -> String {
     |> string.join(" ")
 
   // create the name, description  and usage help block
-  let #(flags, description, usage) = case command.contents {
+  let #(flags, description, usage) = case glint.cmd.contents {
     None -> #("", "", "")
-    Some(contents) -> contents_help(styling, contents)
+    Some(contents) -> contents_help(styling, contents, glint.global_flags)
   }
 
   // create the header block from the name and description
@@ -374,7 +392,7 @@ fn cmd_help(path: List(String), config: Config, command: Command(a)) -> String {
 
   // create the subcommands help block
   let subcommands =
-    command.subcommands
+    glint.cmd.subcommands
     |> subcommands_help
     |> append_if_msg_not_empty(
       style_heading(styling, subcommands_heading, style.subcommands_key),

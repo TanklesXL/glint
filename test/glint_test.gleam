@@ -11,7 +11,7 @@ pub fn main() {
 }
 
 pub fn path_clean_test() {
-  glint.new()
+  glint.new([])
   |> glint.add_command(["", " ", " cmd", "subcmd\t"], fn(_) { Nil }, [], "", "")
   |> glint.execute(["cmd", "subcmd"])
   |> should.be_ok()
@@ -19,7 +19,7 @@ pub fn path_clean_test() {
 
 pub fn root_command_test() {
   // expecting no args
-  glint.new()
+  glint.new([])
   |> glint.add_command(
     at: [],
     do: fn(in: CommandInput) { should.equal(in.args, []) },
@@ -34,7 +34,7 @@ pub fn root_command_test() {
   let args = ["arg1", "arg2"]
   let is_args = fn(in: CommandInput) { should.equal(in.args, args) }
 
-  glint.new()
+  glint.new([])
   |> glint.add_command(at: [], do: is_args, with: [], described: "", used: "")
   |> glint.execute(args)
   |> should.be_ok()
@@ -45,7 +45,7 @@ pub fn command_routing_test() {
   let is_args = fn(in: CommandInput) { should.equal(in.args, args) }
 
   let has_subcommand =
-    glint.new()
+    glint.new([])
     |> glint.add_command(["subcommand"], is_args, [], "", "")
 
   // execute subommand with args
@@ -64,7 +64,7 @@ pub fn nested_commands_test() {
   let is_args = fn(in: CommandInput) { should.equal(in.args, args) }
 
   let cmd =
-    glint.new()
+    glint.new([])
     |> glint.add_command(["subcommand"], is_args, [], "", "")
     |> glint.add_command(["subcommand", "subsubcommand"], is_args, [], "", "")
 
@@ -81,7 +81,7 @@ pub fn nested_commands_test() {
 
 pub fn runner_test() {
   let cmd =
-    glint.new()
+    glint.new([])
     |> glint.add_command(
       at: [],
       do: fn(_) { Ok("success") },
@@ -110,8 +110,9 @@ pub fn runner_test() {
 
 pub fn help_test() {
   let nil = function.constant(Nil)
+  let global_flags = [flag.string("global", "test", "This is a global flag")]
   let cli =
-    glint.new()
+    glint.new(global_flags)
     |> glint.add_command(
       at: [],
       do: nil,
@@ -173,6 +174,7 @@ USAGE:
 FLAGS:
 \t--help\t\t\tPrint help information
 \t--flag1=<FLAG1>\t\tThis is flag1
+\t--global=<GLOBAL>\t\tThis is a global flag
 
 SUBCOMMANDS:
 \tcmd1\t\tThis is cmd1
@@ -193,6 +195,7 @@ FLAGS:
 \t--help\t\t\tPrint help information
 \t--flag2=<FLAG2>\t\tThis is flag2
 \t--flag5=<FLAG5>\t\tThis is flag5
+\t--global=<GLOBAL>\t\tThis is a global flag
 
 SUBCOMMANDS:
 \tcmd3\t\tThis is cmd3
@@ -210,7 +213,8 @@ USAGE:
 
 FLAGS:
 \t--help\t\t\tPrint help information
-\t--flag4=<FLAG4>\t\tThis is flag4",
+\t--flag4=<FLAG4>\t\tThis is flag4
+\t--global=<GLOBAL>\t\tThis is a global flag",
   )))
 
   // help message for command with no additional flags
@@ -223,13 +227,14 @@ USAGE:
 \tgleam run cmd2
 
 FLAGS:
-\t--help\t\t\tPrint help information",
+\t--help\t\t\tPrint help information
+\t--global=<GLOBAL>\t\tThis is a global flag",
   )))
 }
 
 if erlang {
   pub fn pretty_help_test() {
-    glint.new()
+    glint.new([])
     |> glint.enable_pretty_help(style.default_pretty_help)
     |> glint.add_command(
       [],

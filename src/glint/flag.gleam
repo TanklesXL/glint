@@ -143,7 +143,7 @@ pub fn build_map(flags: List(Flag)) -> Map {
   map.from_list(flags)
 }
 
-/// Updates a flag balue, ensuring that the new value can satisfy the required type.
+/// Updates a flag value, ensuring that the new value can satisfy the required type.
 /// Assumes that all flag inputs passed in start with --
 /// This function is only intended to be used from glint.execute_root
 ///
