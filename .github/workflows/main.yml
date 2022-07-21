@@ -7,9 +7,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        gleam: ["0.21.0"]
-        erlang: ["24.2"]
-        node: ["16.14.2"]
+        gleam: ["0.22.1"]
+        erlang: ["25.0.2"]
+        node: ["18.2.0"]
     steps:
       - uses: actions/checkout@v2
       - uses: ./.github/actions/test
