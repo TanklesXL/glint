@@ -2,7 +2,6 @@ import gleeunit
 import gleeunit/should
 import glint.{CommandInput, Help, Out}
 import glint/flag
-import glint/style
 import gleam/function
 import snag
 
@@ -233,6 +232,8 @@ FLAGS:
 }
 
 if erlang {
+  import glint/style
+
   pub fn pretty_help_test() {
     glint.new([])
     |> glint.enable_pretty_help(style.default_pretty_help)
