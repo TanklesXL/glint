@@ -298,22 +298,17 @@ fn cannot_parse(flag key: String, with value: String, is kind: String) -> Snag {
 }
 
 // Help Message Functions
-fn flag_help(name: String, contents: Contents) -> String {
-  string.concat([
-    prefix,
-    name,
-    delimiter,
-    "<",
-    string.uppercase(name),
-    ">",
-    "\t\t",
-    contents.description,
-  ])
+pub fn flag_name_help(name: String) -> String {
+  string.concat([prefix, name, delimiter, "<", string.uppercase(name), ">"])
+}
+
+pub fn flag_help(name: String, contents: Contents) -> String {
+  string.concat([flag_name_help(name), "\t\t", contents.description])
 }
 
 /// Generate help messages for all flags
 ///
-pub fn flags_help(flags: Map) {
+pub fn flags_help(flags: Map) -> String {
   flags
   |> map.map_values(flag_help)
   |> map.values

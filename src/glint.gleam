@@ -7,6 +7,7 @@ import snag.{Result}
 import glint/flag.{Flag, Map as FlagMap}
 import glint/style.{PrettyHelp}
 import shellout
+import gleam/string_builder as sb
 
 /// Glint container type for config and commands
 ///
@@ -35,16 +36,10 @@ pub type CommandInput {
 pub type Runner(a) =
   fn(CommandInput) -> a
 
-///  Command description, used for generating help text
-///
-pub type Description {
-  Description(description: String, usage: String)
-}
-
 /// Command contents
 ///
 pub type Contents(a) {
-  Contents(do: Runner(a), flags: FlagMap, desc: Description)
+  Contents(do: Runner(a), flags: FlagMap, description: String)
 }
 
 /// Command tree representation.
@@ -61,7 +56,6 @@ pub type Stub(a) {
     run: Runner(a),
     flags: List(Flag),
     description: String,
-    usage: String,
   )
 }
 
@@ -74,7 +68,6 @@ pub fn add_command_from_stub(to glint: Glint(a), with stub: Stub(a)) -> Glint(a)
     do: stub.run,
     with: stub.flags,
     described: stub.description,
-    used: stub.usage,
   )
 }
 
@@ -138,7 +131,6 @@ pub fn add_command(
   do f: Runner(a),
   with flags: List(Flag),
   described description: String,
-  used usage: String,
 ) -> Glint(a) {
   Glint(
     ..glint,
@@ -146,7 +138,7 @@ pub fn add_command(
     |> sanitize_path
     |> do_add_command(
       to: glint.cmd,
-      put: Contents(f, flag.build_map(flags), Description(description, usage)),
+      put: Contents(f, flag.build_map(flags), description),
     ),
   )
 }
@@ -344,28 +336,39 @@ fn style_heading(
 }
 
 // Help Message Functions
-fn contents_help(
+fn flags_help(flags: FlagMap, styling: Option(shellout.Lookups)) -> String {
+  flags
+  |> flag.flags_help()
+  |> append_if_msg_not_empty("\n\t", _)
+  |> string.append(help_flag_message, _)
+  |> string.append(style_heading(styling, flags_heading, style.flags_key), _)
+}
+
+fn usage_help(
+  path: List(String),
+  flags: FlagMap,
   styling: Option(shellout.Lookups),
-  contents: Contents(a),
-  global_flags: FlagMap,
-) -> #(String, String, String) {
-  // create the flags help block
+) -> String {
   let flags =
-    map.merge(global_flags, contents.flags)
-    |> flag.flags_help()
-    |> append_if_msg_not_empty("\n\t", _)
-    |> string.append(help_flag_message, _)
-    |> string.append(style_heading(styling, flags_heading, style.flags_key), _)
+    flags
+    |> map.keys
+    |> list.map(flag.flag_name_help)
+    |> list.sort(string.compare)
 
-  // create the usage help block
-  let usage =
-    contents.desc.usage
-    |> append_if_msg_not_empty(
-      style_heading(styling, usage_heading, style.usage_key),
-      _,
-    )
+  let flag_sb = case flags {
+    [] -> sb.new()
+    _ ->
+      flags
+      |> list.intersperse(" ")
+      |> sb.from_strings()
+      |> sb.prepend(prefix: " [ ")
+      |> sb.append(suffix: " ]")
+  }
 
-  #(flags, contents.desc.description, usage)
+  [sb.from_strings(["gleam run ", ..path]), sb.from_string("[ ARGS ]"), flag_sb]
+  |> sb.concat
+  |> sb.to_string
+  |> string.append(style_heading(styling, usage_heading, style.usage_key), _)
 }
 
 fn cmd_help(path: List(String), glint: Glint(a)) -> String {
@@ -381,7 +384,14 @@ fn cmd_help(path: List(String), glint: Glint(a)) -> String {
   // create the name, description  and usage help block
   let #(flags, description, usage) = case glint.cmd.contents {
     None -> #("", "", "")
-    Some(contents) -> contents_help(styling, contents, glint.global_flags)
+    Some(contents) -> {
+      let flags = map.merge(glint.global_flags, contents.flags)
+      #(
+        flags_help(flags, styling),
+        contents.description,
+        usage_help(path, flags, styling),
+      )
+    }
   }
 
   // create the header block from the name and description
@@ -423,7 +433,6 @@ fn subcommands_help(cmds: Map(String, Command(a))) -> String {
 fn subcommand_help(name: String, cmd: Command(a)) -> String {
   case cmd.contents {
     None -> name
-    Some(Contents(desc: Description(desc, ..), ..)) ->
-      string.concat([name, "\t\t", desc])
+    Some(contents) -> string.concat([name, "\t\t", contents.description])
   }
 }

@@ -11,7 +11,7 @@ pub fn main() {
 
 pub fn path_clean_test() {
   glint.new([])
-  |> glint.add_command(["", " ", " cmd", "subcmd\t"], fn(_) { Nil }, [], "", "")
+  |> glint.add_command(["", " ", " cmd", "subcmd\t"], fn(_) { Nil }, [], "")
   |> glint.execute(["cmd", "subcmd"])
   |> should.be_ok()
 }
@@ -24,7 +24,6 @@ pub fn root_command_test() {
     do: fn(in: CommandInput) { should.equal(in.args, []) },
     with: [],
     described: "",
-    used: "",
   )
   |> glint.execute([])
   |> should.be_ok()
@@ -34,7 +33,7 @@ pub fn root_command_test() {
   let is_args = fn(in: CommandInput) { should.equal(in.args, args) }
 
   glint.new([])
-  |> glint.add_command(at: [], do: is_args, with: [], described: "", used: "")
+  |> glint.add_command(at: [], do: is_args, with: [], described: "")
   |> glint.execute(args)
   |> should.be_ok()
 }
@@ -45,7 +44,7 @@ pub fn command_routing_test() {
 
   let has_subcommand =
     glint.new([])
-    |> glint.add_command(["subcommand"], is_args, [], "", "")
+    |> glint.add_command(["subcommand"], is_args, [], "")
 
   // execute subommand with args
   has_subcommand
@@ -64,8 +63,8 @@ pub fn nested_commands_test() {
 
   let cmd =
     glint.new([])
-    |> glint.add_command(["subcommand"], is_args, [], "", "")
-    |> glint.add_command(["subcommand", "subsubcommand"], is_args, [], "", "")
+    |> glint.add_command(["subcommand"], is_args, [], "")
+    |> glint.add_command(["subcommand", "subsubcommand"], is_args, [], "")
 
   // call subcommand with args
   cmd
@@ -86,14 +85,12 @@ pub fn runner_test() {
       do: fn(_) { Ok("success") },
       with: [],
       described: "",
-      used: "",
     )
     |> glint.add_command(
       at: ["subcommand"],
       do: fn(_) { snag.error("failed") },
       with: [],
       described: "",
-      used: "",
     )
 
   // command returns its own successful result
@@ -117,7 +114,6 @@ pub fn help_test() {
       do: nil,
       with: [flag.string("flag1", "a", "This is flag1")],
       described: "This is the root command",
-      used: "gleam run <FLAGS>",
     )
     |> glint.add_command(
       at: ["cmd1"],
@@ -127,35 +123,30 @@ pub fn help_test() {
         flag.string("flag5", "a", "This is flag5"),
       ],
       described: "This is cmd1",
-      used: "gleam run cmd1 <FLAGS>",
     )
     |> glint.add_command(
       at: ["cmd1", "cmd3"],
       do: nil,
       with: [flag.string("flag3", "a", "This is flag3")],
       described: "This is cmd3",
-      used: "gleam run cmd1 cmd3",
     )
     |> glint.add_command(
       at: ["cmd1", "cmd4"],
       do: nil,
       with: [flag.string("flag4", "a", "This is flag4")],
       described: "This is cmd4",
-      used: "gleam run cmd1 cmd4 <FLAGS>",
     )
     |> glint.add_command(
       at: ["cmd2"],
       do: nil,
       with: [],
       described: "This is cmd2",
-      used: "gleam run cmd2",
     )
     |> glint.add_command(
       at: ["cmd5", "cmd6"],
       do: nil,
       with: [],
       described: "This is cmd6",
-      used: "gleam run cmd6",
     )
 
   // execute root command
@@ -242,14 +233,12 @@ if erlang {
       fn(_) { Nil },
       [],
       "this is the root command, it doesn't do anyhting",
-      "gleam run",
     )
     |> glint.add_command(
       ["subcommand"],
       fn(_) { Nil },
       [],
       "this is the subcommand, it doesn't do anything either",
-      "gleam run subcommand",
     )
     |> glint.execute(["--help"])
     |> should.equal(Ok(Help(
