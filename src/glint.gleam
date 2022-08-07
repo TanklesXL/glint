@@ -73,22 +73,19 @@ pub fn add_command_from_stub(to glint: Glint(a), with stub: Stub(a)) -> Glint(a)
 
 /// Creates a new command tree.
 ///
-pub fn new(flags: List(Flag)) -> Glint(a) {
-  Glint(
-    config: default_config,
-    cmd: empty_command(),
-    global_flags: flag.build_map(flags),
-  )
+pub fn new() -> Glint(a) {
+  Glint(config: default_config, cmd: empty_command(), global_flags: map.new())
 }
 
-/// Creates a new command tree with the provided Config
+/// Add the provided config to the existing command tree
 ///
-pub fn new_with_config(flags: List(Flag), config: Config) -> Glint(a) {
-  Glint(
-    config: config,
-    cmd: empty_command(),
-    global_flags: flag.build_map(flags),
-  )
+pub fn with_config(glint: Glint(a), config: Config) -> Glint(a) {
+  Glint(..glint, config: config)
+}
+
+/// Add global flags to the existing command tree
+pub fn with_global_flags(glint: Glint(a), flags: List(Flag)) -> Glint(a) {
+  Glint(..glint, global_flags: flag.build_map(flags))
 }
 
 /// Helper for initializing empty commands
@@ -100,7 +97,7 @@ fn empty_command() -> Command(a) {
 /// Enable custom colours for help text headers
 /// For a pre-made colouring use `style.default_pretty_help`
 /// 
-pub fn enable_pretty_help(glint: Glint(a), pretty: PrettyHelp) -> Glint(a) {
+pub fn with_pretty_help(glint: Glint(a), pretty: PrettyHelp) -> Glint(a) {
   Glint(..glint, config: Config(pretty_help: Some(pretty)))
 }
 
