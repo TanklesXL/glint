@@ -159,7 +159,7 @@ pub fn help_test() {
     "This is the root command
 
 USAGE:
-\tgleam run <FLAGS>
+\tgleam run [ ARGS ] [ --flag1=<FLAG1> --global=<GLOBAL> ]
 
 FLAGS:
 \t--help\t\t\tPrint help information
@@ -179,7 +179,7 @@ SUBCOMMANDS:
 This is cmd1
 
 USAGE:
-\tgleam run cmd1 <FLAGS>
+\tgleam run cmd1 [ ARGS ] [ --flag2=<FLAG2> --flag5=<FLAG5> --global=<GLOBAL> ]
 
 FLAGS:
 \t--help\t\t\tPrint help information
@@ -199,7 +199,7 @@ SUBCOMMANDS:
 This is cmd4
 
 USAGE:
-\tgleam run cmd1 cmd4 <FLAGS>
+\tgleam run cmd1 cmd4 [ ARGS ] [ --flag4=<FLAG4> --global=<GLOBAL> ]
 
 FLAGS:
 \t--help\t\t\tPrint help information
@@ -214,7 +214,7 @@ FLAGS:
 This is cmd2
 
 USAGE:
-\tgleam run cmd2
+\tgleam run cmd2 [ ARGS ] [ --global=<GLOBAL> ]
 
 FLAGS:
 \t--help\t\t\tPrint help information
@@ -245,7 +245,7 @@ if erlang {
       "this is the root command, it doesn't do anyhting
 
 \e[1;3;4;38;2;182;255;234mUSAGE:\e[0m\e[K
-\tgleam run
+\tgleam run [ ARGS ]
 
 \e[1;3;4;38;2;255;175;243mFLAGS:\e[0m\e[K
 \t--help\t\t\tPrint help information

@@ -18,12 +18,12 @@ pub type Glint(a) {
 /// Config for glint
 ///
 pub type Config {
-  Config(pretty_help: Option(PrettyHelp), pretty_err: Bool)
+  Config(pretty_help: Option(PrettyHelp))
 }
 
 /// Default config
 ///
-pub const default_config = Config(pretty_help: None, pretty_err: False)
+pub const default_config = Config(pretty_help: None)
 
 /// Input type for `Runner`.
 ///
@@ -101,13 +101,7 @@ fn empty_command() -> Command(a) {
 /// For a pre-made colouring use `style.default_pretty_help`
 /// 
 pub fn enable_pretty_help(glint: Glint(a), pretty: PrettyHelp) -> Glint(a) {
-  Glint(..glint, config: Config(..glint.config, pretty_help: Some(pretty)))
-}
-
-/// Enable coloured error 1st line
-/// 
-pub fn enable_pretty_err(glint: Glint(a)) -> Glint(a) {
-  Glint(..glint, config: Config(..glint.config, pretty_err: True))
+  Glint(..glint, config: Config(pretty_help: Some(pretty)))
 }
 
 /// Trim each path element and remove any resulting empty strings.
@@ -277,17 +271,6 @@ fn do_execute(
   }
 }
 
-fn make_first_line_red(s: String, active: Bool) -> String {
-  case active {
-    False -> s
-    True ->
-      case string.split_once(s, "\n") {
-        Ok(#(h, t)) -> string.concat([style.err_style(h), "\n", t])
-        Error(_) -> s
-      }
-  }
-}
-
 /// A wrapper for `execute` that discards output and prints any errors
 /// encountered.
 ///
@@ -296,7 +279,6 @@ pub fn run(glint: Glint(a), args: List(String)) -> Nil {
     Error(err) ->
       err
       |> snag.pretty_print
-      |> make_first_line_red(glint.config.pretty_err)
       |> io.println
     Ok(Help(help)) -> io.println(help)
     _ -> Nil
@@ -344,8 +326,15 @@ fn flags_help(flags: FlagMap, styling: Option(shellout.Lookups)) -> String {
   |> string.append(style_heading(styling, flags_heading, style.flags_key), _)
 }
 
+fn wrap_with_space(s: String) -> String {
+  case s {
+    "" -> " "
+    _ -> string.concat([" ", s, " "])
+  }
+}
+
 fn usage_help(
-  path: List(String),
+  name: String,
   flags: FlagMap,
   styling: Option(shellout.Lookups),
 ) -> String {
@@ -365,10 +354,11 @@ fn usage_help(
       |> sb.append(suffix: " ]")
   }
 
-  [sb.from_strings(["gleam run ", ..path]), sb.from_string("[ ARGS ]"), flag_sb]
-  |> sb.concat
+  ["gleam run", wrap_with_space(name), "[ ARGS ]"]
+  |> sb.from_strings
+  |> sb.append_builder(flag_sb)
+  |> sb.prepend(style_heading(styling, usage_heading, style.usage_key))
   |> sb.to_string
-  |> string.append(style_heading(styling, usage_heading, style.usage_key), _)
 }
 
 fn cmd_help(path: List(String), glint: Glint(a)) -> String {
@@ -389,7 +379,7 @@ fn cmd_help(path: List(String), glint: Glint(a)) -> String {
       #(
         flags_help(flags, styling),
         contents.description,
-        usage_help(path, flags, styling),
+        usage_help(name, flags, styling),
       )
     }
   }
