@@ -107,34 +107,37 @@ pub fn runner_test() {
 pub fn help_test() {
   let nil = function.constant(Nil)
   let global_flags = [flag.string("global", "test", "This is a global flag")]
+  let flag_1 = flag.string("flag1", "a", "This is flag1")
+  let flag_2 = flag.int("flag2", 1, "This is flag2")
+  let flag_3 = flag.bool("flag3", True, "This is flag3")
+  let flag_4 = flag.float("flag4", 1.0, "This is flag4")
+  let flag_5 = flag.floats("flag5", [1.0, 2.0], "This is flag5")
+
   let cli =
     glint.new()
     |> glint.with_global_flags(global_flags)
     |> glint.add_command(
       at: [],
       do: nil,
-      with: [flag.string("flag1", "a", "This is flag1")],
+      with: [flag_1],
       described: "This is the root command",
     )
     |> glint.add_command(
       at: ["cmd1"],
       do: nil,
-      with: [
-        flag.string("flag2", "a", "This is flag2"),
-        flag.string("flag5", "a", "This is flag5"),
-      ],
+      with: [flag_2, flag_5],
       described: "This is cmd1",
     )
     |> glint.add_command(
       at: ["cmd1", "cmd3"],
       do: nil,
-      with: [flag.string("flag3", "a", "This is flag3")],
+      with: [flag_3],
       described: "This is cmd3",
     )
     |> glint.add_command(
       at: ["cmd1", "cmd4"],
       do: nil,
-      with: [flag.string("flag4", "a", "This is flag4")],
+      with: [flag_4],
       described: "This is cmd4",
     )
     |> glint.add_command(
@@ -160,12 +163,12 @@ pub fn help_test() {
     "This is the root command
 
 USAGE:
-\tgleam run [ ARGS ] [ --flag1=<FLAG1> --global=<GLOBAL> ]
+\tgleam run [ ARGS ] [ --flag1=<STRING> --global=<STRING> ]
 
 FLAGS:
 \t--help\t\t\tPrint help information
-\t--flag1=<FLAG1>\t\tThis is flag1
-\t--global=<GLOBAL>\t\tThis is a global flag
+\t--flag1=<STRING>\t\tThis is flag1
+\t--global=<STRING>\t\tThis is a global flag
 
 SUBCOMMANDS:
 \tcmd1\t\tThis is cmd1
@@ -180,13 +183,13 @@ SUBCOMMANDS:
 This is cmd1
 
 USAGE:
-\tgleam run cmd1 [ ARGS ] [ --flag2=<FLAG2> --flag5=<FLAG5> --global=<GLOBAL> ]
+\tgleam run cmd1 [ ARGS ] [ --flag2=<INT> --flag5=<FLOAT_LIST> --global=<STRING> ]
 
 FLAGS:
 \t--help\t\t\tPrint help information
-\t--flag2=<FLAG2>\t\tThis is flag2
-\t--flag5=<FLAG5>\t\tThis is flag5
-\t--global=<GLOBAL>\t\tThis is a global flag
+\t--flag2=<INT>\t\tThis is flag2
+\t--flag5=<FLOAT_LIST>\t\tThis is flag5
+\t--global=<STRING>\t\tThis is a global flag
 
 SUBCOMMANDS:
 \tcmd3\t\tThis is cmd3
@@ -200,12 +203,12 @@ SUBCOMMANDS:
 This is cmd4
 
 USAGE:
-\tgleam run cmd1 cmd4 [ ARGS ] [ --flag4=<FLAG4> --global=<GLOBAL> ]
+\tgleam run cmd1 cmd4 [ ARGS ] [ --flag4=<FLOAT> --global=<STRING> ]
 
 FLAGS:
 \t--help\t\t\tPrint help information
-\t--flag4=<FLAG4>\t\tThis is flag4
-\t--global=<GLOBAL>\t\tThis is a global flag",
+\t--flag4=<FLOAT>\t\tThis is flag4
+\t--global=<STRING>\t\tThis is a global flag",
   )))
 
   // help message for command with no additional flags
@@ -215,11 +218,11 @@ FLAGS:
 This is cmd2
 
 USAGE:
-\tgleam run cmd2 [ ARGS ] [ --global=<GLOBAL> ]
+\tgleam run cmd2 [ ARGS ] [ --global=<STRING> ]
 
 FLAGS:
 \t--help\t\t\tPrint help information
-\t--global=<GLOBAL>\t\tThis is a global flag",
+\t--global=<STRING>\t\tThis is a global flag",
   )))
 }
 

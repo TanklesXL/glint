@@ -298,20 +298,33 @@ fn cannot_parse(flag key: String, with value: String, is kind: String) -> Snag {
 }
 
 // Help Message Functions
-pub fn flag_name_help(name: String) -> String {
-  string.concat([prefix, name, delimiter, "<", string.uppercase(name), ">"])
+pub fn flag_type_help(flag: Flag) {
+  let #(name, contents) = flag
+  let kind = case contents.value {
+    I(_) -> "INT"
+    B(_) -> "BOOL"
+    F(_) -> "FLOAT"
+    LF(_) -> "FLOAT_LIST"
+    LI(_) -> "INT_LIST"
+    LS(_) -> "STRING_LIST"
+    S(_) -> "STRING"
+  }
+
+  string.concat([prefix, name, delimiter, "<", kind, ">"])
 }
 
-pub fn flag_help(name: String, contents: Contents) -> String {
-  string.concat([flag_name_help(name), "\t\t", contents.description])
+/// Generate help message for a single flag
+///
+pub fn flag_help(flag: Flag) -> String {
+  string.concat([flag_type_help(flag), "\t\t", { flag.1 }.description])
 }
 
 /// Generate help messages for all flags
 ///
 pub fn flags_help(flags: Map) -> String {
   flags
-  |> map.map_values(flag_help)
-  |> map.values
+  |> map.to_list
+  |> list.map(flag_help)
   |> list.sort(string.compare)
   |> string.join("\n\t")
 }

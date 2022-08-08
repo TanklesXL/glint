@@ -337,8 +337,8 @@ fn usage_help(
 ) -> String {
   let flags =
     flags
-    |> map.keys
-    |> list.map(flag.flag_name_help)
+    |> map.to_list
+    |> list.map(flag.flag_type_help)
     |> list.sort(string.compare)
 
   let flag_sb = case flags {

@@ -342,15 +342,15 @@ pub fn toggle_test() {
 
 pub fn flags_help_test() {
   [
-    flag.string("string", "", "a string flag"),
-    flag.int("int", 0, "an int flag"),
-    flag.float("float", 0.0, "a float flag"),
+    flag.string("s", "", "a string flag"),
+    flag.int("i", 0, "an int flag"),
+    flag.float("f", 0.0, "a float flag"),
   ]
   |> flag.build_map()
   |> flag.flags_help()
   |> should.equal(
-    "--float=<FLOAT>\t\ta float flag
-\t--int=<INT>\t\tan int flag
-\t--string=<STRING>\t\ta string flag",
+    "--f=<FLOAT>\t\ta float flag
+\t--i=<INT>\t\tan int flag
+\t--s=<STRING>\t\ta string flag",
   )
 }
