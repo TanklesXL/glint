@@ -11,7 +11,7 @@ import gleam/string_builder as sb
 
 /// Glint container type for config and commands
 ///
-pub type Glint(a) {
+pub opaque type Glint(a) {
   Glint(config: Config, cmd: Command(a), global_flags: FlagMap)
 }
 
@@ -38,13 +38,13 @@ pub type Runner(a) =
 
 /// Command contents
 ///
-pub type Contents(a) {
+pub opaque type Contents(a) {
   Contents(do: Runner(a), flags: FlagMap, description: String)
 }
 
 /// Command tree representation.
 ///
-pub type Command(a) {
+pub opaque type Command(a) {
   Command(contents: Option(Contents(a)), subcommands: Map(String, Command(a)))
 }
 
@@ -85,7 +85,14 @@ pub fn with_config(glint: Glint(a), config: Config) -> Glint(a) {
 
 /// Add global flags to the existing command tree
 pub fn with_global_flags(glint: Glint(a), flags: List(Flag)) -> Glint(a) {
-  Glint(..glint, global_flags: flag.build_map(flags))
+  Glint(
+    ..glint,
+    global_flags: list.fold(
+      flags,
+      glint.global_flags,
+      fn(m, f) { map.insert(m, f.0, f.1) },
+    ),
+  )
 }
 
 /// Helper for initializing empty commands
@@ -134,6 +141,8 @@ pub fn add_command(
   )
 }
 
+/// Recursive traversal of the command tree to find where to puth the provided command
+///
 fn do_add_command(
   to root: Command(a),
   at path: List(String),
@@ -221,6 +230,8 @@ pub fn execute(glint: Glint(a), args: List(String)) -> CmdResult(a) {
   do_execute(glint, args, flags, help, [])
 }
 
+/// Find which command to execute and run it with computed flags and args
+///
 fn do_execute(
   glint: Glint(a),
   args: List(String),

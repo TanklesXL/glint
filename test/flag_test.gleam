@@ -120,7 +120,7 @@ pub fn flag_value_test() {
     should.equal(in.args, args)
 
     in.flags
-    |> flag.get_value("flag")
+    |> flag.get("flag")
     |> should.equal(Ok(S("flag_value")))
   }
 
@@ -144,7 +144,7 @@ pub fn int_flag_test() {
   let flag_input = "--flag=10"
   let expect_flag_value_of_10 = fn(in: CommandInput) {
     in.flags
-    |> flag.get_value("flag")
+    |> flag.get("flag")
     |> should.equal(Ok(I(10)))
   }
 
@@ -168,7 +168,7 @@ pub fn bool_flag_test() {
   let flag_input = "--flag=false"
   let expect_flag_value_of_false = fn(in: CommandInput) {
     in.flags
-    |> flag.get_value("flag")
+    |> flag.get("flag")
     |> should.equal(Ok(flag.B(False)))
   }
   glint.new()
@@ -182,7 +182,7 @@ pub fn strings_flag_test() {
   let flag_input = "--flag=val3,val4"
   let expect_flag_value_list = fn(in: CommandInput) {
     in.flags
-    |> flag.get_value("flag")
+    |> flag.get("flag")
     |> should.equal(Ok(LS(["val3", "val4"])))
   }
   glint.new()
@@ -205,7 +205,7 @@ pub fn ints_flag_test() {
   let flag_input = "--flag=3,4"
   let expect_flag_value_list = fn(in: CommandInput) {
     in.flags
-    |> flag.get_value("flag")
+    |> flag.get("flag")
     |> should.equal(Ok(LI([3, 4])))
   }
   glint.new()
@@ -228,7 +228,7 @@ pub fn float_flag_test() {
   let flag_input = "--flag=10.0"
   let expect_flag_value_of_10 = fn(in: CommandInput) {
     in.flags
-    |> flag.get_value("flag")
+    |> flag.get("flag")
     |> should.equal(Ok(F(10.0)))
   }
 
@@ -252,7 +252,7 @@ pub fn floats_flag_test() {
   let flag_input = "--flag=3.0,4.0"
   let expect_flag_value_list = fn(in: CommandInput) {
     in.flags
-    |> flag.get_value("flag")
+    |> flag.get("flag")
     |> should.equal(Ok(LF([3.0, 4.0])))
   }
   glint.new()
@@ -265,7 +265,7 @@ pub fn global_flag_test() {
   let testcase = fn(vals: List(Float)) {
     fn(in: CommandInput) {
       in.flags
-      |> flag.get_value("flag")
+      |> flag.get("flag")
       |> should.equal(Ok(LF(vals)))
     }
   }
@@ -321,7 +321,7 @@ pub fn toggle_test() {
   let flag_input = "--flag"
   let expect_flag_value_of_true = fn(in: CommandInput) {
     in.flags
-    |> flag.get_value(for: "flag")
+    |> flag.get(for: "flag")
     |> should.equal(Ok(B(True)))
   }
 

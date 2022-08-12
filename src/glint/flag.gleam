@@ -48,12 +48,14 @@ pub type Value {
   LS(List(String))
 }
 
+/// Flag descriptions
+///
 pub type Description =
   String
 
 /// Flag data and descriptions
 ///
-pub type Contents {
+pub opaque type Contents {
   Contents(value: Value, description: Description)
 }
 
@@ -62,7 +64,7 @@ pub type Contents {
 pub type Flag =
   #(String, Contents)
 
-/// Creates a  #(name, Contents(I(value), description))
+/// Creates a #(name, Contents(I(value), description))
 ///
 pub fn int(
   called name: String,
@@ -178,18 +180,18 @@ fn attempt_toggle_flag(in flags: Map, at key: String) -> Result(Map) {
   }
 }
 
+/// Gets the current Value for the associated flag
+///
+pub fn get(from flags: Map, for name: String) -> gleam.Result(Value, Nil) {
+  try contents = map.get(flags, name)
+  Ok(contents.value)
+}
+
 /// Access the contents for the associated flag
 ///
 fn access(flags: Map, name: String) -> Result(Contents) {
   map.get(flags, name)
   |> result.replace_error(undefined_flag_err(name))
-}
-
-/// Gets the current Value for the associated flag
-///
-pub fn get_value(from flags: Map, for name: String) -> gleam.Result(Value, Nil) {
-  try contents = map.get(flags, name)
-  Ok(contents.value)
 }
 
 /// Computes the new flag value given the input and the expected flag type 

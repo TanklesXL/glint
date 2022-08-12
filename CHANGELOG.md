@@ -8,7 +8,6 @@
 - `glint` gains the `Config` type
 - `glint.new` returns a `Glint(a)` instead of a `Command(a)`
 - `glint` gains helpers such as `with_config`, `default_config`, and `with_pretty_help`
-- `glint.Contents` and `glint.Command` are no longer opaque
 
 ## [0.8.0](https://github.com/TanklesXL/glint/compare/v0.7.4...v0.8.0) - 2022-05-09
 

@@ -23,19 +23,19 @@ pub const default_pretty_help = PrettyHelp(
   subcommands: ["252", "226", "174"],
 )
 
-/// key for looking up the style of the usage heading
+/// Key for looking up the style of the usage heading
 ///
 pub const usage_key = "usage"
 
-/// key for looking up the style of the flags heading
+/// Key for looking up the style of the flags heading
 ///
 pub const flags_key = "flags"
 
-/// key for looking up the style of the subcommands heading
+/// Key for looking up the style of the subcommands heading
 ///
 pub const subcommands_key = "subcommands"
 
-/// create shellout lookups from the provided pretty help
+/// Create shellout lookups from the provided pretty help
 /// this is only intended for use within glint itself.
 ///
 pub fn lookups(pretty: PrettyHelp) -> shellout.Lookups {
@@ -53,7 +53,7 @@ pub fn lookups(pretty: PrettyHelp) -> shellout.Lookups {
 
 const heading_display: List(String) = ["bold", "italic", "underline"]
 
-/// style heading text with the provided lookups
+/// Style heading text with the provided lookups
 /// this is only intended for use within glint itself.
 ///
 pub fn heading(
@@ -64,16 +64,4 @@ pub fn heading(
   shellout.display(heading_display)
   |> map.merge(shellout.color([colour]))
   |> shellout.style(heading, with: _, custom: lookups)
-}
-
-// bold and italic are built-in to shellout so we don't need to define them ourselves
-const err_display: List(String) = ["bold", "italic"]
-
-// brightred is built-in to shellout so we don't need to define it ourselves
-const err_colours: List(String) = ["brightred"]
-
-pub fn err_style(s: String) {
-  shellout.display(err_display)
-  |> map.merge(shellout.color(err_colours))
-  |> shellout.style(s, _, [])
 }
