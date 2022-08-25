@@ -300,6 +300,8 @@ fn cannot_parse(flag key: String, with value: String, is kind: String) -> Snag {
 }
 
 // Help Message Functions
+/// Generate the help message contents for a single flag
+/// 
 pub fn flag_type_help(flag: Flag) {
   let #(name, contents) = flag
   let kind = case contents.value {
@@ -315,9 +317,9 @@ pub fn flag_type_help(flag: Flag) {
   string.concat([prefix, name, delimiter, "<", kind, ">"])
 }
 
-/// Generate help message for a single flag
+/// Generate help message line for a single flag
 ///
-pub fn flag_help(flag: Flag) -> String {
+fn flag_help(flag: Flag) -> String {
   string.concat([flag_type_help(flag), "\t\t", { flag.1 }.description])
 }
 
