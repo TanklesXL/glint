@@ -102,11 +102,22 @@ fn empty_command() -> Command(a) {
 }
 
 /// Enable custom colours for help text headers
-/// For a pre-made colouring use `style.default_pretty_help`
+/// For a pre-made colouring use `default_pretty_help`
 /// 
 pub fn with_pretty_help(glint: Glint(a), pretty: PrettyHelp) -> Glint(a) {
   Glint(..glint, config: Config(pretty_help: Some(pretty)))
 }
+
+/// Default pretty help heading colouring
+/// mint colour for usage
+/// pink colour for flags
+/// buttercup colour for subcommands
+///
+pub const default_pretty_help = PrettyHelp(
+  usage: ["182", "255", "234"],
+  flags: ["255", "175", "243"],
+  subcommands: ["252", "226", "174"],
+)
 
 /// Trim each path element and remove any resulting empty strings.
 ///

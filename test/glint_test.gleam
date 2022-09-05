@@ -227,11 +227,9 @@ FLAGS:
 }
 
 if erlang {
-  import glint/style
-
   pub fn pretty_help_test() {
     glint.new()
-    |> glint.with_pretty_help(style.default_pretty_help)
+    |> glint.with_pretty_help(glint.default_pretty_help)
     |> glint.add_command(
       [],
       fn(_) { Nil },

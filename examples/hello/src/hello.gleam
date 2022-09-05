@@ -4,17 +4,20 @@ import gleam/string.{join, uppercase}
 import gleam/erlang.{start_arguments}
 import glint.{CommandInput}
 import glint/flag
+import gleam/function.{identity}
 
-fn hello(input: CommandInput) {
-  assert Ok(flag.B(caps)) = flag.get_value(from: input.flags, for: "caps")
-  let to_say = ["Hello,", ..input.args]
-  case caps {
-    True ->
-      to_say
-      |> join(" ")
-      |> uppercase()
+fn hello(input: CommandInput) -> Nil {
+  assert Ok(flag.B(caps)) = flag.get(from: input.flags, for: "caps")
+  let args = case input.args {
+    [] -> ["World"]
+    args -> args
+  }
 
-    False -> join(to_say, " ")
+  ["Hello,", ..args]
+  |> join(" ")
+  |> case caps {
+    True -> uppercase
+    False -> identity
   }
   |> string.append("!")
   |> io.println()
@@ -22,12 +25,12 @@ fn hello(input: CommandInput) {
 
 pub fn main() {
   glint.new()
+  |> glint.with_pretty_help(glint.default_pretty_help)
   |> glint.add_command(
     at: [],
     do: hello,
     with: [flag.bool("caps", False, "Capitalize the provided name")],
     described: "Prints Hello, <NAME>!",
-    used: "'gleam run <NAME>' or 'gleam run <NAME> --caps'",
   )
   |> glint.run(start_arguments())
 }

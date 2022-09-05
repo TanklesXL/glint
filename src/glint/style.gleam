@@ -12,17 +12,6 @@ pub type PrettyHelp {
   )
 }
 
-/// Default pretty help heading colouring
-/// mint colour for usage
-/// pink colour for flags
-/// buttercup colour for subcommands
-///
-pub const default_pretty_help = PrettyHelp(
-  usage: ["182", "255", "234"],
-  flags: ["255", "175", "243"],
-  subcommands: ["252", "226", "174"],
-)
-
 /// Key for looking up the style of the usage heading
 ///
 pub const usage_key = "usage"
