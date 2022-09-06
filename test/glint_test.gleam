@@ -257,3 +257,26 @@ if erlang {
     )))
   }
 }
+
+pub fn global_flags_test() {
+  let cli =
+    glint.new()
+    |> glint.with_global_flags([flag.int("global", 1, "global flag example")])
+    |> glint.add_command(
+      [],
+      fn(ctx) {
+        flag.get(ctx.flags, "global")
+        |> should.equal(Ok(flag.I(2)))
+      },
+      [],
+      "",
+    )
+
+  cli
+  |> glint.execute(["--global=2"])
+  |> should.be_ok
+
+  cli
+  |> glint.execute(["--global=hello"])
+  |> should.be_error
+}
