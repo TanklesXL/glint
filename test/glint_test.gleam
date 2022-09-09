@@ -261,22 +261,41 @@ if erlang {
 pub fn global_flags_test() {
   let cli =
     glint.new()
-    |> glint.with_global_flags([flag.int("global", 1, "global flag example")])
+    |> glint.with_global_flags([flag.int("f", 1, "global flag example")])
     |> glint.add_command(
       [],
       fn(ctx) {
-        flag.get(ctx.flags, "global")
+        flag.get(ctx.flags, "f")
         |> should.equal(Ok(flag.I(2)))
       },
       [],
       "",
     )
+    |> glint.add_command(
+      ["sub"],
+      fn(ctx) {
+        flag.get(ctx.flags, "f")
+        |> should.equal(Ok(flag.B(True)))
+      },
+      [flag.bool("f", False, "i decided to override the global flag")],
+      "",
+    )
 
+  // root command keeps the global flag as an int 
   cli
-  |> glint.execute(["--global=2"])
+  |> glint.execute(["--f=2"])
   |> should.be_ok
 
   cli
-  |> glint.execute(["--global=hello"])
+  |> glint.execute(["--f=hello"])
+  |> should.be_error
+
+  // sub command overrides the global flag with a bool
+  cli
+  |> glint.execute(["sub", "--f=true"])
+  |> should.be_ok
+
+  cli
+  |> glint.execute(["sub", "--f=123"])
   |> should.be_error
 }
