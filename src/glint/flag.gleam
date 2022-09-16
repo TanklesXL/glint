@@ -48,12 +48,14 @@ pub type Value {
   LS(List(String))
 }
 
+/// Flag descriptions
+///
 pub type Description =
   String
 
 /// Flag data and descriptions
 ///
-pub type Contents {
+pub opaque type Contents {
   Contents(value: Value, description: Description)
 }
 
@@ -62,7 +64,7 @@ pub type Contents {
 pub type Flag =
   #(String, Contents)
 
-/// Creates a  #(name, Contents(I(value), description))
+/// Creates a #(name, Contents(I(value), description))
 ///
 pub fn int(
   called name: String,
@@ -143,7 +145,7 @@ pub fn build_map(flags: List(Flag)) -> Map {
   map.from_list(flags)
 }
 
-/// Updates a flag balue, ensuring that the new value can satisfy the required type.
+/// Updates a flag value, ensuring that the new value can satisfy the required type.
 /// Assumes that all flag inputs passed in start with --
 /// This function is only intended to be used from glint.execute_root
 ///
@@ -178,18 +180,18 @@ fn attempt_toggle_flag(in flags: Map, at key: String) -> Result(Map) {
   }
 }
 
+/// Gets the current Value for the associated flag
+///
+pub fn get(from flags: Map, for name: String) -> gleam.Result(Value, Nil) {
+  try contents = map.get(flags, name)
+  Ok(contents.value)
+}
+
 /// Access the contents for the associated flag
 ///
 fn access(flags: Map, name: String) -> Result(Contents) {
   map.get(flags, name)
   |> result.replace_error(undefined_flag_err(name))
-}
-
-/// Gets the current Value for the associated flag
-///
-pub fn get_value(from flags: Map, for name: String) -> gleam.Result(Value, Nil) {
-  try contents = map.get(flags, name)
-  Ok(contents.value)
 }
 
 /// Computes the new flag value given the input and the expected flag type 
@@ -298,25 +300,35 @@ fn cannot_parse(flag key: String, with value: String, is kind: String) -> Snag {
 }
 
 // Help Message Functions
-fn flag_help(name: String, contents: Contents) -> String {
-  string.concat([
-    prefix,
-    name,
-    delimiter,
-    "<",
-    string.uppercase(name),
-    ">",
-    "\t\t",
-    contents.description,
-  ])
+/// Generate the help message contents for a single flag
+/// 
+pub fn flag_type_help(flag: Flag) {
+  let #(name, contents) = flag
+  let kind = case contents.value {
+    I(_) -> "INT"
+    B(_) -> "BOOL"
+    F(_) -> "FLOAT"
+    LF(_) -> "FLOAT_LIST"
+    LI(_) -> "INT_LIST"
+    LS(_) -> "STRING_LIST"
+    S(_) -> "STRING"
+  }
+
+  string.concat([prefix, name, delimiter, "<", kind, ">"])
+}
+
+/// Generate help message line for a single flag
+///
+fn flag_help(flag: Flag) -> String {
+  string.concat([flag_type_help(flag), "\t\t", { flag.1 }.description])
 }
 
 /// Generate help messages for all flags
 ///
-pub fn flags_help(flags: Map) {
+pub fn flags_help(flags: Map) -> String {
   flags
-  |> map.map_values(flag_help)
-  |> map.values
+  |> map.to_list
+  |> list.map(flag_help)
   |> list.sort(string.compare)
   |> string.join("\n\t")
 }

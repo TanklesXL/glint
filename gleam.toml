@@ -7,11 +7,15 @@ version = "0.8.0"
 licences = ["Apache-2.0"]
 description = "Gleam command line argument parsing with basic flag support."
 repository = { type = "github", user = "TanklesXL", repo = "glint" }
-# links = [{ title = "Website", href = "https://gleam.run" }]
+links = [
+    { title = "Hex", href = "https://hex.pm/packages/glint" },
+    { title = "Docs", href = "https://hexdocs.pm/glint/" },
+]
 
 [dependencies]
 gleam_stdlib = "~> 0.19"
 snag = "~> 0.2"
+shellout = "~> 1.0"
 
 [dev-dependencies]
 gleeunit = "~> 0.5"

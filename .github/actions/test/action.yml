@@ -6,15 +6,15 @@ inputs:
   gleam-version:
     description: gleam version
     required: false
-    default: 0.21.0
+    default: 0.22.1
   erlang-version:
     description: erlang-otp version
     required: false
-    default: 24.3.4
+    default: 25.0.2
   node-version:
     description: nodeJS version
     required: false
-    default: 16.15.0
+    default: 18.2.0
 
 runs:
   using: composite
