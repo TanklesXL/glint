@@ -2,7 +2,7 @@
 
 ## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.0.0...HEAD)
 
-## [0.9.0](https://github.com/TanklesXL/glint/compare/v0.8.0...v0.9.0)
+## [0.9.0](https://github.com/TanklesXL/glint/compare/v0.8.0...v0.9.0) - 2022-09-16
 
 - help text can now be set to use configurable shell colours.
 - added the `style` module to handle coloured help output
