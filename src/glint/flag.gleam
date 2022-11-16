@@ -274,14 +274,12 @@ fn parse_list_flag(
 
 // Error creation and manipulation functions
 fn layer_invalid_flag(err: Snag, flag: String) -> Snag {
-  ["invalid flag '", flag, "'"]
-  |> string.concat()
+  "invalid flag '" <> flag <> "'"
   |> snag.layer(err, _)
 }
 
 fn no_value_flag_err(flag_input: String) -> Snag {
-  ["flag '", flag_input, "' has no assigned value"]
-  |> string.concat()
+  "flag '" <> flag_input <> "' has no assigned value"
   |> snag.new()
   |> layer_invalid_flag(flag_input)
 }
@@ -293,8 +291,7 @@ fn undefined_flag_err(key: String) -> Snag {
 }
 
 fn cannot_parse(flag key: String, with value: String, is kind: String) -> Snag {
-  ["cannot parse flag '", key, "' value '", value, "' as ", kind]
-  |> string.concat()
+  "cannot parse flag '" <> key <> "' value '" <> value <> "' as " <> kind
   |> snag.new()
   |> layer_invalid_flag(key)
 }
@@ -314,13 +311,13 @@ pub fn flag_type_help(flag: Flag) {
     S(_) -> "STRING"
   }
 
-  string.concat([prefix, name, delimiter, "<", kind, ">"])
+  prefix <> name <> delimiter <> "<" <> kind <> ">"
 }
 
 /// Generate help message line for a single flag
 ///
 fn flag_help(flag: Flag) -> String {
-  string.concat([flag_type_help(flag), "\t\t", { flag.1 }.description])
+  flag_type_help(flag) <> "\t\t" <> { flag.1 }.description
 }
 
 /// Generate help messages for all flags

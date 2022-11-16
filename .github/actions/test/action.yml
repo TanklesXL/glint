@@ -6,7 +6,7 @@ inputs:
   gleam-version:
     description: gleam version
     required: false
-    default: 0.22.1
+    default: nightly
   erlang-version:
     description: erlang-otp version
     required: false

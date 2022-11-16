@@ -2,6 +2,9 @@
 
 ## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.0.0...HEAD)
 
+- use gleam's new `<>` string concat operator
+- use gleam's new `use` keyword for callback declaration
+
 ## [0.9.0](https://github.com/TanklesXL/glint/compare/v0.8.0...v0.9.0) - 2022-09-16
 
 - help text can now be set to use configurable shell colours.

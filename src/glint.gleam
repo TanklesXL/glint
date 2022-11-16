@@ -163,17 +163,16 @@ fn do_add_command(
     // update current command with provided contents
     [] -> Command(..root, contents: Some(contents))
     // continue down the path, creating empty command nodes along the way
-    [x, ..xs] -> {
-      let update_subcommand = fn(node) {
-        node
-        |> option.lazy_unwrap(empty_command)
-        |> do_add_command(xs, contents)
-      }
+    [x, ..xs] ->
       Command(
         ..root,
-        subcommands: map.update(root.subcommands, x, update_subcommand),
+        subcommands: {
+          use node <- map.update(root.subcommands, x)
+          node
+          |> option.lazy_unwrap(empty_command)
+          |> do_add_command(xs, contents)
+        },
       )
-    }
   }
 }
 
@@ -202,13 +201,12 @@ fn execute_root(
   case cmd.contents {
     Some(contents) -> {
       try new_flags =
-        flag_inputs
-        |> list.try_fold(
+        list.try_fold(
+          over: flag_inputs,
           from: map.merge(global_flags, contents.flags),
           with: flag.update_flags,
         )
-      args
-      |> CommandInput(new_flags)
+      CommandInput(args, new_flags)
       |> contents.do
       |> Out
       |> Ok
@@ -325,7 +323,7 @@ const help_flag_message = "--help\t\t\tPrint help information"
 /// Exported for testing purposes only
 ///
 pub fn help_flag() -> String {
-  string.append(flag.prefix, help_flag_name)
+  flag.prefix <> help_flag_name
 }
 
 fn style_heading(
@@ -341,17 +339,17 @@ fn style_heading(
 
 // Help Message Functions
 fn flags_help(flags: FlagMap, styling: Option(shellout.Lookups)) -> String {
-  flags
-  |> flag.flags_help()
-  |> append_if_msg_not_empty("\n\t", _)
-  |> string.append(help_flag_message, _)
-  |> string.append(style_heading(styling, flags_heading, style.flags_key), _)
+  style_heading(styling, flags_heading, style.flags_key) <> help_flag_message <> {
+    flags
+    |> flag.flags_help()
+    |> append_if_msg_not_empty("\n\t", _)
+  }
 }
 
 fn wrap_with_space(s: String) -> String {
   case s {
     "" -> " "
-    _ -> string.concat([" ", s, " "])
+    _ -> " " <> s <> " "
   }
 }
 
@@ -445,6 +443,6 @@ fn subcommands_help(cmds: Map(String, Command(a))) -> String {
 fn subcommand_help(name: String, cmd: Command(a)) -> String {
   case cmd.contents {
     None -> name
-    Some(contents) -> string.concat([name, "\t\t", contents.description])
+    Some(contents) -> name <> "\t\t" <> contents.description
   }
 }
