@@ -14,7 +14,7 @@ inputs:
   node-version:
     description: nodeJS version
     required: false
-    default: 18.2.0
+    default: 18.12.1
 
 runs:
   using: composite

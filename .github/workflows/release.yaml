@@ -19,8 +19,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: ./.github/actions/test
-        with:
-          gleam-version: nightly
       - name: publish to hex
         env:
           HEXPM_USER: ${{ secrets.HEXPM_USER }}
