@@ -1,6 +1,8 @@
 # Changelog
 
-## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.0.0...HEAD)
+## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.10.0...HEAD)
+
+## [0.10.0](https://github.com/TanklesXL/glint/compare/v0.9.0...v0.10.0) - 2022-11-29
 
 - use gleam's new `<>` string concat operator
 - use gleam's new `use` keyword for callback declaration
