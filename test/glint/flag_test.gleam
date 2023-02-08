@@ -2,6 +2,8 @@ import gleeunit/should
 import glint.{CommandInput}
 import glint/flag.{B, F, I, LF, LI, LS, S}
 import gleam/map
+import gleam/list
+import gleam/string
 
 pub fn update_flag_test() {
   let flags =
@@ -348,9 +350,9 @@ pub fn flags_help_test() {
   ]
   |> flag.build_map()
   |> flag.flags_help()
-  |> should.equal(
-    "--f=<FLOAT>\t\ta float flag
-\t--i=<INT>\t\tan int flag
-\t--s=<STRING>\t\ta string flag",
-  )
+  |> list.sort(string.compare)
+  |> should.equal([
+    "--f=<FLOAT>\t\ta float flag", "--i=<INT>\t\tan int flag",
+    "--s=<STRING>\t\ta string flag",
+  ])
 }

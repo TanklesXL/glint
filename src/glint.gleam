@@ -5,9 +5,10 @@ import gleam/io
 import gleam/string
 import snag.{Result}
 import glint/flag.{Flag, Map as FlagMap}
-import glint/style.{PrettyHelp}
-import shellout
 import gleam/string_builder as sb
+import gleam_community/ansi
+import gleam_community/colour.{Colour}
+import gleam/result
 
 /// Glint container type for config and commands
 ///
@@ -19,6 +20,11 @@ pub opaque type Glint(a) {
 ///
 pub type Config {
   Config(pretty_help: Option(PrettyHelp))
+}
+
+// PrettyHelp defines the header colours to be used when styling help text
+pub type PrettyHelp {
+  PrettyHelp(usage: Colour, flags: Colour, subcommands: Colour)
 }
 
 /// Default config
@@ -102,22 +108,34 @@ fn empty_command() -> Command(a) {
 }
 
 /// Enable custom colours for help text headers
-/// For a pre-made colouring use `default_pretty_help`
+/// For a pre-made colouring use `default_pretty_help()`
 /// 
 pub fn with_pretty_help(glint: Glint(a), pretty: PrettyHelp) -> Glint(a) {
   Glint(..glint, config: Config(pretty_help: Some(pretty)))
 }
 
+/// Disable custom colours for help text headers
+/// 
+pub fn without_pretty_help(glint: Glint(a)) -> Glint(a) {
+  Glint(..glint, config: Config(pretty_help: None))
+}
+
 /// Default pretty help heading colouring
-/// mint colour for usage
-/// pink colour for flags
-/// buttercup colour for subcommands
+/// mint (r: 182, g: 255, b: 234) colour for usage
+/// pink (r: 255, g: 175, b: 243) colour for flags
+/// buttercup (r: 252, g: 226, b: 174) colour for subcommands
 ///
-pub const default_pretty_help = PrettyHelp(
-  usage: ["182", "255", "234"],
-  flags: ["255", "175", "243"],
-  subcommands: ["252", "226", "174"],
-)
+pub fn default_pretty_help() -> PrettyHelp {
+  assert Ok(usage_colour) = colour.from_rgb255(182, 255, 234)
+  assert Ok(flags_colour) = colour.from_rgb255(255, 175, 243)
+  assert Ok(subcommands_colour) = colour.from_rgb255(252, 226, 174)
+
+  PrettyHelp(
+    usage: usage_colour,
+    flags: flags_colour,
+    subcommands: subcommands_colour,
+  )
+}
 
 /// Trim each path element and remove any resulting empty strings.
 ///
@@ -200,12 +218,11 @@ fn execute_root(
 ) -> CmdResult(a) {
   case cmd.contents {
     Some(contents) -> {
-      try new_flags =
-        list.try_fold(
-          over: flag_inputs,
-          from: map.merge(global_flags, contents.flags),
-          with: flag.update_flags,
-        )
+      use new_flags <- result.then(list.try_fold(
+        over: flag_inputs,
+        from: map.merge(global_flags, contents.flags),
+        with: flag.update_flags,
+      ))
       CommandInput(args, new_flags)
       |> contents.do
       |> Out
@@ -236,13 +253,23 @@ pub fn execute(glint: Glint(a), args: List(String)) -> CmdResult(a) {
   let #(flags, args) = list.partition(args, string.starts_with(_, flag.prefix))
 
   // search for command and execute
-  do_execute(glint, args, flags, help, [])
+  do_execute(
+    glint.cmd,
+    glint.config.pretty_help,
+    glint.global_flags,
+    args,
+    flags,
+    help,
+    [],
+  )
 }
 
 /// Find which command to execute and run it with computed flags and args
 ///
 fn do_execute(
-  glint: Glint(a),
+  cmd: Command(a),
+  pretty_help: Option(PrettyHelp),
+  global_flags: FlagMap,
   args: List(String),
   flags: List(String),
   help: Bool,
@@ -253,22 +280,24 @@ fn do_execute(
     // and help flag has been passed, generate help message
     [] if help ->
       command_path
-      |> cmd_help(glint)
+      |> cmd_help(cmd, pretty_help, global_flags)
       |> Help
       |> Ok
 
     // when there are no more available arguments
     // run the current command
-    [] -> execute_root(glint.cmd, glint.global_flags, [], flags)
+    [] -> execute_root(cmd, global_flags, [], flags)
 
     // when there are arguments remaining
     // check if the next one is a subcommand of the current command
     [arg, ..rest] ->
-      case map.get(glint.cmd.subcommands, arg) {
+      case map.get(cmd.subcommands, arg) {
         // subcommand found, continue
         Ok(cmd) ->
           do_execute(
-            Glint(..glint, cmd: cmd),
+            cmd,
+            pretty_help,
+            global_flags,
             rest,
             flags,
             help,
@@ -278,12 +307,12 @@ fn do_execute(
         // generate and return help message
         _ if help ->
           command_path
-          |> cmd_help(glint)
+          |> cmd_help(cmd, pretty_help, global_flags)
           |> Help
           |> Ok
         // subcommand not found, but help flag has not been passed
         // execute the current command
-        _ -> execute_root(glint.cmd, glint.global_flags, args, flags)
+        _ -> execute_root(cmd, global_flags, args, flags)
       }
   }
 }
@@ -326,25 +355,7 @@ pub fn help_flag() -> String {
   flag.prefix <> help_flag_name
 }
 
-fn style_heading(
-  lookups: Option(shellout.Lookups),
-  heading: String,
-  colour: String,
-) -> String {
-  lookups
-  |> option.map(style.heading(_, heading, colour))
-  |> option.unwrap(heading)
-  |> string.append("\n\t")
-}
-
 // Help Message Functions
-fn flags_help(flags: FlagMap, styling: Option(shellout.Lookups)) -> String {
-  style_heading(styling, flags_heading, style.flags_key) <> help_flag_message <> {
-    flags
-    |> flag.flags_help()
-    |> append_if_msg_not_empty("\n\t", _)
-  }
-}
 
 fn wrap_with_space(s: String) -> String {
   case s {
@@ -356,7 +367,7 @@ fn wrap_with_space(s: String) -> String {
 fn usage_help(
   name: String,
   flags: FlagMap,
-  styling: Option(shellout.Lookups),
+  styling: Option(PrettyHelp),
 ) -> String {
   let flags =
     flags
@@ -377,13 +388,20 @@ fn usage_help(
   ["gleam run", wrap_with_space(name), "[ ARGS ]"]
   |> sb.from_strings
   |> sb.append_builder(flag_sb)
-  |> sb.prepend(style_heading(styling, usage_heading, style.usage_key))
+  |> sb.prepend(
+    styling
+    |> option.map(fn(styling) { heading_style(usage_heading, styling.usage) })
+    |> option.unwrap(usage_heading) <> "\n\t",
+  )
   |> sb.to_string
 }
 
-fn cmd_help(path: List(String), glint: Glint(a)) -> String {
-  let styling = option.map(glint.config.pretty_help, style.lookups)
-
+fn cmd_help(
+  path: List(String),
+  cmd: Command(a),
+  pretty_help: Option(PrettyHelp),
+  global_flags: FlagMap,
+) -> String {
   // recreate the path of the current command
   // reverse the path because it is created by prepending each section as do_execute walks down the tree
   let name =
@@ -391,18 +409,24 @@ fn cmd_help(path: List(String), glint: Glint(a)) -> String {
     |> list.reverse
     |> string.join(" ")
 
-  // create the name, description  and usage help block
-  let #(flags, description, usage) = case glint.cmd.contents {
-    None -> #("", "", "")
-    Some(contents) -> {
-      let flags = map.merge(glint.global_flags, contents.flags)
-      #(
-        flags_help(flags, styling),
-        contents.description,
-        usage_help(name, flags, styling),
-      )
-    }
-  }
+  let flags =
+    option.map(cmd.contents, fn(contents) { contents.flags })
+    |> option.lazy_unwrap(map.new)
+    |> map.merge(global_flags, _)
+
+  let flags_help_body =
+    pretty_help
+    |> option.map(fn(p) { heading_style(flags_heading, p.flags) })
+    |> option.unwrap(flags_heading) <> "\n\t" <> string.join(
+      list.sort([help_flag_message, ..flag.flags_help(flags)], string.compare),
+      "\n\t",
+    )
+
+  let usage = usage_help(name, flags, pretty_help)
+  let description =
+    cmd.contents
+    |> option.map(fn(contents) { contents.description })
+    |> option.unwrap("")
 
   // create the header block from the name and description
   let header_items =
@@ -411,25 +435,18 @@ fn cmd_help(path: List(String), glint: Glint(a)) -> String {
     |> string.join("\n")
 
   // create the subcommands help block
-  let subcommands =
-    glint.cmd.subcommands
-    |> subcommands_help
-    |> append_if_msg_not_empty(
-      style_heading(styling, subcommands_heading, style.subcommands_key),
-      _,
-    )
+  let subcommands = case subcommands_help(cmd.subcommands) {
+    "" -> ""
+    subcommands_help_body ->
+      pretty_help
+      |> option.map(fn(p) { heading_style(subcommands_heading, p.subcommands) })
+      |> option.unwrap(subcommands_heading) <> "\n\t" <> subcommands_help_body
+  }
 
   // join the resulting help blocks into the final help message
-  [header_items, usage, flags, subcommands]
+  [header_items, usage, flags_help_body, subcommands]
   |> list.filter(is_not_empty)
   |> string.join("\n\n")
-}
-
-fn append_if_msg_not_empty(prefix: String, message: String) -> String {
-  case message {
-    "" -> ""
-    _ -> string.append(prefix, message)
-  }
 }
 
 fn subcommands_help(cmds: Map(String, Command(a))) -> String {
@@ -445,4 +462,19 @@ fn subcommand_help(name: String, cmd: Command(a)) -> String {
     None -> name
     Some(contents) -> name <> "\t\t" <> contents.description
   }
+}
+
+pub type RGB =
+  #(Int, Int, Int)
+
+/// Style heading text with the provided rgb colouring
+/// this is only intended for use within glint itself.
+///
+fn heading_style(heading: String, colour: Colour) -> String {
+  heading
+  |> ansi.bold
+  |> ansi.underline
+  |> ansi.italic
+  |> ansi.hex(colour.to_rgb_hex(colour))
+  |> ansi.reset
 }

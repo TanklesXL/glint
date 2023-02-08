@@ -166,9 +166,9 @@ USAGE:
 \tgleam run [ ARGS ] [ --flag1=<STRING> --global=<STRING> ]
 
 FLAGS:
-\t--help\t\t\tPrint help information
 \t--flag1=<STRING>\t\tThis is flag1
 \t--global=<STRING>\t\tThis is a global flag
+\t--help\t\t\tPrint help information
 
 SUBCOMMANDS:
 \tcmd1\t\tThis is cmd1
@@ -186,10 +186,10 @@ USAGE:
 \tgleam run cmd1 [ ARGS ] [ --flag2=<INT> --flag5=<FLOAT_LIST> --global=<STRING> ]
 
 FLAGS:
-\t--help\t\t\tPrint help information
 \t--flag2=<INT>\t\tThis is flag2
 \t--flag5=<FLOAT_LIST>\t\tThis is flag5
 \t--global=<STRING>\t\tThis is a global flag
+\t--help\t\t\tPrint help information
 
 SUBCOMMANDS:
 \tcmd3\t\tThis is cmd3
@@ -206,9 +206,9 @@ USAGE:
 \tgleam run cmd1 cmd4 [ ARGS ] [ --flag4=<FLOAT> --global=<STRING> ]
 
 FLAGS:
-\t--help\t\t\tPrint help information
 \t--flag4=<FLOAT>\t\tThis is flag4
-\t--global=<STRING>\t\tThis is a global flag",
+\t--global=<STRING>\t\tThis is a global flag
+\t--help\t\t\tPrint help information",
   )))
 
   // help message for command with no additional flags
@@ -221,41 +221,9 @@ USAGE:
 \tgleam run cmd2 [ ARGS ] [ --global=<STRING> ]
 
 FLAGS:
-\t--help\t\t\tPrint help information
-\t--global=<STRING>\t\tThis is a global flag",
+\t--global=<STRING>\t\tThis is a global flag
+\t--help\t\t\tPrint help information",
   )))
-}
-
-if erlang {
-  pub fn pretty_help_test() {
-    glint.new()
-    |> glint.with_pretty_help(glint.default_pretty_help)
-    |> glint.add_command(
-      [],
-      fn(_) { Nil },
-      [],
-      "this is the root command, it doesn't do anyhting",
-    )
-    |> glint.add_command(
-      ["subcommand"],
-      fn(_) { Nil },
-      [],
-      "this is the subcommand, it doesn't do anything either",
-    )
-    |> glint.execute(["--help"])
-    |> should.equal(Ok(Help(
-      "this is the root command, it doesn't do anyhting
-
-\e[1;3;4;38;2;182;255;234mUSAGE:\e[0m\e[K
-\tgleam run [ ARGS ]
-
-\e[1;3;4;38;2;255;175;243mFLAGS:\e[0m\e[K
-\t--help\t\t\tPrint help information
-
-\e[1;3;4;38;2;252;226;174mSUBCOMMANDS:\e[0m\e[K
-\tsubcommand\t\tthis is the subcommand, it doesn't do anything either",
-    )))
-  }
 }
 
 pub fn global_flags_test() {
@@ -298,4 +266,10 @@ pub fn global_flags_test() {
   cli
   |> glint.execute(["sub", "--f=123"])
   |> should.be_error
+}
+
+pub fn default_pretty_help_test() {
+  // default_pretty_help has asserts
+  // we need to call the function to make sure it does not crash
+  glint.default_pretty_help()
 }

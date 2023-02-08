@@ -160,20 +160,20 @@ pub fn update_flags(in flags: Map, with flag_input: String) -> Result(Map) {
 
 fn update_flag_value(in flags: Map, with data: #(String, String)) -> Result(Map) {
   let #(key, value) = data
-  try Contents(default, desc) = access(flags, key)
-  default
+  use contents <- result.then(access(flags, key))
+  contents.value
   |> compute_flag(for: key, with: value)
-  |> result.map(Contents(_, desc))
+  |> result.map(Contents(_, contents.description))
   |> result.map(map.insert(flags, key, _))
 }
 
 fn attempt_toggle_flag(in flags: Map, at key: String) -> Result(Map) {
-  try Contents(default, desc) = access(flags, key)
-  case default {
+  use contents <- result.then(access(flags, key))
+  case contents.value {
     B(val) ->
       !val
       |> B
-      |> Contents(desc)
+      |> Contents(contents.description)
       |> map.insert(into: flags, for: key)
       |> Ok()
     _ -> Error(no_value_flag_err(key))
@@ -183,7 +183,7 @@ fn attempt_toggle_flag(in flags: Map, at key: String) -> Result(Map) {
 /// Gets the current Value for the associated flag
 ///
 pub fn get(from flags: Map, for name: String) -> gleam.Result(Value, Nil) {
-  try contents = map.get(flags, name)
+  use contents <- result.then(map.get(flags, name))
   Ok(contents.value)
 }
 
@@ -322,10 +322,8 @@ fn flag_help(flag: Flag) -> String {
 
 /// Generate help messages for all flags
 ///
-pub fn flags_help(flags: Map) -> String {
+pub fn flags_help(flags: Map) -> List(String) {
   flags
   |> map.to_list
   |> list.map(flag_help)
-  |> list.sort(string.compare)
-  |> string.join("\n\t")
 }

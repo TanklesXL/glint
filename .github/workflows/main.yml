@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        gleam: ["0.25.0"]
+        gleam: ["0.26.2"]
         erlang: ["25.0.2"]
         node: ["18.12.1"]
     steps:
