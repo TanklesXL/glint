@@ -15,6 +15,7 @@ pub fn update_flag_test() {
       flag.ints("liflag", [0, 1, 2, 3], ""),
       flag.float("fflag", 1.0, ""),
       flag.floats("lfflag", [0.0, 1.0, 2.0], ""),
+      flag.enum("eflag", "enum_default", ["enum_default", "other"], ""),
     ]
     |> flag.build_map()
 
@@ -46,6 +47,11 @@ pub fn update_flag_test() {
   // update string flag succeeds
   flags
   |> flag.update_flags("--sflag=hello")
+  |> should.be_ok()
+
+  // update string flag succeeds
+  flags
+  |> flag.update_flags("--eflag=other")
   |> should.be_ok()
 
   // update int flag with non-int fails
@@ -191,6 +197,26 @@ pub fn strings_flag_test() {
   |> glint.add_command([], expect_flag_value_list, [flags], "")
   |> glint.execute([flag_input])
   |> should.be_ok()
+}
+
+pub fn enum_flag_test() {
+  let flags = flag.enum("flag", "default", ["default", "other"], "")
+  let flag_input = "--flag=other"
+  let expect_flag_value_list = fn(in: CommandInput) {
+    in.flags
+    |> flag.get("flag")
+    |> should.equal(Ok(S("other")))
+  }
+  glint.new()
+  |> glint.add_command([], expect_flag_value_list, [flags], "")
+  |> glint.execute([flag_input])
+  |> should.be_ok()
+
+  let flag_input = "--flag=wrong"
+  glint.new()
+  |> glint.add_command([], expect_flag_value_list, [flags], "")
+  |> glint.execute([flag_input])
+  |> should.be_error()
 }
 
 pub fn ints_flag_test() {

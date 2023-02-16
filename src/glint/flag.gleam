@@ -57,6 +57,11 @@ pub type Description =
 ///
 pub opaque type Contents {
   Contents(value: Value, description: Description)
+  EnumContents(
+    value: Value,
+    description: Description,
+    accepted_values: List(String),
+  )
 }
 
 /// Associates a name with a flag value
@@ -114,6 +119,16 @@ pub fn string(
   #(name, Contents(S(value), description))
 }
 
+// TODO: Docs
+pub fn enum(
+  called name: String,
+  default value: String,
+  accepted values: List(String),
+  explained description: Description,
+) -> Flag {
+  #(name, EnumContents(S(value), description, values))
+}
+
 /// Creates a #(name, Contents(LS(value), description))
 ///
 pub fn strings(
@@ -163,8 +178,27 @@ fn update_flag_value(in flags: Map, with data: #(String, String)) -> Result(Map)
   use contents <- result.then(access(flags, key))
   contents.value
   |> compute_flag(for: key, with: value)
+  |> result.then(restrict_values(_, contents))
   |> result.map(Contents(_, contents.description))
   |> result.map(map.insert(flags, key, _))
+}
+
+fn restrict_values(value: Value, contents: Contents) {
+  case value {
+    S(string_value) ->
+      case contents {
+        Contents(..) -> Ok(value)
+        EnumContents(accepted_values: accepted_values, ..) ->
+          case
+            list.any(accepted_values, fn(accepted) { accepted == string_value })
+          {
+            True -> Ok(value)
+            //TODO: Use contents and value to produce more detailed error message
+            False -> snag.error("Expected flag value to be in")
+          }
+      }
+    _ -> Ok(value)
+  }
 }
 
 fn attempt_toggle_flag(in flags: Map, at key: String) -> Result(Map) {
