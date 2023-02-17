@@ -22,7 +22,8 @@ pub type Config {
   Config(pretty_help: Option(PrettyHelp))
 }
 
-// PrettyHelp defines the header colours to be used when styling help text
+/// PrettyHelp defines the header colours to be used when styling help text
+///
 pub type PrettyHelp {
   PrettyHelp(usage: Colour, flags: Colour, subcommands: Colour)
 }
@@ -463,9 +464,6 @@ fn subcommand_help(name: String, cmd: Command(a)) -> String {
     Some(contents) -> name <> "\t\t" <> contents.description
   }
 }
-
-pub type RGB =
-  #(Int, Int, Int)
 
 /// Style heading text with the provided rgb colouring
 /// this is only intended for use within glint itself.
