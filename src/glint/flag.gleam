@@ -15,7 +15,7 @@ const delimiter = "="
 
 /// Supported flag types.
 ///
-pub opaque type Value {
+type Internal {
   /// Boolean flags, to be passed in as `--flag=true` or `--flag=false`.
   /// Can be toggled by omitting the desired value like `--flag`.
   /// Toggling will negate the existing value.
@@ -47,21 +47,9 @@ pub opaque type Value {
   LS(List(String), List(Constraint(String)))
 }
 
-type Constraint(a) =
+// Constraint types for verifying flag values
+pub type Constraint(a) =
   fn(a) -> Result(Nil)
-
-pub fn one_of(val: a, allowed: List(a)) -> Result(a) {
-  case list.contains(allowed, val) {
-    True -> Ok(val)
-    False ->
-      snag.error(
-        "invalid flag value, must be one of: " <> string.join(
-          list.map(allowed, string.inspect),
-          ", ",
-        ),
-      )
-  }
-}
 
 /// Flag descriptions
 ///
@@ -71,7 +59,7 @@ pub type Description =
 /// Flag data and descriptions
 ///
 pub opaque type Contents {
-  Contents(value: Value, description: Description)
+  Contents(value: Internal, description: Description)
 }
 
 /// Associates a name with a flag value
@@ -201,15 +189,15 @@ fn attempt_toggle_flag(in flags: Map, at key: String) -> Result(Map) {
   }
 }
 
-/// Gets the current Value for the associated flag
+/// Gets the current Internal for the associated flag
 ///
-fn get_value(from flags: Map, for name: String) -> Result(Value) {
+fn get_value(from flags: Map, for name: String) -> Result(Internal) {
   use contents <- result.then(access(flags, name))
   Ok(contents.value)
 }
 
 fn access_type_error(name) {
-  snag.new("cannot access non " <> name <> " flag as " <> name)
+  snag.error("cannot access non " <> name <> " flag as " <> name)
 }
 
 /// Gets the current value for the associated int flag
@@ -218,7 +206,7 @@ pub fn get_int(from flags: Map, for name: String) -> Result(Int) {
   use value <- result.then(get_value(flags, name))
   case value {
     I(val, _) -> Ok(val)
-    _ -> snag.error("cannot acess non int flag as int")
+    _ -> access_type_error("int")
   }
 }
 
@@ -228,7 +216,7 @@ pub fn get_ints(from flags: Map, for name: String) -> Result(List(Int)) {
   use value <- result.then(get_value(flags, name))
   case value {
     LI(val, _) -> Ok(val)
-    _ -> snag.error(todo)
+    _ -> access_type_error("int list")
   }
 }
 
@@ -238,7 +226,7 @@ pub fn get_bool(from flags: Map, for name: String) -> Result(Bool) {
   use value <- result.then(get_value(flags, name))
   case value {
     B(val) -> Ok(val)
-    _ -> snag.error(todo)
+    _ -> access_type_error("bool")
   }
 }
 
@@ -248,7 +236,7 @@ pub fn get_string(from flags: Map, for name: String) -> Result(String) {
   use value <- result.then(get_value(flags, name))
   case value {
     S(val, _) -> Ok(val)
-    _ -> snag.error(todo)
+    _ -> access_type_error("string")
   }
 }
 
@@ -258,7 +246,7 @@ pub fn get_strings(from flags: Map, for name: String) -> Result(List(String)) {
   use value <- result.then(get_value(flags, name))
   case value {
     LS(val, _) -> Ok(val)
-    _ -> snag.error(todo)
+    _ -> access_type_error("string list")
   }
 }
 
@@ -268,7 +256,7 @@ pub fn get_float(from flags: Map, for name: String) -> Result(Float) {
   use value <- result.then(get_value(flags, name))
   case value {
     F(val, _) -> Ok(val)
-    _ -> snag.error(todo)
+    _ -> access_type_error("float")
   }
 }
 
@@ -278,7 +266,7 @@ pub fn get_floats(from flags: Map, for name: String) -> Result(List(Float)) {
   use value <- result.then(get_value(flags, name))
   case value {
     LF(val, _) -> Ok(val)
-    _ -> snag.error(todo)
+    _ -> access_type_error("float list")
   }
 }
 
@@ -311,8 +299,8 @@ fn apply_list_constraints(
 fn compute_flag(
   for name: String,
   with input: String,
-  given default: Value,
-) -> Result(Value) {
+  given default: Internal,
+) -> Result(Internal) {
   case default {
     I(_, constraints) ->
       parse_int(name, input)
