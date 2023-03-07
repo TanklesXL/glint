@@ -5,6 +5,8 @@
 - preliminary flag constraints, flag creation functions accept a list of constraints.
 - flag creation functions now take `Option(a)` so as to not require a default value.
 - update to gleam v0.27
+- `flag` module now provides a getter per flag type instead of a unified one that previously returned the `Value` type.
+- `Value` type has been renamed to `Internal` and is no longer exported, to get flag values use the new getters.
 
 ## [0.11.0](https://github.com/TanklesXL/glint/compare/v0.10.0...v0.11.0) - 2023-02-08
 
