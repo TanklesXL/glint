@@ -7,7 +7,7 @@ import glint/flag
 import gleam/function.{identity}
 
 fn hello(input: CommandInput) -> Nil {
-  assert Ok(flag.B(caps)) = flag.get(from: input.flags, for: "caps")
+  let assert Ok(flag.B(caps)) = flag.get(from: input.flags, for: "caps")
   let args = case input.args {
     [] -> ["World"]
     args -> args

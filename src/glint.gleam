@@ -127,9 +127,9 @@ pub fn without_pretty_help(glint: Glint(a)) -> Glint(a) {
 /// buttercup (r: 252, g: 226, b: 174) colour for subcommands
 ///
 pub fn default_pretty_help() -> PrettyHelp {
-  assert Ok(usage_colour) = colour.from_rgb255(182, 255, 234)
-  assert Ok(flags_colour) = colour.from_rgb255(255, 175, 243)
-  assert Ok(subcommands_colour) = colour.from_rgb255(252, 226, 174)
+  let assert Ok(usage_colour) = colour.from_rgb255(182, 255, 234)
+  let assert Ok(flags_colour) = colour.from_rgb255(255, 175, 243)
+  let assert Ok(subcommands_colour) = colour.from_rgb255(252, 226, 174)
 
   PrettyHelp(
     usage: usage_colour,

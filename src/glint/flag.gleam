@@ -5,6 +5,7 @@ import gleam/int
 import gleam/list
 import gleam/float
 import snag.{Result, Snag}
+import gleam/option.{None, Option, Some}
 
 /// Flag inputs must start with this prefix
 ///
@@ -20,31 +21,31 @@ type Internal {
   /// Can be toggled by omitting the desired value like `--flag`.
   /// Toggling will negate the existing value.
   ///
-  B(Bool)
+  B(Option(Bool))
 
   /// Int flags, to be passed in as `--flag=1`
   ///
-  I(Int, List(Constraint(Int)))
+  I(Option(Int), List(Constraint(Int)))
 
   /// List(Int) flags, to be passed in as `--flag=1,2,3`
   ///
-  LI(List(Int), List(Constraint(Int)))
+  LI(Option(List(Int)), List(Constraint(Int)))
 
   /// Float flags, to be passed in as `--flag=1.0`
   ///
-  F(Float, List(Constraint(Float)))
+  F(Option(Float), List(Constraint(Float)))
 
   /// List(Float) flags, to be passed in as `--flag=1.0,2.0`
   ///
-  LF(List(Float), List(Constraint(Float)))
+  LF(Option(List(Float)), List(Constraint(Float)))
 
   /// String flags, to be passed in as `--flag=hello`
   ///
-  S(String, List(Constraint(String)))
+  S(Option(String), List(Constraint(String)))
 
   /// List(String) flags, to be passed in as `--flag=hello,world`
   ///
-  LS(List(String), List(Constraint(String)))
+  LS(Option(List(String)), List(Constraint(String)))
 }
 
 // Constraint types for verifying flag values
@@ -67,77 +68,77 @@ pub opaque type Contents {
 pub type Flag =
   #(String, Contents)
 
-/// Creates a #(name, Contents(I(value), description))
+/// Creates an int flag.
 ///
 pub fn int(
   called name: String,
-  default value: Int,
+  default value: Option(Int),
   explained description: Description,
   satisfying constraints: List(Constraint(Int)),
 ) -> Flag {
   #(name, Contents(I(value, constraints), description))
 }
 
-/// Creates a #(name, Contents(LI(value), description))
+/// Creates an int list flag.
 ///
 pub fn ints(
   called name: String,
-  default value: List(Int),
+  default value: Option(List(Int)),
   explained description: Description,
   satisfying constraints: List(Constraint(Int)),
 ) -> Flag {
   #(name, Contents(LI(value, constraints), description))
 }
 
-/// Creates a #(name, Contents(F(value), description))
+/// Creates a float flag.
 ///
 pub fn float(
   called name: String,
-  default value: Float,
+  default value: Option(Float),
   explained description: Description,
   satisfying constraints: List(Constraint(Float)),
 ) -> Flag {
   #(name, Contents(F(value, constraints), description))
 }
 
-/// Creates a  #(name, Contents(LF(value), description))
+/// Creates a float list flag.
 ///
 pub fn floats(
   called name: String,
-  default value: List(Float),
+  default value: Option(List(Float)),
   explained description: Description,
   satisfying constraints: List(Constraint(Float)),
 ) -> Flag {
   #(name, Contents(LF(value, constraints), description))
 }
 
-/// Creates a #(name, Contents(S(value), description))
+/// Creates a string flag.
 ///
 pub fn string(
   called name: String,
-  default value: String,
+  default value: Option(String),
   explained description: Description,
   satisfying constraints: List(Constraint(String)),
 ) -> Flag {
   #(name, Contents(S(value, constraints), description))
 }
 
-/// Creates a #(name, Contents(LS(value), description))
+/// Creates a string list flag.
 ///
 pub fn strings(
   called name: String,
-  default value: List(String),
+  default value: Option(List(String)),
   explained description: Description,
   satisfying constraints: List(Constraint(String)),
 ) -> Flag {
   #(name, Contents(LS(value, constraints), description))
 }
 
-/// Creates a #(name, Contents(B(value), description))
+/// Creates a bool flag.
 ///
 pub fn bool(
   called name: String,
-  default value: Bool,
+  default value: Option(Bool),
   explained description: Description,
 ) -> Flag {
   #(name, Contents(B(value), description))
@@ -179,8 +180,14 @@ fn update_flag_value(in flags: Map, with data: #(String, String)) -> Result(Map)
 fn attempt_toggle_flag(in flags: Map, at key: String) -> Result(Map) {
   use contents <- result.then(access(flags, key))
   case contents.value {
-    B(val) ->
-      !val
+    B(None) ->
+      Some(True)
+      |> B
+      |> Contents(contents.description)
+      |> map.insert(into: flags, for: key)
+      |> Ok()
+    B(Some(val)) ->
+      Some(!val)
       |> B
       |> Contents(contents.description)
       |> map.insert(into: flags, for: key)
@@ -196,8 +203,12 @@ fn get_value(from flags: Map, for name: String) -> Result(Internal) {
   Ok(contents.value)
 }
 
-fn access_type_error(name) {
-  snag.error("cannot access non " <> name <> " flag as " <> name)
+fn access_type_error(name, flag_type) {
+  snag.error("cannot access flag " <> name <> " as " <> flag_type)
+}
+
+fn flag_not_provided_error(name) {
+  snag.error("value for flag " <> name <> " not provided")
 }
 
 /// Gets the current value for the associated int flag
@@ -205,8 +216,9 @@ fn access_type_error(name) {
 pub fn get_int(from flags: Map, for name: String) -> Result(Int) {
   use value <- result.then(get_value(flags, name))
   case value {
-    I(val, _) -> Ok(val)
-    _ -> access_type_error("int")
+    I(Some(val), _) -> Ok(val)
+    I(None, _) -> flag_not_provided_error(name)
+    _ -> access_type_error(name, "int")
   }
 }
 
@@ -215,8 +227,9 @@ pub fn get_int(from flags: Map, for name: String) -> Result(Int) {
 pub fn get_ints(from flags: Map, for name: String) -> Result(List(Int)) {
   use value <- result.then(get_value(flags, name))
   case value {
-    LI(val, _) -> Ok(val)
-    _ -> access_type_error("int list")
+    LI(Some(val), _) -> Ok(val)
+    LI(None, _) -> flag_not_provided_error(name)
+    _ -> access_type_error(name, "int list")
   }
 }
 
@@ -225,8 +238,9 @@ pub fn get_ints(from flags: Map, for name: String) -> Result(List(Int)) {
 pub fn get_bool(from flags: Map, for name: String) -> Result(Bool) {
   use value <- result.then(get_value(flags, name))
   case value {
-    B(val) -> Ok(val)
-    _ -> access_type_error("bool")
+    B(Some(val)) -> Ok(val)
+    B(None) -> flag_not_provided_error(name)
+    _ -> access_type_error(name, "bool")
   }
 }
 
@@ -235,8 +249,9 @@ pub fn get_bool(from flags: Map, for name: String) -> Result(Bool) {
 pub fn get_string(from flags: Map, for name: String) -> Result(String) {
   use value <- result.then(get_value(flags, name))
   case value {
-    S(val, _) -> Ok(val)
-    _ -> access_type_error("string")
+    S(Some(val), _) -> Ok(val)
+    S(None, _) -> flag_not_provided_error(name)
+    _ -> access_type_error(name, "string")
   }
 }
 
@@ -245,8 +260,9 @@ pub fn get_string(from flags: Map, for name: String) -> Result(String) {
 pub fn get_strings(from flags: Map, for name: String) -> Result(List(String)) {
   use value <- result.then(get_value(flags, name))
   case value {
-    LS(val, _) -> Ok(val)
-    _ -> access_type_error("string list")
+    LS(Some(val), _) -> Ok(val)
+    LS(None, _) -> flag_not_provided_error(name)
+    _ -> access_type_error(name, "string list")
   }
 }
 
@@ -255,8 +271,9 @@ pub fn get_strings(from flags: Map, for name: String) -> Result(List(String)) {
 pub fn get_float(from flags: Map, for name: String) -> Result(Float) {
   use value <- result.then(get_value(flags, name))
   case value {
-    F(val, _) -> Ok(val)
-    _ -> access_type_error("float")
+    F(Some(val), _) -> Ok(val)
+    F(None, _) -> flag_not_provided_error(name)
+    _ -> access_type_error(name, "float")
   }
 }
 
@@ -265,8 +282,9 @@ pub fn get_float(from flags: Map, for name: String) -> Result(Float) {
 pub fn get_floats(from flags: Map, for name: String) -> Result(List(Float)) {
   use value <- result.then(get_value(flags, name))
   case value {
-    LF(val, _) -> Ok(val)
-    _ -> access_type_error("float list")
+    LF(Some(val), _) -> Ok(val)
+    LF(None, _) -> flag_not_provided_error(name)
+    _ -> access_type_error(name, "float list")
   }
 }
 
@@ -277,19 +295,24 @@ fn access(flags: Map, name: String) -> Result(Contents) {
   |> result.replace_error(undefined_flag_err(name))
 }
 
-fn apply_constraints(val: a, constraints: List(Constraint(a))) -> Result(a) {
+fn apply_constraints(
+  name: String,
+  val: a,
+  constraints: List(Constraint(a)),
+) -> Result(a) {
   list.try_map(constraints, fn(c) { c(val) })
+  |> snag.context("value for flag " <> name <> " does not satisfy constraints")
   |> result.replace(val)
 }
 
 fn apply_list_constraints(
+  name: String,
   vals: List(a),
   constraints: List(Constraint(a)),
 ) -> Result(List(a)) {
   {
     use val <- list.try_map(vals)
-    use c <- list.try_map(constraints)
-    c(val)
+    apply_constraints(name, val, constraints)
   }
   |> result.replace(vals)
 }
@@ -304,30 +327,31 @@ fn compute_flag(
   case default {
     I(_, constraints) ->
       parse_int(name, input)
-      |> result.then(apply_constraints(_, constraints))
-      |> result.map(I(_, constraints))
+      |> result.then(apply_constraints(name, _, constraints))
+      |> result.map(fn(i) { I(Some(i), constraints) })
     LI(_, constraints) ->
       parse_int_list(name, input)
-      |> result.map(LI(_, constraints))
+      |> result.then(apply_list_constraints(name, _, constraints))
+      |> result.map(fn(li) { LI(Some(li), constraints) })
     F(_, constraints) ->
       parse_float(name, input)
-      |> result.then(apply_constraints(_, constraints))
-      |> result.map(F(_, constraints))
+      |> result.then(apply_constraints(name, _, constraints))
+      |> result.map(fn(f) { F(Some(f), constraints) })
     LF(_, constraints) ->
       parse_float_list(name, input)
-      |> result.then(apply_list_constraints(_, constraints))
-      |> result.map(LF(_, constraints))
+      |> result.then(apply_list_constraints(name, _, constraints))
+      |> result.map(fn(lf) { LF(Some(lf), constraints) })
     S(_, constraints) ->
       parse_string(name, input)
-      |> result.then(apply_constraints(_, constraints))
-      |> result.map(S(_, constraints))
+      |> result.then(apply_constraints(name, _, constraints))
+      |> result.map(fn(s) { S(Some(s), constraints) })
     LS(_, constraints) ->
       parse_string_list(name, input)
-      |> result.then(apply_list_constraints(_, constraints))
-      |> result.map(LS(_, constraints))
+      |> result.then(apply_list_constraints(name, _, constraints))
+      |> result.map(fn(ls) { LS(Some(ls), constraints) })
     B(_) ->
       parse_bool(name, input)
-      |> result.map(B)
+      |> result.map(fn(b) { B(Some(b)) })
   }
 }
 
