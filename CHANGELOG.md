@@ -2,6 +2,10 @@
 
 ## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.10.0...HEAD)
 
+## [0.11.1](https://github.com/TanklesXL/glint/compare/v0.11.0...v0.11.1) - 2023-03-16
+
+- make `glint/flag.Contents` non-opaque.
+
 ## [0.11.0](https://github.com/TanklesXL/glint/compare/v0.10.0...v0.11.0) - 2023-02-08
 
 - colour for pretty help leverages the new `gleam_community/colour` and `gleam_community/ansi` packages.
