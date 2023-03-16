@@ -59,8 +59,8 @@ pub type Description =
 
 /// Flag data and descriptions
 ///
-pub opaque type Contents {
-  Contents(value: Internal, description: Description)
+pub type Contents {
+  Contents(value: Value, description: Description)
 }
 
 /// Associates a name with a flag value
