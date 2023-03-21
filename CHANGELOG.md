@@ -2,6 +2,10 @@
 
 ## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.10.0...HEAD)
 
+## [0.11.2](https://github.com/TanklesXL/glint/compare/v0.11.1...v0.11.2)
+
+- works on gleam 0.27
+
 ## [0.11.1](https://github.com/TanklesXL/glint/compare/v0.11.0...v0.11.1) - 2023-03-16
 
 - make `glint/flag.Contents` non-opaque.
