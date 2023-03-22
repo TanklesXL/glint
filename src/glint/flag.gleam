@@ -16,7 +16,7 @@ const delimiter = "="
 
 /// Supported flag types.
 ///
-type Internal {
+pub opaque type Internal {
   /// Boolean flags, to be passed in as `--flag=true` or `--flag=false`.
   /// Can be toggled by omitting the desired value like `--flag`.
   /// Toggling will negate the existing value.
@@ -60,7 +60,7 @@ pub type Description =
 /// Flag data and descriptions
 ///
 pub type Contents {
-  Contents(value: Value, description: Description)
+  Contents(value: Internal, description: Description)
 }
 
 /// Associates a name with a flag value
@@ -196,103 +196,12 @@ fn attempt_toggle_flag(in flags: Map, at key: String) -> Result(Map) {
   }
 }
 
-/// Gets the current Internal for the associated flag
-///
-fn get_value(from flags: Map, for name: String) -> Result(Internal) {
-  use contents <- result.then(access(flags, name))
-  Ok(contents.value)
-}
-
 fn access_type_error(name, flag_type) {
   snag.error("cannot access flag " <> name <> " as " <> flag_type)
 }
 
 fn flag_not_provided_error(name) {
   snag.error("value for flag " <> name <> " not provided")
-}
-
-/// Gets the current value for the associated int flag
-///
-pub fn get_int(from flags: Map, for name: String) -> Result(Int) {
-  use value <- result.then(get_value(flags, name))
-  case value {
-    I(Some(val), _) -> Ok(val)
-    I(None, _) -> flag_not_provided_error(name)
-    _ -> access_type_error(name, "int")
-  }
-}
-
-/// Gets the current value for the associated ints flag
-///
-pub fn get_ints(from flags: Map, for name: String) -> Result(List(Int)) {
-  use value <- result.then(get_value(flags, name))
-  case value {
-    LI(Some(val), _) -> Ok(val)
-    LI(None, _) -> flag_not_provided_error(name)
-    _ -> access_type_error(name, "int list")
-  }
-}
-
-/// Gets the current value for the associated bool flag
-///
-pub fn get_bool(from flags: Map, for name: String) -> Result(Bool) {
-  use value <- result.then(get_value(flags, name))
-  case value {
-    B(Some(val)) -> Ok(val)
-    B(None) -> flag_not_provided_error(name)
-    _ -> access_type_error(name, "bool")
-  }
-}
-
-/// Gets the current value for the associated string flag
-///
-pub fn get_string(from flags: Map, for name: String) -> Result(String) {
-  use value <- result.then(get_value(flags, name))
-  case value {
-    S(Some(val), _) -> Ok(val)
-    S(None, _) -> flag_not_provided_error(name)
-    _ -> access_type_error(name, "string")
-  }
-}
-
-/// Gets the current value for the associated strings flag
-///
-pub fn get_strings(from flags: Map, for name: String) -> Result(List(String)) {
-  use value <- result.then(get_value(flags, name))
-  case value {
-    LS(Some(val), _) -> Ok(val)
-    LS(None, _) -> flag_not_provided_error(name)
-    _ -> access_type_error(name, "string list")
-  }
-}
-
-/// Gets the current value for the associated int flag
-///
-pub fn get_float(from flags: Map, for name: String) -> Result(Float) {
-  use value <- result.then(get_value(flags, name))
-  case value {
-    F(Some(val), _) -> Ok(val)
-    F(None, _) -> flag_not_provided_error(name)
-    _ -> access_type_error(name, "float")
-  }
-}
-
-/// Gets the current value for the associated floats flag
-///
-pub fn get_floats(from flags: Map, for name: String) -> Result(List(Float)) {
-  use value <- result.then(get_value(flags, name))
-  case value {
-    LF(Some(val), _) -> Ok(val)
-    LF(None, _) -> flag_not_provided_error(name)
-    _ -> access_type_error(name, "float list")
-  }
-}
-
-/// Access the contents for the associated flag
-///
-fn access(flags: Map, name: String) -> Result(Contents) {
-  map.get(flags, name)
-  |> result.replace_error(undefined_flag_err(name))
 }
 
 fn apply_constraints(
@@ -452,4 +361,130 @@ pub fn flags_help(flags: Map) -> List(String) {
   flags
   |> map.to_list
   |> list.map(flag_help)
+}
+
+/// Access the contents for the associated flag
+///
+fn access(flags: Map, name: String) -> Result(Contents) {
+  map.get(flags, name)
+  |> result.replace_error(undefined_flag_err(name))
+}
+
+/// Gets the current value for the provided int flag
+///
+pub fn get_int_value(from flag: Flag) -> Result(Int) {
+  case { flag.1 }.value {
+    I(Some(val), _) -> Ok(val)
+    I(None, _) -> flag_not_provided_error(flag.0)
+    _ -> access_type_error(flag.0, "int")
+  }
+}
+
+/// Gets the current value for the associated int flag
+///
+pub fn get_int(from flags: Map, for name: String) -> Result(Int) {
+  use value <- result.then(access(flags, name))
+  get_int_value(#(name, value))
+}
+
+/// Gets the current value for the provided ints flag
+///
+pub fn get_ints_value(from flag: Flag) -> Result(List(Int)) {
+  case { flag.1 }.value {
+    LI(Some(val), _) -> Ok(val)
+    LI(None, _) -> flag_not_provided_error(flag.0)
+    _ -> access_type_error(flag.0, "int list")
+  }
+}
+
+/// Gets the current value for the associated ints flag
+///
+pub fn get_ints(from flags: Map, for name: String) -> Result(List(Int)) {
+  use value <- result.then(access(flags, name))
+  get_ints_value(#(name, value))
+}
+
+/// Gets the current value for the provided bool flag
+///
+pub fn get_bool_value(from flag: Flag) -> Result(Bool) {
+  case { flag.1 }.value {
+    B(Some(val)) -> Ok(val)
+    B(None) -> flag_not_provided_error(flag.0)
+    _ -> access_type_error(flag.0, "bool")
+  }
+}
+
+/// Gets the current value for the associated bool flag
+///
+pub fn get_bool(from flags: Map, for name: String) -> Result(Bool) {
+  use value <- result.then(access(flags, name))
+  get_bool_value(#(name, value))
+}
+
+/// Gets the current value for the provided string flag
+///
+pub fn get_string_value(from flag: Flag) -> Result(String) {
+  case { flag.1 }.value {
+    S(Some(val), _) -> Ok(val)
+    S(None, _) -> flag_not_provided_error(flag.0)
+    _ -> access_type_error(flag.0, "string")
+  }
+}
+
+/// Gets the current value for the associated string flag
+///
+pub fn get_string(from flags: Map, for name: String) -> Result(String) {
+  use value <- result.then(access(flags, name))
+  get_string_value(#(name, value))
+}
+
+/// Gets the current value for the provided strings flag
+///
+pub fn get_strings_value(from flag: Flag) -> Result(List(String)) {
+  case { flag.1 }.value {
+    LS(Some(val), _) -> Ok(val)
+    LS(None, _) -> flag_not_provided_error(flag.0)
+    _ -> access_type_error(flag.0, "string list")
+  }
+}
+
+/// Gets the current value for the associated strings flag
+///
+pub fn get_strings(from flags: Map, for name: String) -> Result(List(String)) {
+  use value <- result.then(access(flags, name))
+  get_strings_value(#(name, value))
+}
+
+/// Gets the current value for the provided float flag
+///
+pub fn get_float_value(from flag: Flag) -> Result(Float) {
+  case { flag.1 }.value {
+    F(Some(val), _) -> Ok(val)
+    F(None, _) -> flag_not_provided_error(flag.0)
+    _ -> access_type_error(flag.0, "float")
+  }
+}
+
+/// Gets the current value for the associated float flag
+///
+pub fn get_float(from flags: Map, for name: String) -> Result(Float) {
+  use value <- result.then(access(flags, name))
+  get_float_value(#(name, value))
+}
+
+/// Gets the current value for the provided floats flag
+///
+pub fn get_floats_value(from flag: Flag) -> Result(List(Float)) {
+  case { flag.1 }.value {
+    LF(Some(val), _) -> Ok(val)
+    LF(None, _) -> flag_not_provided_error(flag.0)
+    _ -> access_type_error(flag.0, "float list")
+  }
+}
+
+/// Gets the current value for the associated floats flag
+///
+pub fn get_floats(from flags: Map, for name: String) -> Result(List(Float)) {
+  use value <- result.then(access(flags, name))
+  get_floats_value(#(name, value))
 }
