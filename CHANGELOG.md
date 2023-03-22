@@ -8,6 +8,10 @@
 - `flag` module now provides a getter per flag type instead of a unified one that previously returned the `Value` type.
 - `Value` type has been renamed to `Internal` and is no longer exported, to get flag values use the new getters.
 
+## [0.11.2](https://github.com/TanklesXL/glint/compare/v0.11.1...v0.11.2)
+
+- works on gleam 0.27
+
 ## [0.11.1](https://github.com/TanklesXL/glint/compare/v0.11.0...v0.11.1) - 2023-03-16
 
 - make `glint/flag.Contents` non-opaque.
