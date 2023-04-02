@@ -1,4 +1,4 @@
-import glint/flag/constraints.{one_of}
+import glint/flag/constraints.{none_of, one_of}
 import gleeunit/should
 import glint/flag
 import gleam/option.{None}
@@ -14,23 +14,55 @@ pub fn one_of_test() {
   |> should.be_error()
 }
 
-pub fn flag_constraints_test() {
+pub fn flag_one_of_none_of_test() {
   use test_case <- list.each([
-    #(flag.int("i", None, "", [one_of([1, 2, 3])]), "1", "6"),
-    #(flag.ints("li", None, "", [one_of([1, 2, 3])]), "1,1,1", "2,2,6"),
-    #(flag.float("f", None, "", [one_of([1.0, 2.0, 3.0])]), "1.0", "6.0"),
     #(
-      flag.floats("lf", None, "", [one_of([1.0, 2.0, 3.0])]),
+      flag.int("i", None, "", [one_of([1, 2, 3]), none_of([4, 5, 6])]),
+      "1",
+      "6",
+    ),
+    #(
+      flag.ints("li", None, "", [one_of([1, 2, 3]), none_of([4, 5, 6])]),
+      "1,1,1",
+      "2,2,6",
+    ),
+    #(
+      flag.float(
+        "f",
+        None,
+        "",
+        [one_of([1.0, 2.0, 3.0]), none_of([4.0, 5.0, 6.0])],
+      ),
+      "1.0",
+      "6.0",
+    ),
+    #(
+      flag.floats(
+        "lf",
+        None,
+        "",
+        [one_of([1.0, 2.0, 3.0]), none_of([4.0, 5.0, 6.0])],
+      ),
       "3.0,2.0,1.0",
       "2.0,3.0,6.0",
     ),
     #(
-      flag.string("s", None, "", [constraints.one_of(["t1", "t2", "t3"])]),
+      flag.string(
+        "s",
+        None,
+        "",
+        [one_of(["t1", "t2", "t3"]), none_of(["t4", "t5", "t6"])],
+      ),
       "t3",
       "t4",
     ),
     #(
-      flag.strings("ls", None, "", [constraints.one_of(["t1", "t2", "t3"])]),
+      flag.strings(
+        "ls",
+        None,
+        "",
+        [one_of(["t1", "t2", "t3"]), none_of(["t4", "t5", "t6"])],
+      ),
       "t3,t2,t1",
       "t2,t4,t1",
     ),

@@ -16,7 +16,7 @@ const delimiter = "="
 
 /// Supported flag types.
 ///
-pub opaque type Internal {
+pub opaque type Value {
   /// Boolean flags, to be passed in as `--flag=true` or `--flag=false`.
   /// Can be toggled by omitting the desired value like `--flag`.
   /// Toggling will negate the existing value.
@@ -60,7 +60,7 @@ pub type Description =
 /// Flag data and descriptions
 ///
 pub type Contents {
-  Contents(value: Internal, description: Description)
+  Contents(value: Value, description: Description)
 }
 
 /// Associates a name with a flag value
@@ -231,8 +231,8 @@ fn apply_list_constraints(
 fn compute_flag(
   for name: String,
   with input: String,
-  given default: Internal,
-) -> Result(Internal) {
+  given default: Value,
+) -> Result(Value) {
   case default {
     I(_, constraints) ->
       parse_int(name, input)

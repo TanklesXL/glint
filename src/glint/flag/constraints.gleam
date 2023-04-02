@@ -19,3 +19,19 @@ pub fn one_of(allowed: List(a)) -> Constraint(a) {
     }
   }
 }
+
+pub fn none_of(disallowed: List(a)) -> Constraint(a) {
+  let disallowed_set = set.from_list(disallowed)
+  fn(val: a) -> Result(Nil) {
+    case set.contains(disallowed_set, val) {
+      False -> Ok(Nil)
+      True ->
+        "invalid value '" <> string.inspect(val) <> "', must not be one of: [" <> {
+          disallowed
+          |> list.map(fn(a) { "'" <> string.inspect(a) <> "'" })
+          |> string.join(", ") <> "]"
+        }
+        |> snag.error
+    }
+  }
+}
