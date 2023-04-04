@@ -41,7 +41,7 @@ pub fn none_of(disallowed: List(a)) -> Constraint(a) {
   }
 }
 
-pub fn all(constraint: Constraint(a)) -> Constraint(List(a)) {
+pub fn each(constraint: Constraint(a)) -> Constraint(List(a)) {
   fn(l: List(a)) -> Result(Nil) {
     l
     |> list.try_map(constraint)

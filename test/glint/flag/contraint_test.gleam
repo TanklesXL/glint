@@ -1,15 +1,57 @@
-import glint/flag/constraint.{all, none_of, one_of}
+import glint/flag/constraint.{each, none_of, one_of}
 import gleeunit/should
 import glint/flag.{WithConstraint}
 import gleam/list
 
 pub fn one_of_test() {
   1
-  |> constraint.one_of([1, 2, 3])
+  |> one_of([1, 2, 3])
   |> should.equal(Ok(Nil))
 
   1
-  |> constraint.one_of([2, 3, 4])
+  |> one_of([2, 3, 4])
+  |> should.be_error()
+
+  [1, 2, 3]
+  |> {
+    [5, 4, 3, 2, 1]
+    |> one_of
+    |> each
+  }
+  |> should.equal(Ok(Nil))
+
+  [1, 6, 3]
+  |> {
+    [5, 4, 3, 2, 1]
+    |> one_of
+    |> each
+  }
+  |> should.be_error()
+}
+
+pub fn none_of_test() {
+  1
+  |> constraint.none_of([1, 2, 3])
+  |> should.be_error
+
+  1
+  |> constraint.none_of([2, 3, 4])
+  |> should.equal(Ok(Nil))
+
+  [1, 2, 3]
+  |> {
+    [4, 5, 6, 7, 8]
+    |> none_of
+    |> each
+  }
+  |> should.equal(Ok(Nil))
+
+  [1, 6, 3]
+  |> {
+    [4, 5, 6, 7, 8]
+    |> none_of
+    |> each
+  }
   |> should.be_error()
 }
 
@@ -32,12 +74,12 @@ pub fn flag_one_of_none_of_test() {
           WithConstraint(
             [1, 2, 3]
             |> one_of
-            |> all,
+            |> each,
           ),
           WithConstraint(
             [4, 5, 6]
             |> none_of
-            |> all,
+            |> each,
           ),
         ],
       ),
@@ -64,12 +106,12 @@ pub fn flag_one_of_none_of_test() {
           WithConstraint(
             [1.0, 2.0, 3.0]
             |> one_of()
-            |> all,
+            |> each,
           ),
           WithConstraint(
             [4.0, 5.0, 6.0]
             |> none_of()
-            |> all,
+            |> each,
           ),
         ],
       ),
@@ -96,12 +138,12 @@ pub fn flag_one_of_none_of_test() {
           WithConstraint(
             ["t1", "t2", "t3"]
             |> one_of
-            |> all,
+            |> each,
           ),
           WithConstraint(
             ["t4", "t5", "t6"]
             |> none_of
-            |> all,
+            |> each,
           ),
         ],
       ),
