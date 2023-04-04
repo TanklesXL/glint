@@ -1,8 +1,13 @@
 import gleam/list
+import gleam/result
 import gleam/string
 import gleam/set
 import snag.{Result}
-import glint/flag.{Constraint}
+
+/// Constraint types for verifying flag values
+///
+pub type Constraint(a) =
+  fn(a) -> Result(Nil)
 
 pub fn one_of(allowed: List(a)) -> Constraint(a) {
   let allowed_set = set.from_list(allowed)
@@ -33,5 +38,13 @@ pub fn none_of(disallowed: List(a)) -> Constraint(a) {
         }
         |> snag.error
     }
+  }
+}
+
+pub fn all(constraint: Constraint(a)) -> Constraint(List(a)) {
+  fn(l: List(a)) -> Result(Nil) {
+    l
+    |> list.try_map(constraint)
+    |> result.replace(Nil)
   }
 }
