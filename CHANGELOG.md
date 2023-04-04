@@ -2,11 +2,11 @@
 
 ## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.11.0...HEAD)
 
-- preliminary flag constraints, flag creation functions accept a list of constraints.
-- flag creation functions now take `Option(a)` so as to not require a default value.
 - update to gleam v0.27
 - `flag` module now provides a getter per flag type instead of a unified one that previously returned the `Value` type.
 - `flag.Value` type is now opaque, to get flag values use the new getters.
+- `flag.Flag` constructor functions have been changed to accept `[]FlagOpt(a)` to allow for further flag value customization.
+- `flag.FlagOpt(a)` has been added containing constructors for setting flag default values and constraint validators.
 
 ## [0.11.2](https://github.com/TanklesXL/glint/compare/v0.11.1...v0.11.2)
 
