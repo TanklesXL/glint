@@ -7,6 +7,7 @@
 - `flag.Value` type is now opaque, to get flag values use the new getters.
 - `flag.Flag` constructor functions have been changed to accept `[]FlagOpt(a)` to allow for further flag value customization.
 - `flag.FlagOpt(a)` has been added containing constructors for setting flag default values and constraint validators.
+- `glint` gains the `with_print_output` function to allow printing of command output when calling `run`.
 
 ## [0.11.2](https://github.com/TanklesXL/glint/compare/v0.11.1...v0.11.2)
 

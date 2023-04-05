@@ -6,6 +6,7 @@ import gleam/list
 import gleam/float
 import snag.{Result, Snag}
 import gleam/option.{None, Option, Some}
+import gleam/function.{apply1}
 import glint/flag/constraint.{Constraint}
 
 /// Flag inputs must start with this prefix
@@ -188,11 +189,11 @@ fn attempt_toggle_flag(in flags: Map, at key: String) -> Result(Map) {
 }
 
 fn access_type_error(name, flag_type) {
-  snag.error("cannot access flag " <> name <> " as " <> flag_type)
+  snag.error("cannot access flag '" <> name <> "' as " <> flag_type)
 }
 
 fn flag_not_provided_error(name) {
-  snag.error("value for flag " <> name <> " not provided")
+  snag.error("value for flag '" <> name <> "' not provided")
 }
 
 fn apply_constraints(
@@ -200,8 +201,11 @@ fn apply_constraints(
   val: a,
   constraints: List(Constraint(a)),
 ) -> Result(a) {
-  list.try_map(constraints, fn(c) { c(val) })
-  |> snag.context("value for flag " <> name <> " does not satisfy constraints")
+  constraints
+  |> list.try_map(apply1(_, val))
+  |> snag.context(
+    "value for flag '" <> name <> "' does not satisfy constraints",
+  )
   |> result.replace(val)
 }
 
