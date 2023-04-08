@@ -165,7 +165,7 @@ fn update_flag_value(in flags: Map, with data: #(String, String)) -> Result(Map)
   use contents <- result.then(access(flags, key))
   contents.value
   |> compute_flag(for: key, with: value)
-  |> result.map(Contents(_, contents.description))
+  |> result.map(fn(val) { Contents(..contents, value: val) })
   |> result.map(map.insert(flags, key, _))
 }
 
@@ -175,13 +175,13 @@ fn attempt_toggle_flag(in flags: Map, at key: String) -> Result(Map) {
     B(None) ->
       Some(True)
       |> B
-      |> Contents(contents.description)
+      |> fn(val) { Contents(..contents, value: val) }
       |> map.insert(into: flags, for: key)
       |> Ok()
     B(Some(val)) ->
       Some(!val)
       |> B
-      |> Contents(contents.description)
+      |> fn(val) { Contents(..contents, value: val) }
       |> map.insert(into: flags, for: key)
       |> Ok()
     _ -> Error(no_value_flag_err(key))
@@ -472,6 +472,8 @@ pub fn get_floats(from flags: Map, for name: String) -> Result(List(Float)) {
   get_floats_value(#(name, value))
 }
 
+/// FlagOpt is used for configuring flag creation.
+///
 pub type FlagOpt(a) {
   WithDefault(a)
   WithConstraint(Constraint(a))
