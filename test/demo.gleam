@@ -21,14 +21,10 @@ fn hello(input: CommandInput) -> snag.Result(String) {
     _ -> Ok(input.args)
   })
 
-  let to_say = ["Hello,", ..name]
-  case caps {
-    True ->
-      to_say
-      |> join(" ")
-      |> uppercase()
-
-    False -> join(to_say, " ")
+  ["Hello,", ..name]
+  |> case caps {
+    True -> compose(join(_, " "), uppercase)
+    False -> join(_, " ")
   }
   |> string.append("!")
   |> list.repeat(repeat)
