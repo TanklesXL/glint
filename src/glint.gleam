@@ -151,7 +151,7 @@ fn sanitize_path(path: List(String)) -> List(String) {
 
 /// Adds a new command to be run at the specified path.
 ///
-/// If the path is [], the root command is set with the provided function and
+/// If the path is `[]`, the root command is set with the provided function and
 /// flags.
 ///
 /// Note: all command paths are sanitized by stripping whitespace and removing any empty string elements.
@@ -334,8 +334,7 @@ pub fn run(from glint: Glint(a), for args: List(String)) -> Nil {
 }
 
 /// A wrapper for `execute` that prints any errors enountered or the help text if requested.
-/// This function calls the provided han any value returned by the command that was run.
-/// If you would like to do something with the command output please see the run_and_handle function.
+/// This function calls the provided handler with the value returned by the command that was run.
 ///
 pub fn run_and_handle(
   from glint: Glint(a),
