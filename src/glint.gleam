@@ -9,20 +9,22 @@ import gleam/string_builder as sb
 import gleam_community/ansi
 import gleam_community/colour.{Colour}
 import gleam/result
+import gleam/function
 
 /// Glint container type for config and commands
 ///
 pub opaque type Glint(a) {
-  Glint(config: Config, cmd: Command(a), global_flags: FlagMap)
+  Glint(config: Config(a), cmd: Command(a), global_flags: FlagMap)
 }
 
 /// Config for glint
 ///
-pub type Config {
+pub type Config(a) {
   Config(pretty_help: Option(PrettyHelp))
 }
 
-// PrettyHelp defines the header colours to be used when styling help text
+/// PrettyHelp defines the header colours to be used when styling help text
+///
 pub type PrettyHelp {
   PrettyHelp(usage: Colour, flags: Colour, subcommands: Colour)
 }
@@ -85,7 +87,7 @@ pub fn new() -> Glint(a) {
 
 /// Add the provided config to the existing command tree
 ///
-pub fn with_config(glint: Glint(a), config: Config) -> Glint(a) {
+pub fn with_config(glint: Glint(a), config: Config(a)) -> Glint(a) {
   Glint(..glint, config: config)
 }
 
@@ -111,13 +113,15 @@ fn empty_command() -> Command(a) {
 /// For a pre-made colouring use `default_pretty_help()`
 /// 
 pub fn with_pretty_help(glint: Glint(a), pretty: PrettyHelp) -> Glint(a) {
-  Glint(..glint, config: Config(pretty_help: Some(pretty)))
+  Config(pretty_help: Some(pretty))
+  |> with_config(glint, _)
 }
 
 /// Disable custom colours for help text headers
 /// 
 pub fn without_pretty_help(glint: Glint(a)) -> Glint(a) {
-  Glint(..glint, config: Config(pretty_help: None))
+  Config(pretty_help: None)
+  |> with_config(glint, _)
 }
 
 /// Default pretty help heading colouring
@@ -147,7 +151,7 @@ fn sanitize_path(path: List(String)) -> List(String) {
 
 /// Adds a new command to be run at the specified path.
 ///
-/// If the path is [], the root command is set with the provided function and
+/// If the path is `[]`, the root command is set with the provided function and
 /// flags.
 ///
 /// Note: all command paths are sanitized by stripping whitespace and removing any empty string elements.
@@ -239,6 +243,10 @@ fn execute_root(
 ///
 /// Each value prefixed with `--` is parsed as a flag.
 ///
+/// This function does not print its output and is mainly intended for use within `glint` itself.
+/// If you would like to print the output of a command please see the `run` function
+/// in tandem with the`with_print_output` function.
+///
 pub fn execute(glint: Glint(a), args: List(String)) -> CmdResult(a) {
   // create help flag to check for
   let help_flag = help_flag()
@@ -317,17 +325,29 @@ fn do_execute(
   }
 }
 
-/// A wrapper for `execute` that discards output and prints any errors
-/// encountered.
+/// A wrapper for `execute` that prints any errors enountered or the help text if requested.
+/// This function ignores any value returned by the command that was run.
+/// If you would like to do something with the command output please see the run_and_handle function.
 ///
-pub fn run(glint: Glint(a), args: List(String)) -> Nil {
+pub fn run(from glint: Glint(a), for args: List(String)) -> Nil {
+  run_and_handle(from: glint, for: args, with: function.constant(Nil))
+}
+
+/// A wrapper for `execute` that prints any errors enountered or the help text if requested.
+/// This function calls the provided handler with the value returned by the command that was run.
+///
+pub fn run_and_handle(
+  from glint: Glint(a),
+  for args: List(String),
+  with handle: fn(a) -> _,
+) -> Nil {
   case execute(glint, args) {
     Error(err) ->
       err
       |> snag.pretty_print
       |> io.println
     Ok(Help(help)) -> io.println(help)
-    _ -> Nil
+    Ok(Out(out)) -> handle(out)
   }
 }
 
@@ -463,9 +483,6 @@ fn subcommand_help(name: String, cmd: Command(a)) -> String {
     Some(contents) -> name <> "\t\t" <> contents.description
   }
 }
-
-pub type RGB =
-  #(Int, Int, Int)
 
 /// Style heading text with the provided rgb colouring
 /// this is only intended for use within glint itself.

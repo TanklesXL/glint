@@ -20,3 +20,4 @@ gleam_community_colour = "~> 1.0"
 
 [dev-dependencies]
 gleeunit = "~> 0.5"
+gleam_erlang = "~> 0.18"

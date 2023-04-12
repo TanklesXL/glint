@@ -1,6 +1,13 @@
 # Changelog
 
-## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.10.0...HEAD)
+## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.11.0...HEAD)
+
+- update to gleam v0.27
+- `flag` module now provides a getter per flag type instead of a unified one that previously returned the `Value` type.
+- `flag.Value` type is now opaque, to get flag values use the new getters.
+- `flag.Flag` constructor functions have been changed to accept `[]FlagOpt(a)` to allow for further flag value customization.
+- `flag.FlagOpt(a)` has been added containing constructors for setting flag default values and constraint validators.
+- `glint` gains the `with_print_output` function to allow printing of command output when calling `run`.
 
 ## [0.11.2](https://github.com/TanklesXL/glint/compare/v0.11.1...v0.11.2)
 
@@ -56,7 +63,7 @@
 ## [0.7.0](https://github.com/TanklesXL/glint/compare/v0.6.0...v0.7.0) - 2022-02-22
 
 - rename flag `*_list` functions
-- rename `flag.FlagValue` to `flag.Value`
+- rename `flag.FlagValue` to `flag.Internal`
 - rename `flag.FlagMap` to `flag.Map`
 - generate help messages for commands and flags
 

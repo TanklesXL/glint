@@ -1,9 +1,10 @@
 import gleeunit
 import gleeunit/should
 import glint.{CommandInput, Help, Out}
-import glint/flag
+import glint/flag.{WithDefault}
 import gleam/function
 import snag
+import gleam/option.{None, Some}
 
 pub fn main() {
   gleeunit.main()
@@ -106,12 +107,12 @@ pub fn runner_test() {
 
 pub fn help_test() {
   let nil = function.constant(Nil)
-  let global_flags = [flag.string("global", "test", "This is a global flag")]
-  let flag_1 = flag.string("flag1", "a", "This is flag1")
-  let flag_2 = flag.int("flag2", 1, "This is flag2")
-  let flag_3 = flag.bool("flag3", True, "This is flag3")
-  let flag_4 = flag.float("flag4", 1.0, "This is flag4")
-  let flag_5 = flag.floats("flag5", [1.0, 2.0], "This is flag5")
+  let global_flags = [flag.string("global", "This is a global flag", [])]
+  let flag_1 = flag.string("flag1", "This is flag1", [])
+  let flag_2 = flag.int("flag2", "This is flag2", [])
+  let flag_3 = flag.bool("flag3", None, "This is flag3")
+  let flag_4 = flag.float("flag4", "This is flag4", [])
+  let flag_5 = flag.floats("flag5", "This is flag5", [])
 
   let cli =
     glint.new()
@@ -229,12 +230,14 @@ FLAGS:
 pub fn global_flags_test() {
   let cli =
     glint.new()
-    |> glint.with_global_flags([flag.int("f", 1, "global flag example")])
+    |> glint.with_global_flags([
+      flag.int("f", "global flag example", [WithDefault(2)]),
+    ])
     |> glint.add_command(
       [],
       fn(ctx) {
-        flag.get(ctx.flags, "f")
-        |> should.equal(Ok(flag.I(2)))
+        flag.get_int(ctx.flags, "f")
+        |> should.equal(Ok(2))
       },
       [],
       "",
@@ -242,10 +245,10 @@ pub fn global_flags_test() {
     |> glint.add_command(
       ["sub"],
       fn(ctx) {
-        flag.get(ctx.flags, "f")
-        |> should.equal(Ok(flag.B(True)))
+        flag.get_bool(ctx.flags, "f")
+        |> should.equal(Ok(True))
       },
-      [flag.bool("f", False, "i decided to override the global flag")],
+      [flag.bool("f", Some(True), "i decided to override the global flag")],
       "",
     )
 
