@@ -2,7 +2,6 @@ if erlang {
   // stdlib imports
   import gleam/io
   import gleam/list
-  import gleam/option.{Some}
   import gleam/result
   import gleam/string.{join, uppercase}
   import gleam/function.{compose}
@@ -52,30 +51,32 @@ if erlang {
   pub fn main() {
     // a boolean flag with default False to control message capitalization.
     let caps =
-      flag.bool(
-        called: "caps",
-        default: Some(False),
-        explained: "Capitalize the provided name",
-      )
+      flag.new(called: "caps", of: flag.B(flag.flog()))
+      |> flag.desc("Capitalize the provided name")
 
     // an int flag with default 1 to control how many times to repeat the message.
     // this flag has the `gtz` constraint applied to it.
     let repeat =
-      flag.int(
+      flag.new(
         called: "repeat",
-        explained: "Repeat the message n-times",
-        with: [flag.WithDefault(1), flag.WithConstraint(gtz)],
+        of: flag.I(
+          flag.flog()
+          |> flag.default(1)
+          |> flag.constraint(gtz),
+        ),
       )
+      |> flag.desc("Repeat the message n-times")
 
     // create a new glint instance
     glint.new()
     // with a root command that executes the `hello` function
     // with flags `caps` and `repeat`
-    |> glint.add_command(
+    |> glint.add(
       at: [],
-      do: hello,
-      with: [caps, repeat],
-      described: "Prints Hello, <NAME>!",
+      do: glint.cmd(hello)
+      |> glint.flag(caps)
+      |> glint.flag(repeat)
+      |> glint.desc("Prints Hello, <NAME>!"),
     )
     // with pretty help enabled, using the built-in colours
     |> glint.with_pretty_help(glint.default_pretty_help())

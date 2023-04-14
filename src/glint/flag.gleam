@@ -18,12 +18,12 @@ const delimiter = "="
 
 /// Supported flag types.
 ///
-pub opaque type Value {
+pub type Value {
   /// Boolean flags, to be passed in as `--flag=true` or `--flag=false`.
   /// Can be toggled by omitting the desired value like `--flag`.
   /// Toggling will negate the existing value.
   ///
-  B(Option(Bool))
+  B(Internal(Bool))
 
   /// Int flags, to be passed in as `--flag=1`
   ///
@@ -59,6 +59,29 @@ pub type Description =
 ///
 pub type Contents {
   Contents(value: Value, description: Description)
+}
+
+pub fn new(called name: String, of val: Value) -> Flag {
+  #(name, Contents(value: val, description: ""))
+}
+
+pub fn flog() -> Internal(a) {
+  Internal(value: None, constraints: [])
+}
+
+pub fn constraint(
+  for internal: Internal(a),
+  of constraint: Constraint(a),
+) -> Internal(a) {
+  Internal(..internal, constraints: [constraint, ..internal.constraints])
+}
+
+pub fn default(for internal: Internal(a), of default: a) {
+  Internal(..internal, value: Some(default))
+}
+
+pub fn desc(flag: Flag, desc: Description) -> Flag {
+  #(flag.0, Contents(..flag.1, description: desc))
 }
 
 /// Associates a name with a flag value
@@ -133,7 +156,7 @@ pub fn bool(
   default value: Option(Bool),
   explained description: Description,
 ) -> Flag {
-  #(name, Contents(B(value), description))
+  #(name, Contents(B(Internal(value, [])), description))
 }
 
 /// Associate flag names to their current values.
@@ -172,14 +195,14 @@ fn update_flag_value(in flags: Map, with data: #(String, String)) -> Result(Map)
 fn attempt_toggle_flag(in flags: Map, at key: String) -> Result(Map) {
   use contents <- result.then(access(flags, key))
   case contents.value {
-    B(None) ->
-      Some(True)
+    B(Internal(None, ..) as internal) ->
+      Internal(..internal, value: Some(True))
       |> B
       |> fn(val) { Contents(..contents, value: val) }
       |> map.insert(into: flags, for: key)
       |> Ok()
-    B(Some(val)) ->
-      Some(!val)
+    B(Internal(Some(val), ..) as internal) ->
+      Internal(..internal, value: Some(!val))
       |> B
       |> fn(val) { Contents(..contents, value: val) }
       |> map.insert(into: flags, for: key)
@@ -241,9 +264,10 @@ fn compute_flag(
       parse_string_list(name, input)
       |> result.then(apply_constraints(name, _, constraints))
       |> result.map(fn(ls) { LS(Internal(..internal, value: Some(ls))) })
-    B(_) ->
+    B(Internal(constraints: constraints, ..) as internal) ->
       parse_bool(name, input)
-      |> result.map(fn(b) { B(Some(b)) })
+      |> result.then(apply_constraints(name, _, constraints))
+      |> result.map(fn(b) { B(Internal(..internal, value: Some(b))) })
   }
 }
 
@@ -391,8 +415,8 @@ pub fn get_ints(from flags: Map, for name: String) -> Result(List(Int)) {
 ///
 pub fn get_bool_value(from flag: Flag) -> Result(Bool) {
   case { flag.1 }.value {
-    B(Some(val)) -> Ok(val)
-    B(None) -> flag_not_provided_error(flag.0)
+    B(Internal(Some(val), ..)) -> Ok(val)
+    B(Internal(None, ..)) -> flag_not_provided_error(flag.0)
     _ -> access_type_error(flag.0, "bool")
   }
 }
@@ -479,7 +503,7 @@ pub type FlagOpt(a) {
   WithConstraint(Constraint(a))
 }
 
-type Internal(a) {
+pub opaque type Internal(a) {
   Internal(value: Option(a), constraints: List(Constraint(a)))
 }
 

@@ -174,6 +174,31 @@ pub fn add_command(
   )
 }
 
+pub fn add(
+  to glint: Glint(a),
+  at path: List(String),
+  do contents: Contents(a),
+) -> Glint(a) {
+  Glint(
+    ..glint,
+    cmd: path
+    |> sanitize_path
+    |> do_add_command(to: glint.cmd, put: contents),
+  )
+}
+
+pub fn cmd(do: Runner(a)) -> Contents(a) {
+  Contents(do: do, flags: map.new(), description: "")
+}
+
+pub fn desc(cmd: Contents(a), desc: String) -> Contents(a) {
+  Contents(..cmd, description: desc)
+}
+
+pub fn flag(cmd: Contents(a), flag: Flag) -> Contents(a) {
+  Contents(..cmd, flags: map.insert(cmd.flags, flag.0, flag.1))
+}
+
 /// Recursive traversal of the command tree to find where to puth the provided command
 ///
 fn do_add_command(
@@ -495,3 +520,15 @@ fn heading_style(heading: String, colour: Colour) -> String {
   |> ansi.hex(colour.to_rgb_hex(colour))
   |> ansi.reset
 }
+
+// ******** WIP ************
+pub fn with_flag(cmd: Contents(a), flag: Flag) -> Contents(a) {
+  Contents(..cmd, flags: map.insert(cmd.flags, flag.0, flag.1))
+}
+// pub fn with_command(
+//   cmd: Contents(a),
+//   key: String,
+//   sub: Contents(a),
+// ) -> Contents(a) {
+//   Contents(..cmd, subcommands: map.insert(cmd.subcommands, key, sub))
+// }
