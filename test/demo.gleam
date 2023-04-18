@@ -51,19 +51,17 @@ if erlang {
   pub fn main() {
     // a boolean flag with default False to control message capitalization.
     let caps =
-      flag.new(called: "caps", of: flag.B(flag.flog()))
+      flag.new2(called: "caps", of: flag.B)
       |> flag.desc("Capitalize the provided name")
 
     // an int flag with default 1 to control how many times to repeat the message.
     // this flag has the `gtz` constraint applied to it.
     let repeat =
-      flag.new(
+      flag.new2(
         called: "repeat",
-        of: flag.I(
-          flag.flog()
-          |> flag.default(1)
-          |> flag.constraint(gtz),
-        ),
+        of: flag.I
+        |> flag.default(1)
+        |> flag.constraint(gtz),
       )
       |> flag.desc("Repeat the message n-times")
 

@@ -65,19 +65,24 @@ pub fn new(called name: String, of val: Value) -> Flag {
   #(name, Contents(value: val, description: ""))
 }
 
-pub fn flog() -> Internal(a) {
-  Internal(value: None, constraints: [])
+pub fn new2(called name: String, of val: fn(Internal(a)) -> Value) -> Flag {
+  #(name, Contents(value: val(new_internal([])), description: ""))
 }
 
 pub fn constraint(
-  for internal: Internal(a),
+  for val: fn(Internal(a)) -> Value,
   of constraint: Constraint(a),
-) -> Internal(a) {
-  Internal(..internal, constraints: [constraint, ..internal.constraints])
+) -> fn(Internal(a)) -> Value {
+  fn(internal) {
+    val(Internal(..internal, constraints: [constraint, ..internal.constraints]))
+  }
 }
 
-pub fn default(for internal: Internal(a), of default: a) {
-  Internal(..internal, value: Some(default))
+pub fn default(
+  for val: fn(Internal(a)) -> Value,
+  of default: a,
+) -> fn(Internal(a)) -> Value {
+  fn(internal) { val(Internal(..internal, value: Some(default))) }
 }
 
 pub fn desc(flag: Flag, desc: Description) -> Flag {
