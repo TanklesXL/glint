@@ -83,6 +83,7 @@ pub fn constraint(
   }
 }
 
+/// Set the default value for a 
 pub fn default(
   for val: fn(Internal(a)) -> Value,
   of default: a,
@@ -173,78 +174,83 @@ fn compute_flag(
   given default: Value,
 ) -> Result(Value) {
   case default {
-    I(Internal(constraints: constraints, ..) as internal) ->
-      parse_int(name, input)
-      |> result.then(apply_constraints(name, _, constraints))
-      |> result.map(fn(i) { I(Internal(..internal, value: Some(i))) })
-    LI(Internal(constraints: constraints, ..) as internal) ->
-      parse_int_list(name, input)
-      |> result.then(apply_constraints(name, _, constraints))
-      |> result.map(fn(li) { LI(Internal(..internal, value: Some(li))) })
-    F(Internal(constraints: constraints, ..) as internal) ->
-      parse_float(name, input)
-      |> result.then(apply_constraints(name, _, constraints))
-      |> result.map(fn(f) { F(Internal(..internal, value: Some(f))) })
-    LF(Internal(constraints: constraints, ..) as internal) ->
-      parse_float_list(name, input)
-      |> result.then(apply_constraints(name, _, constraints))
-      |> result.map(fn(lf) { LF(Internal(..internal, value: Some(lf))) })
-    S(Internal(constraints: constraints, ..) as internal) ->
-      parse_string(name, input)
-      |> result.then(apply_constraints(name, _, constraints))
-      |> result.map(fn(s) { S(Internal(..internal, value: Some(s))) })
-    LS(Internal(constraints: constraints, ..) as internal) ->
-      parse_string_list(name, input)
-      |> result.then(apply_constraints(name, _, constraints))
-      |> result.map(fn(ls) { LS(Internal(..internal, value: Some(ls))) })
-    B(Internal(constraints: constraints, ..) as internal) ->
-      parse_bool(name, input)
-      |> result.then(apply_constraints(name, _, constraints))
-      |> result.map(fn(b) { B(Internal(..internal, value: Some(b))) })
+    I(internal) -> parse_int(name, input, internal)
+    LI(internal) -> parse_int_list(name, input, internal)
+    F(internal) -> parse_float(name, input, internal)
+    LF(internal) -> parse_float_list(name, input, internal)
+    S(internal) -> parse_string(name, input, internal)
+    LS(internal) -> parse_string_list(name, input, internal)
+    B(internal) -> parse_bool(name, input, internal)
   }
 }
 
 // Parser functions
-fn parse_int(key, value) {
-  int.parse(value)
-  |> result.replace_error(cannot_parse(key, value, "int"))
+fn parse_int(key, value, internal: Internal(Int)) {
+  use i <- result.then(
+    int.parse(value)
+    |> result.replace_error(cannot_parse(key, value, "int")),
+  )
+
+  apply_constraints(key, i, internal.constraints)
+  |> result.replace(I(Internal(..internal, value: Some(i))))
 }
 
-fn parse_int_list(key, value) {
-  value
-  |> string.split(",")
-  |> list.try_map(int.parse)
-  |> result.replace_error(cannot_parse(key, value, "int list"))
+fn parse_int_list(key, value, internal: Internal(List(Int))) {
+  use li <- result.then(
+    value
+    |> string.split(",")
+    |> list.try_map(int.parse)
+    |> result.replace_error(cannot_parse(key, value, "int list")),
+  )
+
+  apply_constraints(key, li, internal.constraints)
+  |> result.replace(LI(Internal(..internal, value: Some(li))))
 }
 
-fn parse_float(key, value) {
-  float.parse(value)
-  |> result.replace_error(cannot_parse(key, value, "float"))
+// fn xxx(key,val,constraints){apply_constraints(key, li, internal.constraints)|> }
+fn parse_float(key, value, internal: Internal(Float)) {
+  use f <- result.then(
+    float.parse(value)
+    |> result.replace_error(cannot_parse(key, value, "float")),
+  )
+
+  apply_constraints(key, f, internal.constraints)
+  |> result.replace(F(Internal(..internal, value: Some(f))))
 }
 
-fn parse_float_list(key, value) {
-  value
-  |> string.split(",")
-  |> list.try_map(float.parse)
-  |> result.replace_error(cannot_parse(key, value, "float list"))
+fn parse_float_list(key, value, internal: Internal(List(Float))) {
+  use lf <- result.then(
+    value
+    |> string.split(",")
+    |> list.try_map(float.parse)
+    |> result.replace_error(cannot_parse(key, value, "float list")),
+  )
+  apply_constraints(key, lf, internal.constraints)
+  |> result.replace(LF(Internal(..internal, value: Some(lf))))
 }
 
-fn parse_bool(key, value) -> Result(Bool) {
-  case value {
-    "true" -> Ok(True)
-    "false" -> Ok(False)
+fn parse_bool(key, value, internal: Internal(Bool)) {
+  use val <- result.then(case string.lowercase(value) {
+    "true" | "t" -> Ok(True)
+    "false" | "f" -> Ok(False)
     _ -> Error(cannot_parse(key, value, "bool"))
-  }
+  })
+
+  apply_constraints(key, val, internal.constraints)
+  |> result.replace(B(Internal(..internal, value: Some(val))))
 }
 
-fn parse_string(_key, value) {
-  Ok(value)
+fn parse_string(key, value, internal: Internal(String)) {
+  apply_constraints(key, value, internal.constraints)
+  |> result.replace(S(Internal(..internal, value: Some(value))))
 }
 
-fn parse_string_list(_key, value) {
+fn parse_string_list(key, value, internal: Internal(List(String))) {
+  let value = string.split(value, ",")
+
   value
-  |> string.split(",")
-  |> Ok
+  |> apply_constraints(key, _, internal.constraints)
+  |> result.replace(LS(Internal(..internal, value: Some(value))))
 }
 
 // Error creation and manipulation functions
