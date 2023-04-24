@@ -52,7 +52,7 @@ pub opaque type Command(a) {
 
 /// CommandNode tree representation.
 ///
-pub opaque type CommandNode(a) {
+type CommandNode(a) {
   CommandNode(
     contents: Option(Command(a)),
     subcommands: Map(String, CommandNode(a)),
