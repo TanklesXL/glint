@@ -12,10 +12,14 @@ if erlang {
   import glint.{CommandInput}
   import glint/flag
 
+  const caps = "caps"
+
+  const repeat = "repeat"
+
   /// hello is the root command for 
   fn hello(input: CommandInput) -> snag.Result(String) {
-    use caps <- result.then(flag.get_bool(from: input.flags, for: "caps"))
-    use repeat <- result.then(flag.get_int(from: input.flags, for: "repeat"))
+    use caps <- result.then(flag.get_bool(from: input.flags, for: caps))
+    use repeat <- result.then(flag.get_int(from: input.flags, for: repeat))
     use name <- result.then(case input.args {
       [] -> snag.error("no arguments provided")
       _ -> Ok(input.args)
@@ -50,15 +54,14 @@ if erlang {
 
   pub fn main() {
     // a boolean flag with default False to control message capitalization.
-    let caps =
-      flag.new2(called: "caps", of: flag.B)
+    let caps_flag =
+      flag.new(of: flag.B)
       |> flag.desc("Capitalize the provided name")
 
     // an int flag with default 1 to control how many times to repeat the message.
     // this flag has the `gtz` constraint applied to it.
-    let repeat =
-      flag.new2(
-        called: "repeat",
+    let repeat_flag =
+      flag.new(
         of: flag.I
         |> flag.default(1)
         |> flag.constraint(gtz),
@@ -72,8 +75,8 @@ if erlang {
     |> glint.add(
       at: [],
       do: glint.cmd(hello)
-      |> glint.flag(caps)
-      |> glint.flag(repeat)
+      |> glint.flag(caps, caps_flag)
+      |> glint.flag(repeat, repeat_flag)
       |> glint.desc("Prints Hello, <NAME>!"),
     )
     // with pretty help enabled, using the built-in colours

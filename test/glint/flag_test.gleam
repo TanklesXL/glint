@@ -1,21 +1,20 @@
 import gleeunit/should
 import glint.{CommandInput}
-import glint/flag.{WithDefault}
+import glint/flag
 import gleam/map
 import gleam/list
 import gleam/string
-import gleam/option.{None, Some}
 
 pub fn update_flag_test() {
   let flags =
     [
-      flag.bool("bflag", Some(False), ""),
-      flag.string("sflag", "", [WithDefault("default")]),
-      flag.strings("lsflag", "", [WithDefault(["a", "b", "c"])]),
-      flag.int("iflag", "", [WithDefault(0)]),
-      flag.ints("liflag", "", [WithDefault([0, 1, 2, 3])]),
-      flag.float("fflag", "", [WithDefault(1.0)]),
-      flag.floats("lfflag", "", [WithDefault([0.0, 1.0, 2.0])]),
+      #("bflag", flag.new(flag.B)),
+      #("sflag", flag.new(flag.S)),
+      #("lsflag", flag.new(flag.LS)),
+      #("iflag", flag.new(flag.I)),
+      #("liflag", flag.new(flag.LI)),
+      #("fflag", flag.new(flag.F)),
+      #("lfflag", flag.new(flag.LF)),
     ]
     |> flag.build_map()
 
@@ -92,14 +91,20 @@ pub fn update_flag_test() {
 
 pub fn unsupported_flag_test() {
   glint.new()
-  |> glint.add_command(["cmd"], fn(_) { Nil }, [], "")
+  |> glint.add(["cmd"], glint.cmd(fn(_) { Nil }))
   |> glint.execute(["--flag=1"])
   |> should.be_error()
 }
 
 pub fn flag_default_test() {
   let args = ["arg1", "arg2"]
-  let flags = flag.string("flag", "", [WithDefault("default")])
+  let flags = #(
+    "flag",
+    flag.new(
+      flag.S
+      |> flag.default("default"),
+    ),
+  )
 
   let flag_value_should_be_default = fn(in: CommandInput) {
     should.equal(in.args, args)
@@ -110,14 +115,18 @@ pub fn flag_default_test() {
   }
 
   glint.new()
-  |> glint.add_command(["cmd"], flag_value_should_be_default, [flags], "")
+  |> glint.add(
+    ["cmd"],
+    glint.cmd(flag_value_should_be_default)
+    |> glint.flags([flags]),
+  )
   |> glint.execute(["cmd", ..args])
   |> should.be_ok()
 }
 
 pub fn flag_value_test() {
   let args = ["arg1", "arg2"]
-  let flags = flag.string("flag", "", [])
+  let flags = #("flag", flag.new(flag.S))
   let flag_input = "--flag=flag_value"
   let flag_value_should_be_set = fn(in: CommandInput) {
     should.equal(in.args, args)
@@ -128,18 +137,26 @@ pub fn flag_value_test() {
   }
 
   glint.new()
-  |> glint.add_command(["cmd"], flag_value_should_be_set, [flags], "")
+  |> glint.add(
+    ["cmd"],
+    glint.cmd(flag_value_should_be_set)
+    |> glint.flags([flags]),
+  )
   |> glint.execute(["cmd", flag_input, ..args])
   |> should.be_ok()
 }
 
 pub fn int_flag_test() {
-  let flags = flag.int("flag", "", [])
+  let flags = #("flag", flag.new(flag.I))
 
   // fails to parse input for flag as int, returns error
   let flag_input = "--flag=X"
   glint.new()
-  |> glint.add_command([], fn(_) { Nil }, [flags], "")
+  |> glint.add(
+    [],
+    glint.cmd(fn(_) { Nil })
+    |> glint.flags([flags]),
+  )
   |> glint.execute([flag_input])
   |> should.be_error()
 
@@ -152,18 +169,26 @@ pub fn int_flag_test() {
   }
 
   glint.new()
-  |> glint.add_command([], expect_flag_value_of_10, [flags], "")
+  |> glint.add(
+    [],
+    glint.cmd(expect_flag_value_of_10)
+    |> glint.flags([flags]),
+  )
   |> glint.execute([flag_input])
   |> should.be_ok()
 }
 
 pub fn bool_flag_test() {
-  let flags = flag.bool("flag", None, "")
+  let flags = #("flag", flag.new(flag.B))
 
   // fails to parse input for flag as bool, returns error
   let flag_input = "--flag=X"
   glint.new()
-  |> glint.add_command([], fn(_) { Nil }, [flags], "")
+  |> glint.add(
+    [],
+    glint.cmd(fn(_) { Nil })
+    |> glint.flags([flags]),
+  )
   |> glint.execute([flag_input])
   |> should.be_error()
 
@@ -175,13 +200,17 @@ pub fn bool_flag_test() {
     |> should.equal(Ok(False))
   }
   glint.new()
-  |> glint.add_command([], expect_flag_value_of_false, [flags], "")
+  |> glint.add(
+    [],
+    glint.cmd(expect_flag_value_of_false)
+    |> glint.flags([flags]),
+  )
   |> glint.execute([flag_input])
   |> should.be_ok()
 }
 
 pub fn strings_flag_test() {
-  let flags = flag.strings("flag", "", [])
+  let flags = #("flag", flag.new(flag.LS))
   let flag_input = "--flag=val3,val4"
   let expect_flag_value_list = fn(in: CommandInput) {
     in.flags
@@ -189,18 +218,26 @@ pub fn strings_flag_test() {
     |> should.equal(Ok(["val3", "val4"]))
   }
   glint.new()
-  |> glint.add_command([], expect_flag_value_list, [flags], "")
+  |> glint.add(
+    [],
+    glint.cmd(expect_flag_value_list)
+    |> glint.flags([flags]),
+  )
   |> glint.execute([flag_input])
   |> should.be_ok()
 }
 
 pub fn ints_flag_test() {
-  let flags = flag.ints("flag", "", [])
+  let flags = #("flag", flag.new(flag.LI))
 
   // fails to parse input for flag as int list, returns error
   let flag_input = "--flag=val3,val4"
   glint.new()
-  |> glint.add_command([], fn(_) { Nil }, [flags], "")
+  |> glint.add(
+    [],
+    glint.cmd(fn(_) { Nil })
+    |> glint.flags([flags]),
+  )
   |> glint.execute([flag_input])
   |> should.be_error()
 
@@ -212,18 +249,26 @@ pub fn ints_flag_test() {
     |> should.equal(Ok([3, 4]))
   }
   glint.new()
-  |> glint.add_command([], expect_flag_value_list, [flags], "")
+  |> glint.add(
+    [],
+    glint.cmd(expect_flag_value_list)
+    |> glint.flags([flags]),
+  )
   |> glint.execute([flag_input])
   |> should.be_ok()
 }
 
 pub fn float_flag_test() {
-  let flags = flag.float("flag", "", [])
+  let flags = #("flag", flag.new(flag.F))
 
   // fails to parse input for flag as float, returns error
   let flag_input = "--flag=X"
   glint.new()
-  |> glint.add_command([], fn(_) { Nil }, [flags], "")
+  |> glint.add(
+    [],
+    glint.cmd(fn(_) { Nil })
+    |> glint.flags([flags]),
+  )
   |> glint.execute([flag_input])
   |> should.be_error()
 
@@ -236,18 +281,26 @@ pub fn float_flag_test() {
   }
 
   glint.new()
-  |> glint.add_command([], expect_flag_value_of_10, [flags], "")
+  |> glint.add(
+    [],
+    glint.cmd(expect_flag_value_of_10)
+    |> glint.flags([flags]),
+  )
   |> glint.execute([flag_input])
   |> should.be_ok()
 }
 
 pub fn floats_flag_test() {
-  let flags = flag.floats("flag", "", [])
+  let flags = #("flag", flag.new(flag.LF))
 
   // fails to parse input for flag as float list, returns error
   let flag_input = "--flag=val3,val4"
   glint.new()
-  |> glint.add_command([], fn(_) { Nil }, [flags], "")
+  |> glint.add(
+    [],
+    glint.cmd(fn(_) { Nil })
+    |> glint.flags([flags]),
+  )
   |> glint.execute([flag_input])
   |> should.be_error()
 
@@ -259,7 +312,11 @@ pub fn floats_flag_test() {
     |> should.equal(Ok([3.0, 4.0]))
   }
   glint.new()
-  |> glint.add_command([], expect_flag_value_list, [flags], "")
+  |> glint.add(
+    [],
+    glint.cmd(expect_flag_value_list)
+    |> glint.flags([flags]),
+  )
   |> glint.execute([flag_input])
   |> should.be_ok()
 }
@@ -275,24 +332,23 @@ pub fn global_flag_test() {
 
   // set global flag, pass in  new value for flag
   glint.new()
-  |> glint.with_global_flags([flag.floats("flag", "", [])])
-  |> glint.add_command(
-    at: [],
-    with: [],
-    do: testcase([3.0, 4.0]),
-    described: "",
-  )
+  |> glint.with_global_flags([#("flag", flag.new(flag.LF))])
+  |> glint.add(at: [], do: glint.cmd(testcase([3.0, 4.0])))
   |> glint.execute(["--flag=3.0,4.0"])
   |> should.be_ok()
 
   // set global flag and local flag, local flag should take priority
   glint.new()
-  |> glint.with_global_flags([flag.floats("flag", "", [])])
-  |> glint.add_command(
+  |> glint.with_global_flags([#("flag", flag.new(flag.LF))])
+  |> glint.add(
     at: [],
-    with: [flag.floats("flag", "", [WithDefault([1.0, 2.0])])],
-    do: testcase([1.0, 2.0]),
-    described: "",
+    do: glint.cmd(testcase([1.0, 2.0]))
+    |> glint.flag(
+      "flag",
+      flag.LF
+      |> flag.default([1.0, 2.0])
+      |> flag.new,
+    ),
   )
   |> glint.execute([])
   |> should.be_ok()
@@ -300,13 +356,22 @@ pub fn global_flag_test() {
   // set global flag and local flag, pass in new value for flag
   glint.new()
   |> glint.with_global_flags([
-    flag.floats("flag", "", [WithDefault([3.0, 4.0])]),
+    #(
+      "flag",
+      flag.LF
+      |> flag.default([3.0, 4.0])
+      |> flag.new,
+    ),
   ])
-  |> glint.add_command(
+  |> glint.add(
     at: [],
-    with: [flag.floats("flag", "", [WithDefault([1.0, 2.0])])],
-    do: testcase([5.0, 6.0]),
-    described: "",
+    do: glint.cmd(testcase([5.0, 6.0]))
+    |> glint.flag(
+      "flag",
+      flag.LF
+      |> flag.default([1.0, 2.0])
+      |> flag.new,
+    ),
   )
   |> glint.execute(["--flag=5.0,6.0"])
   |> should.be_ok()
@@ -316,11 +381,10 @@ pub fn toggle_test() {
   // fails to parse input for flag as bool, returns error
   let flag_input = "--flag=X"
   glint.new()
-  |> glint.add_command(
+  |> glint.add(
     [],
-    fn(_) { Nil },
-    [flag.bool("flag", Some(False), "")],
-    "",
+    glint.cmd(fn(_) { Nil })
+    |> glint.flag("flag", flag.new(flag.B)),
   )
   |> glint.execute([flag_input])
   |> should.be_error()
@@ -329,15 +393,14 @@ pub fn toggle_test() {
   let flag_input = "--flag"
 
   glint.new()
-  |> glint.add_command(
+  |> glint.add(
     [],
-    fn(in: CommandInput) {
+    glint.cmd(fn(in: CommandInput) {
       in.flags
       |> flag.get_bool(for: "flag")
       |> should.equal(Ok(True))
-    },
-    [flag.bool("flag", Some(False), "")],
-    "",
+    })
+    |> glint.flag("flag", flag.new(flag.B)),
   )
   |> glint.execute([flag_input])
   |> should.be_ok()
@@ -346,41 +409,48 @@ pub fn toggle_test() {
   let flag_input = "--flag"
 
   glint.new()
-  |> glint.add_command(
+  |> glint.add(
     [],
-    fn(in: CommandInput) {
+    glint.cmd(fn(in: CommandInput) {
       in.flags
       |> flag.get_bool(for: "flag")
       |> should.equal(Ok(False))
-    },
-    [flag.bool("flag", Some(True), "")],
-    "",
+    })
+    |> glint.flag(
+      "flag",
+      flag.B
+      |> flag.default(True)
+      |> flag.new,
+    ),
   )
   |> glint.execute([flag_input])
   |> should.be_ok()
 
   // boolean flag without default toggled, sets value to True
   glint.new()
-  |> glint.add_command(
+  |> glint.add(
     [],
-    fn(in: CommandInput) {
+    glint.cmd(fn(in: CommandInput) {
       in.flags
       |> flag.get_bool(for: "flag")
       |> should.equal(Ok(True))
-    },
-    [flag.bool("flag", None, "")],
-    "",
+    })
+    |> glint.flag("flag", flag.new(flag.B)),
   )
   |> glint.execute([flag_input])
   |> should.be_ok()
 
   // cannot toggle non-bool flag
   glint.new()
-  |> glint.add_command(
+  |> glint.add(
     [],
-    fn(_) { Nil },
-    [flag.int("flag", "", [WithDefault(1)])],
-    "",
+    glint.cmd(fn(_) { Nil })
+    |> glint.flag(
+      "flag",
+      flag.I
+      |> flag.default(1)
+      |> flag.new,
+    ),
   )
   |> glint.execute([flag_input])
   |> should.be_error()
@@ -388,9 +458,21 @@ pub fn toggle_test() {
 
 pub fn flags_help_test() {
   [
-    flag.string("s", "a string flag", []),
-    flag.int("i", "an int flag", []),
-    flag.float("f", "a float flag", []),
+    #(
+      "s",
+      flag.new(flag.S)
+      |> flag.desc("a string flag"),
+    ),
+    #(
+      "i",
+      flag.new(flag.I)
+      |> flag.desc("an int flag"),
+    ),
+    #(
+      "f",
+      flag.new(flag.F)
+      |> flag.desc("a float flag"),
+    ),
   ]
   |> flag.build_map()
   |> flag.flags_help()

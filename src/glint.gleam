@@ -14,7 +14,7 @@ import gleam/function
 /// Glint container type for config and commands
 ///
 pub opaque type Glint(a) {
-  Glint(config: Config(a), cmd: Command(a), global_flags: FlagMap)
+  Glint(config: Config(a), cmd: CommandNode(a), global_flags: FlagMap)
 }
 
 /// Config for glint
@@ -44,29 +44,36 @@ pub type CommandInput {
 pub type Runner(a) =
   fn(CommandInput) -> a
 
-/// Command contents
-///
-pub opaque type Contents(a) {
-  Contents(do: Runner(a), flags: FlagMap, description: String)
-}
-
-/// Command tree representation.
+/// CommandNode contents
 ///
 pub opaque type Command(a) {
-  Command(contents: Option(Contents(a)), subcommands: Map(String, Command(a)))
+  Command(do: Runner(a), flags: FlagMap, description: String)
 }
 
+/// CommandNode tree representation.
+///
+pub opaque type CommandNode(a) {
+  CommandNode(
+    contents: Option(Command(a)),
+    subcommands: Map(String, CommandNode(a)),
+  )
+}
+
+/// DEPRECATED: use `glint.cmd` and related builder functions instead to create a Command
+/// 
 /// Create command stubs to be used in `add_command_from_stub`
 ///
 pub type Stub(a) {
   Stub(
     path: List(String),
     run: Runner(a),
-    flags: List(Flag),
+    flags: List(#(String, Flag)),
     description: String,
   )
 }
 
+/// DEPRECATED: use `glint.cmd` and related builder functions instead to create a Command
+/// 
 /// Add a command to the root given a stub 
 ///
 pub fn add_command_from_stub(to glint: Glint(a), with stub: Stub(a)) -> Glint(a) {
@@ -92,21 +99,27 @@ pub fn with_config(glint: Glint(a), config: Config(a)) -> Glint(a) {
 }
 
 /// Add global flags to the existing command tree
-pub fn with_global_flags(glint: Glint(a), flags: List(Flag)) -> Glint(a) {
-  Glint(
-    ..glint,
-    global_flags: list.fold(
-      flags,
-      glint.global_flags,
-      fn(m, f) { map.insert(m, f.0, f.1) },
-    ),
-  )
+pub fn with_global_flag(
+  glint: Glint(a),
+  at key: String,
+  of flag: Flag,
+) -> Glint(a) {
+  Glint(..glint, global_flags: map.insert(glint.global_flags, key, flag))
+}
+
+/// Add global flags to the existing command tree
+pub fn with_global_flags(
+  glint: Glint(a),
+  flags: List(#(String, Flag)),
+) -> Glint(a) {
+  use acc, #(key, flag) <- list.fold(flags, glint)
+  with_global_flag(acc, key, flag)
 }
 
 /// Helper for initializing empty commands
 ///
-fn empty_command() -> Command(a) {
-  Command(contents: None, subcommands: map.new())
+fn empty_command() -> CommandNode(a) {
+  CommandNode(contents: None, subcommands: map.new())
 }
 
 /// Enable custom colours for help text headers
@@ -160,7 +173,7 @@ pub fn add_command(
   to glint: Glint(a),
   at path: List(String),
   do f: Runner(a),
-  with flags: List(Flag),
+  with flags: List(#(String, Flag)),
   described description: String,
 ) -> Glint(a) {
   Glint(
@@ -169,7 +182,7 @@ pub fn add_command(
     |> sanitize_path
     |> do_add_command(
       to: glint.cmd,
-      put: Contents(f, flag.build_map(flags), description),
+      put: Command(f, flag.build_map(flags), description),
     ),
   )
 }
@@ -177,7 +190,7 @@ pub fn add_command(
 pub fn add(
   to glint: Glint(a),
   at path: List(String),
-  do contents: Contents(a),
+  do contents: Command(a),
 ) -> Glint(a) {
   Glint(
     ..glint,
@@ -187,31 +200,27 @@ pub fn add(
   )
 }
 
-pub fn cmd(do: Runner(a)) -> Contents(a) {
-  Contents(do: do, flags: map.new(), description: "")
+pub fn cmd(do runner: Runner(a)) -> Command(a) {
+  Command(do: runner, flags: map.new(), description: "")
 }
 
-pub fn desc(cmd: Contents(a), desc: String) -> Contents(a) {
-  Contents(..cmd, description: desc)
-}
-
-pub fn flag(cmd: Contents(a), flag: Flag) -> Contents(a) {
-  Contents(..cmd, flags: map.insert(cmd.flags, flag.0, flag.1))
+pub fn desc(cmd: Command(a), desc: String) -> Command(a) {
+  Command(..cmd, description: desc)
 }
 
 /// Recursive traversal of the command tree to find where to puth the provided command
 ///
 fn do_add_command(
-  to root: Command(a),
+  to root: CommandNode(a),
   at path: List(String),
-  put contents: Contents(a),
-) -> Command(a) {
+  put contents: Command(a),
+) -> CommandNode(a) {
   case path {
     // update current command with provided contents
-    [] -> Command(..root, contents: Some(contents))
+    [] -> CommandNode(..root, contents: Some(contents))
     // continue down the path, creating empty command nodes along the way
     [x, ..xs] ->
-      Command(
+      CommandNode(
         ..root,
         subcommands: {
           use node <- map.update(root.subcommands, x)
@@ -240,7 +249,7 @@ pub type CmdResult(a) =
 /// Executes the current root command.
 ///
 fn execute_root(
-  cmd: Command(a),
+  cmd: CommandNode(a),
   global_flags: FlagMap,
   args: List(String),
   flag_inputs: List(String),
@@ -300,7 +309,7 @@ pub fn execute(glint: Glint(a), args: List(String)) -> CmdResult(a) {
 /// Find which command to execute and run it with computed flags and args
 ///
 fn do_execute(
-  cmd: Command(a),
+  cmd: CommandNode(a),
   pretty_help: Option(PrettyHelp),
   global_flags: FlagMap,
   args: List(String),
@@ -443,7 +452,7 @@ fn usage_help(
 
 fn cmd_help(
   path: List(String),
-  cmd: Command(a),
+  cmd: CommandNode(a),
   pretty_help: Option(PrettyHelp),
   global_flags: FlagMap,
 ) -> String {
@@ -494,7 +503,7 @@ fn cmd_help(
   |> string.join("\n\n")
 }
 
-fn subcommands_help(cmds: Map(String, Command(a))) -> String {
+fn subcommands_help(cmds: Map(String, CommandNode(a))) -> String {
   cmds
   |> map.map_values(subcommand_help)
   |> map.values
@@ -502,7 +511,7 @@ fn subcommands_help(cmds: Map(String, Command(a))) -> String {
   |> string.join("\n\t")
 }
 
-fn subcommand_help(name: String, cmd: Command(a)) -> String {
+fn subcommand_help(name: String, cmd: CommandNode(a)) -> String {
   case cmd.contents {
     None -> name
     Some(contents) -> name <> "\t\t" <> contents.description
@@ -522,13 +531,12 @@ fn heading_style(heading: String, colour: Colour) -> String {
 }
 
 // ******** WIP ************
-pub fn with_flag(cmd: Contents(a), flag: Flag) -> Contents(a) {
-  Contents(..cmd, flags: map.insert(cmd.flags, flag.0, flag.1))
+
+pub fn flag(cmd: Command(a), at key: String, of flag: Flag) -> Command(a) {
+  Command(..cmd, flags: map.insert(cmd.flags, key, flag))
 }
-// pub fn with_command(
-//   cmd: Contents(a),
-//   key: String,
-//   sub: Contents(a),
-// ) -> Contents(a) {
-//   Contents(..cmd, subcommands: map.insert(cmd.subcommands, key, sub))
-// }
+
+pub fn flags(cmd: Command(a), with flags: List(#(String, Flag))) -> Command(a) {
+  use cmd, #(key, flag) <- list.fold(flags, cmd)
+  Command(..cmd, flags: map.insert(cmd.flags, key, flag))
+}
