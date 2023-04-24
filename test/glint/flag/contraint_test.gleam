@@ -1,6 +1,6 @@
 import glint/flag/constraint.{each, none_of, one_of}
 import gleeunit/should
-import glint/flag.{WithConstraint}
+import glint/flag
 import gleam/list
 
 pub fn one_of_test() {
@@ -58,112 +58,98 @@ pub fn none_of_test() {
 pub fn flag_one_of_none_of_test() {
   use test_case <- list.each([
     #(
-      flag.int(
-        "i",
-        "",
-        [WithConstraint(one_of([1, 2, 3])), WithConstraint(none_of([4, 5, 6]))],
-      ),
+      "i",
+      flag.I
+      |> flag.constraint(one_of([1, 2, 3]))
+      |> flag.constraint(none_of([4, 5, 6]))
+      |> flag.new,
       "1",
       "6",
     ),
     #(
-      flag.ints(
-        "li",
-        "",
-        [
-          WithConstraint(
-            [1, 2, 3]
-            |> one_of
-            |> each,
-          ),
-          WithConstraint(
-            [4, 5, 6]
-            |> none_of
-            |> each,
-          ),
-        ],
-      ),
+      "li",
+      flag.LI
+      |> flag.constraint(
+        [1, 2, 3]
+        |> one_of
+        |> each,
+      )
+      |> flag.constraint(
+        [4, 5, 6]
+        |> none_of
+        |> each,
+      )
+      |> flag.new,
       "1,1,1",
       "2,2,6",
     ),
     #(
-      flag.float(
-        "f",
-        "",
-        [
-          WithConstraint(one_of([1.0, 2.0, 3.0])),
-          WithConstraint(none_of([4.0, 5.0, 6.0])),
-        ],
-      ),
+      "f",
+      flag.F
+      |> flag.constraint(one_of([1.0, 2.0, 3.0]))
+      |> flag.constraint(none_of([4.0, 5.0, 6.0]))
+      |> flag.new,
       "1.0",
       "6.0",
     ),
     #(
-      flag.floats(
-        "lf",
-        "",
-        [
-          WithConstraint(
-            [1.0, 2.0, 3.0]
-            |> one_of()
-            |> each,
-          ),
-          WithConstraint(
-            [4.0, 5.0, 6.0]
-            |> none_of()
-            |> each,
-          ),
-        ],
-      ),
+      "lf",
+      flag.LF
+      |> flag.constraint(
+        [1.0, 2.0, 3.0]
+        |> one_of()
+        |> each,
+      )
+      |> flag.constraint(
+        [4.0, 5.0, 6.0]
+        |> none_of()
+        |> each,
+      )
+      |> flag.new,
       "3.0,2.0,1.0",
       "2.0,3.0,6.0",
     ),
     #(
-      flag.string(
-        "s",
-        "",
-        [
-          WithConstraint(one_of(["t1", "t2", "t3"])),
-          WithConstraint(none_of(["t4", "t5", "t6"])),
-        ],
-      ),
+      "s",
+      flag.S
+      |> flag.constraint(one_of(["t1", "t2", "t3"]))
+      |> flag.constraint(none_of(["t4", "t5", "t6"]))
+      |> flag.new,
       "t3",
       "t4",
     ),
     #(
-      flag.strings(
-        "ls",
-        "",
-        [
-          WithConstraint(
-            ["t1", "t2", "t3"]
-            |> one_of
-            |> each,
-          ),
-          WithConstraint(
-            ["t4", "t5", "t6"]
-            |> none_of
-            |> each,
-          ),
-        ],
-      ),
+      "ls",
+      flag.LS
+      |> flag.constraint(
+        ["t1", "t2", "t3"]
+        |> one_of
+        |> each,
+      )
+      |> flag.constraint(
+        ["t4", "t5", "t6"]
+        |> none_of
+        |> each,
+      )
+      |> flag.new,
       "t3,t2,t1",
       "t2,t4,t1",
     ),
   ])
 
-  let test_flag = test_case.0
-  let success = test_case.1
-  let failure = test_case.2
+  let test_flag_name = test_case.0
+  let test_flag = test_case.1
+  let success = test_case.2
+  let failure = test_case.3
 
-  let input_flag = "--" <> test_flag.0 <> "="
+  let input_flag = "--" <> test_flag_name <> "="
 
-  [test_flag]
+  [#(test_flag_name, test_flag)]
   |> flag.build_map()
   |> flag.update_flags(input_flag <> success)
   |> should.be_ok
 
-  [test_flag]
+  [#(test_flag_name, test_flag)]
   |> flag.build_map()
   |> flag.update_flags(input_flag <> failure)
   |> should.be_error

@@ -18,49 +18,55 @@ gleam add glint
 ## Usage
 
 You can import `glint` as a dependency and use it as follows:
-(found in `examples/hello/src/hello.gleam` directory)
+(found in `test/mini_demo.gleam`, for a more complete example see `test/demo.gleam`)
 
 ```gleam
-import gleam/io
-import gleam/map
-import gleam/string.{join, uppercase}
-import gleam/erlang.{start_arguments}
-import glint.{CommandInput}
-import glint/flag
+  import gleam/io
+  import gleam/result
+  import gleam/string.{join, uppercase}
+  import gleam/function.{compose}
+  import gleam/erlang.{start_arguments}
+  import glint
+  import glint/flag
 
-fn hello(input: CommandInput) {
-  assert Ok(flag.B(caps)) = flag.get_value(from: input.flags, for: "caps")
-  let to_say = ["Hello,", ..input.args]
-  case caps {
-    True ->
-      to_say
-      |> join(" ")
-      |> uppercase()
+  const caps = "caps"
 
-    False -> join(to_say, " ")
+  fn hello(input: glint.CommandInput) -> Nil {
+    let assert Ok(caps) = flag.get_bool(from: input.flags, for: caps)
+
+    ["Hello,", ..input.args]
+    |> case caps {
+      True -> compose(join(_, " "), uppercase)
+      False -> join(_, " ")
+    }
+    |> string.append("!")
+    |> io.println
   }
-  |> string.append("!")
-  |> io.println()
-}
 
-pub fn main() {
-  glint.new()
-  |> glint.add_command(
-    at: [],
-    do: hello,
-    with: [flag.bool("caps", False, "Capitalize the provided name")],
-    described: "Prints Hello, <NAME>!",
-    used: "'gleam run <NAME>' or 'gleam run <NAME> --caps'",
-  )
-  |> glint.run(start_arguments())
-}
 
+  pub fn main() {
+    let caps_flag =
+      flag.B
+      |> flag.default(False)
+      |> flag.new
+      |> flag.description("Capitalize the provided name")
+
+    glint.new()
+    |> glint.add(
+      at: [],
+      do: glint.command(hello)
+      |> glint.flag(caps, caps_flag)
+      |> glint.description("Prints Hello, <NAME>!"),
+    )
+    |> glint.with_pretty_help(glint.default_pretty_help())
+    |> glint.run(start_arguments())
+  }
 ```
 
 Run it with either of:
 
-- `gleam run Bob`, `gleam run -- --caps=false Bob`, or `gleam run Bob --caps=false`  which will print `Hello, Bob!`
-- `gleam run -- --caps Bob` or  `gleam run -- --caps=true Bob`, or `gleam run Bob --caps` which will print `HELLO, BOB!`
+- `gleam run Bob`, `gleam run -- --caps=false Bob`, or `gleam run Bob --caps=false` which will print `Hello, Bob!`
+- `gleam run -- --caps Bob` or `gleam run -- --caps=true Bob`, or `gleam run Bob --caps` which will print `HELLO, BOB!`
 
 ### Built-In Help messages
 
@@ -77,4 +83,4 @@ FLAGS:
         --caps=<CAPS>           Capitalize the provided name
 ```
 
-*Note*: Due to [this issue](https://github.com/gleam-lang/gleam/issues/1457) commands with flags immediately after `gleam run` must include the `--` as shown above
+_Note_: Due to [this issue](https://github.com/gleam-lang/gleam/issues/1457) commands with flags immediately after `gleam run` must include the `--` as shown above
