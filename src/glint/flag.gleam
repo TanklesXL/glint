@@ -17,6 +17,7 @@ pub const prefix = "--"
 const delimiter = "="
 
 /// Supported flag types.
+/// The constructors of this Value type can also be used as `ValueBuilder`s
 ///
 pub type Value {
   /// Boolean flags, to be passed in as `--flag=true` or `--flag=false`.
@@ -50,6 +51,13 @@ pub type Value {
   LS(Internal(List(String)))
 }
 
+/// A type that facilitates the usage of builder functions for creating `Value`s
+///
+pub type ValueBuilder(a) =
+  fn(Internal(a)) -> Value
+
+/// An internal representation of flag contents
+///
 pub opaque type Internal(a) {
   Internal(value: Option(a), constraints: List(Constraint(a)))
 }
@@ -65,29 +73,33 @@ pub type Flag {
   Flag(value: Value, description: Description)
 }
 
-pub fn new(of val: fn(Internal(a)) -> Value) -> Flag {
+/// create a new `Flag`
+///
+pub fn new(of val: ValueBuilder(a)) -> Flag {
   let value = val(Internal(None, []))
   Flag(value: value, description: "")
 }
 
-pub fn desc(contents: Flag, desc: Description) -> Flag {
-  Flag(..contents, description: desc)
+/// attach a description to a `Flag`
+///
+pub fn description(for flag: Flag, of description: Description) -> Flag {
+  Flag(..flag, description: description)
 }
 
+/// attach a constraint to a `Value`
+///
 pub fn constraint(
-  for val: fn(Internal(a)) -> Value,
+  for val: ValueBuilder(a),
   of constraint: Constraint(a),
-) -> fn(Internal(a)) -> Value {
+) -> ValueBuilder(a) {
   fn(internal) {
     val(Internal(..internal, constraints: [constraint, ..internal.constraints]))
   }
 }
 
-/// Set the default value for a 
-pub fn default(
-  for val: fn(Internal(a)) -> Value,
-  of default: a,
-) -> fn(Internal(a)) -> Value {
+/// Set the default value for a flag `Value`
+///
+pub fn default(for val: ValueBuilder(a), of default: a) -> ValueBuilder(a) {
   fn(internal) { val(Internal(..internal, value: Some(default))) }
 }
 

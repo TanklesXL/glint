@@ -77,12 +77,12 @@ pub type Stub(a) {
 /// Add a command to the root given a stub 
 ///
 pub fn add_command_from_stub(to glint: Glint(a), with stub: Stub(a)) -> Glint(a) {
-  add_command(
+  add(
     to: glint,
     at: stub.path,
-    do: stub.run,
-    with: stub.flags,
-    described: stub.description,
+    do: command(stub.run)
+    |> flags(stub.flags)
+    |> description(stub.description),
   )
 }
 
@@ -169,24 +169,6 @@ fn sanitize_path(path: List(String)) -> List(String) {
 ///
 /// Note: all command paths are sanitized by stripping whitespace and removing any empty string elements.
 ///
-pub fn add_command(
-  to glint: Glint(a),
-  at path: List(String),
-  do f: Runner(a),
-  with flags: List(#(String, Flag)),
-  described description: String,
-) -> Glint(a) {
-  Glint(
-    ..glint,
-    cmd: path
-    |> sanitize_path
-    |> do_add_command(
-      to: glint.cmd,
-      put: Command(f, flag.build_map(flags), description),
-    ),
-  )
-}
-
 pub fn add(
   to glint: Glint(a),
   at path: List(String),
@@ -200,12 +182,12 @@ pub fn add(
   )
 }
 
-pub fn cmd(do runner: Runner(a)) -> Command(a) {
+pub fn command(do runner: Runner(a)) -> Command(a) {
   Command(do: runner, flags: map.new(), description: "")
 }
 
-pub fn desc(cmd: Command(a), desc: String) -> Command(a) {
-  Command(..cmd, description: desc)
+pub fn description(cmd: Command(a), description: String) -> Command(a) {
+  Command(..cmd, description: description)
 }
 
 /// Recursive traversal of the command tree to find where to puth the provided command
@@ -278,8 +260,7 @@ fn execute_root(
 /// Each value prefixed with `--` is parsed as a flag.
 ///
 /// This function does not print its output and is mainly intended for use within `glint` itself.
-/// If you would like to print the output of a command please see the `run` function
-/// in tandem with the`with_print_output` function.
+/// If you would like to print or handle the output of a command please see the `run_and_handle` function.
 ///
 pub fn execute(glint: Glint(a), args: List(String)) -> CmdResult(a) {
   // create help flag to check for
@@ -381,7 +362,10 @@ pub fn run_and_handle(
       |> snag.pretty_print
       |> io.println
     Ok(Help(help)) -> io.println(help)
-    Ok(Out(out)) -> handle(out)
+    Ok(Out(out)) -> {
+      handle(out)
+      Nil
+    }
   }
 }
 

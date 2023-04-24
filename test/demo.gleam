@@ -12,14 +12,15 @@ if erlang {
   import glint.{CommandInput}
   import glint/flag
 
+  // the key for the caps flag
   const caps = "caps"
 
+  // the key for the repeat flag
   const repeat = "repeat"
 
-  /// hello is the root command for 
   fn hello(input: CommandInput) -> snag.Result(String) {
-    use caps <- result.then(flag.get_bool(from: input.flags, for: caps))
-    use repeat <- result.then(flag.get_int(from: input.flags, for: repeat))
+    let assert Ok(caps) = flag.get_bool(from: input.flags, for: caps)
+    let assert Ok(repeat) = flag.get_int(from: input.flags, for: repeat)
     use name <- result.then(case input.args {
       [] -> snag.error("no arguments provided")
       _ -> Ok(input.args)
@@ -36,13 +37,6 @@ if erlang {
     |> Ok
   }
 
-  fn result_to_string(res: snag.Result(String)) -> String {
-    case res {
-      Ok(out) -> out
-      Error(err) -> snag.pretty_print(err)
-    }
-  }
-
   /// gtz is a Constraint(Int) and ensures that the provided value is greater than zero.
   ///
   fn gtz(n: Int) -> snag.Result(Nil) {
@@ -55,36 +49,47 @@ if erlang {
   pub fn main() {
     // a boolean flag with default False to control message capitalization.
     let caps_flag =
-      flag.new(of: flag.B)
-      |> flag.desc("Capitalize the provided name")
+      flag.B
+      |> flag.default(False)
+      |> flag.new
+      |> flag.description("Capitalize the provided name")
 
     // an int flag with default 1 to control how many times to repeat the message.
     // this flag has the `gtz` constraint applied to it.
     let repeat_flag =
-      flag.new(
-        of: flag.I
-        |> flag.default(1)
-        |> flag.constraint(gtz),
-      )
-      |> flag.desc("Repeat the message n-times")
+      flag.I
+      |> flag.default(1)
+      |> flag.constraint(gtz)
+      |> flag.new
+      |> flag.description("Repeat the message n-times")
 
     // create a new glint instance
     glint.new()
     // with a root command that executes the `hello` function
-    // with flags `caps` and `repeat`
     |> glint.add(
       at: [],
-      do: glint.cmd(hello)
+      do: glint.command(hello)
+      // with flag `caps`
       |> glint.flag(caps, caps_flag)
+      // with flag `repeat`
       |> glint.flag(repeat, repeat_flag)
-      |> glint.desc("Prints Hello, <NAME>!"),
+      |> glint.description("Prints Hello, <NAME>!"),
     )
     // with pretty help enabled, using the built-in colours
     |> glint.with_pretty_help(glint.default_pretty_help())
     // run with a handler that converts the command output to a string and prints it
     |> glint.run_and_handle(
       start_arguments(),
-      compose(result_to_string, io.println),
+      fn(res) {
+        case res {
+          Ok(out) -> out
+          Error(err) ->
+            err
+            |> snag.layer("failed to execute command")
+            |> snag.pretty_print()
+        }
+        |> io.println
+      },
     )
   }
 }
