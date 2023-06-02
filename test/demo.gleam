@@ -21,7 +21,7 @@ if erlang {
   fn hello(input: CommandInput) -> snag.Result(String) {
     let assert Ok(caps) = flag.get_bool(from: input.flags, for: caps)
     let assert Ok(repeat) = flag.get_int(from: input.flags, for: repeat)
-    use name <- result.then(case input.args {
+    use name <- result.try(case input.args {
       [] -> snag.error("no arguments provided")
       _ -> Ok(input.args)
     })
@@ -49,18 +49,16 @@ if erlang {
   pub fn main() {
     // a boolean flag with default False to control message capitalization.
     let caps_flag =
-      flag.B
+      flag.new(flag.B)
       |> flag.default(False)
-      |> flag.new
       |> flag.description("Capitalize the provided name")
 
     // an int flag with default 1 to control how many times to repeat the message.
     // this flag has the `gtz` constraint applied to it.
     let repeat_flag =
-      flag.I
+      flag.new(flag.I)
       |> flag.default(1)
       |> flag.constraint(gtz)
-      |> flag.new
       |> flag.description("Repeat the message n-times")
 
     // create a new glint instance

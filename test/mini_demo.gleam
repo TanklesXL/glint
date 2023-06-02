@@ -27,8 +27,8 @@ if erlang {
     // a boolean flag with default False to control message capitalization.
     let caps_flag =
       flag.B
-      |> flag.default(False)
       |> flag.new
+      |> flag.default(False)
       |> flag.description("Capitalize the provided name")
     // create a new glint instance
     glint.new()

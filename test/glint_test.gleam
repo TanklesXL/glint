@@ -97,18 +97,18 @@ pub fn runner_test() {
 
 pub fn help_test() {
   let nil = function.constant(Nil)
-  let global_flags = [
-    #(
-      "global",
-      flag.new(flag.S)
-      |> flag.description("This is a global flag"),
-    ),
-  ]
+  let global_flag = #(
+    "global",
+    flag.new(flag.S)
+    |> flag.description("This is a global flag"),
+  )
+
   let flag_1 = #(
     "flag1",
     flag.new(flag.S)
     |> flag.description("This is flag1"),
   )
+
   let flag_2 = #(
     "flag2",
     flag.new(flag.I)
@@ -124,6 +124,7 @@ pub fn help_test() {
     flag.new(flag.F)
     |> flag.description("This is flag4"),
   )
+
   let flag_5 = #(
     "flag5",
     flag.new(flag.LF)
@@ -132,7 +133,7 @@ pub fn help_test() {
 
   let cli =
     glint.new()
-    |> glint.with_global_flags(global_flags)
+    |> glint.global_flag(global_flag.0, global_flag.1)
     |> glint.add(
       at: [],
       do: glint.command(do: nil)
@@ -142,7 +143,8 @@ pub fn help_test() {
     |> glint.add(
       at: ["cmd1"],
       do: glint.command(nil)
-      |> glint.flags([flag_2, flag_5])
+      |> glint.flag(flag_2.0, flag_2.1)
+      |> glint.flag(flag_5.0, flag_5.1)
       |> glint.description("This is cmd1"),
     )
     |> glint.add(
@@ -244,11 +246,11 @@ FLAGS:
 pub fn global_flags_test() {
   let cli =
     glint.new()
-    |> glint.with_global_flag(
+    |> glint.global_flag(
       "f",
       flag.I
-      |> flag.default(2)
       |> flag.new
+      |> flag.default(2)
       |> flag.description("global flag example"),
     )
     |> glint.add(
@@ -267,8 +269,8 @@ pub fn global_flags_test() {
       |> glint.flag(
         "f",
         flag.B
-        |> flag.default(True)
         |> flag.new
+        |> flag.default(True)
         |> flag.description("i decided to override the global flag"),
       ),
     )

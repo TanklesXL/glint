@@ -60,15 +60,17 @@ pub fn flag_one_of_none_of_test() {
     #(
       "i",
       flag.I
+      |> flag.new
       |> flag.constraint(one_of([1, 2, 3]))
       |> flag.constraint(none_of([4, 5, 6]))
-      |> flag.new,
+      |> flag.build,
       "1",
       "6",
     ),
     #(
       "li",
       flag.LI
+      |> flag.new
       |> flag.constraint(
         [1, 2, 3]
         |> one_of
@@ -79,22 +81,24 @@ pub fn flag_one_of_none_of_test() {
         |> none_of
         |> each,
       )
-      |> flag.new,
+      |> flag.build,
       "1,1,1",
       "2,2,6",
     ),
     #(
       "f",
       flag.F
+      |> flag.new
       |> flag.constraint(one_of([1.0, 2.0, 3.0]))
       |> flag.constraint(none_of([4.0, 5.0, 6.0]))
-      |> flag.new,
+      |> flag.build,
       "1.0",
       "6.0",
     ),
     #(
       "lf",
       flag.LF
+      |> flag.new
       |> flag.constraint(
         [1.0, 2.0, 3.0]
         |> one_of()
@@ -105,22 +109,24 @@ pub fn flag_one_of_none_of_test() {
         |> none_of()
         |> each,
       )
-      |> flag.new,
+      |> flag.build,
       "3.0,2.0,1.0",
       "2.0,3.0,6.0",
     ),
     #(
       "s",
       flag.S
+      |> flag.new
       |> flag.constraint(one_of(["t1", "t2", "t3"]))
       |> flag.constraint(none_of(["t4", "t5", "t6"]))
-      |> flag.new,
+      |> flag.build,
       "t3",
       "t4",
     ),
     #(
       "ls",
       flag.LS
+      |> flag.new
       |> flag.constraint(
         ["t1", "t2", "t3"]
         |> one_of
@@ -131,7 +137,7 @@ pub fn flag_one_of_none_of_test() {
         |> none_of
         |> each,
       )
-      |> flag.new,
+      |> flag.build,
       "t3,t2,t1",
       "t2,t4,t1",
     ),

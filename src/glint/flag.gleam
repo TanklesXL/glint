@@ -51,10 +51,15 @@ pub type Value {
   LS(Internal(List(String)))
 }
 
-/// A type that facilitates the usage of builder functions for creating `Value`s
+/// ValueBuilder is a conveniency type to describe the constructors of the Value type.
 ///
 pub type ValueBuilder(a) =
   fn(Internal(a)) -> Value
+
+/// A type that facilitates the usage of new functions for creating `Flag`s
+///
+pub type FlagBuilder(a) =
+  fn(Internal(a)) -> Flag
 
 /// An internal representation of flag contents
 ///
@@ -73,33 +78,43 @@ pub type Flag {
   Flag(value: Value, description: Description)
 }
 
-/// create a new `Flag`
+/// create a new FlagBuilder from the provided ValueBuilder
 ///
-pub fn new(of val: ValueBuilder(a)) -> Flag {
-  let value = val(Internal(None, []))
-  Flag(value: value, description: "")
+pub fn new(of new: ValueBuilder(a)) -> FlagBuilder(a) {
+  fn(internal) { Flag(new(internal), "") }
+}
+
+/// create a new `Flag` from a `FlagBuilder(a)`
+///
+pub fn build(of new: FlagBuilder(a)) -> Flag {
+  new(Internal(None, []))
 }
 
 /// attach a description to a `Flag`
 ///
-pub fn description(for flag: Flag, of description: Description) -> Flag {
-  Flag(..flag, description: description)
+pub fn description(
+  for flag: FlagBuilder(a),
+  of description: Description,
+) -> FlagBuilder(a) {
+  fn(internal) { Flag(..flag(internal), description: description) }
 }
 
-/// attach a constraint to a `Value`
+/// attach a constraint to a `Flag`
 ///
 pub fn constraint(
-  for val: ValueBuilder(a),
+  for flag: FlagBuilder(a),
   of constraint: Constraint(a),
-) -> ValueBuilder(a) {
+) -> FlagBuilder(a) {
   fn(internal) {
-    val(Internal(..internal, constraints: [constraint, ..internal.constraints]))
+    flag(
+      Internal(..internal, constraints: [constraint, ..internal.constraints]),
+    )
   }
 }
 
 /// Set the default value for a flag `Value`
 ///
-pub fn default(for val: ValueBuilder(a), of default: a) -> ValueBuilder(a) {
+pub fn default(for val: FlagBuilder(a), of default: a) -> FlagBuilder(a) {
   fn(internal) { val(Internal(..internal, value: Some(default))) }
 }
 
@@ -129,7 +144,7 @@ pub fn update_flags(in flags: Map, with flag_input: String) -> Result(Map) {
 
 fn update_flag_value(in flags: Map, with data: #(String, String)) -> Result(Map) {
   let #(key, input) = data
-  use contents <- result.then(access(flags, key))
+  use contents <- result.try(access(flags, key))
   use value <- result.map(compute_flag(
     for: key,
     with: input,
@@ -139,7 +154,7 @@ fn update_flag_value(in flags: Map, with data: #(String, String)) -> Result(Map)
 }
 
 fn attempt_toggle_flag(in flags: Map, at key: String) -> Result(Map) {
-  use contents <- result.then(access(flags, key))
+  use contents <- result.try(access(flags, key))
   case contents.value {
     B(Internal(None, ..) as internal) ->
       Internal(..internal, value: Some(True))
@@ -198,7 +213,7 @@ fn compute_flag(
 
 // Parser functions
 fn parse_int(key, value, internal: Internal(Int)) {
-  use i <- result.then(
+  use i <- result.try(
     int.parse(value)
     |> result.replace_error(cannot_parse(key, value, "int")),
   )
@@ -208,7 +223,7 @@ fn parse_int(key, value, internal: Internal(Int)) {
 }
 
 fn parse_int_list(key, value, internal: Internal(List(Int))) {
-  use li <- result.then(
+  use li <- result.try(
     value
     |> string.split(",")
     |> list.try_map(int.parse)
@@ -221,7 +236,7 @@ fn parse_int_list(key, value, internal: Internal(List(Int))) {
 
 // fn xxx(key,val,constraints){apply_constraints(key, li, internal.constraints)|> }
 fn parse_float(key, value, internal: Internal(Float)) {
-  use f <- result.then(
+  use f <- result.try(
     float.parse(value)
     |> result.replace_error(cannot_parse(key, value, "float")),
   )
@@ -231,7 +246,7 @@ fn parse_float(key, value, internal: Internal(Float)) {
 }
 
 fn parse_float_list(key, value, internal: Internal(List(Float))) {
-  use lf <- result.then(
+  use lf <- result.try(
     value
     |> string.split(",")
     |> list.try_map(float.parse)
@@ -242,7 +257,7 @@ fn parse_float_list(key, value, internal: Internal(List(Float))) {
 }
 
 fn parse_bool(key, value, internal: Internal(Bool)) {
-  use val <- result.then(case string.lowercase(value) {
+  use val <- result.try(case string.lowercase(value) {
     "true" | "t" -> Ok(True)
     "false" | "f" -> Ok(False)
     _ -> Error(cannot_parse(key, value, "bool"))
@@ -341,7 +356,7 @@ pub fn get_int_value(from flag: #(String, Flag)) -> Result(Int) {
 /// Gets the current value for the associated int flag
 ///
 pub fn get_int(from flags: Map, for name: String) -> Result(Int) {
-  use value <- result.then(access(flags, name))
+  use value <- result.try(access(flags, name))
   get_int_value(#(name, value))
 }
 
@@ -358,7 +373,7 @@ pub fn get_ints_value(from flag: #(String, Flag)) -> Result(List(Int)) {
 /// Gets the current value for the associated ints flag
 ///
 pub fn get_ints(from flags: Map, for name: String) -> Result(List(Int)) {
-  use value <- result.then(access(flags, name))
+  use value <- result.try(access(flags, name))
   get_ints_value(#(name, value))
 }
 
@@ -375,7 +390,7 @@ pub fn get_bool_value(from flag: #(String, Flag)) -> Result(Bool) {
 /// Gets the current value for the associated bool flag
 ///
 pub fn get_bool(from flags: Map, for name: String) -> Result(Bool) {
-  use value <- result.then(access(flags, name))
+  use value <- result.try(access(flags, name))
   get_bool_value(#(name, value))
 }
 
@@ -392,7 +407,7 @@ pub fn get_string_value(from flag: #(String, Flag)) -> Result(String) {
 /// Gets the current value for the associated string flag
 ///
 pub fn get_string(from flags: Map, for name: String) -> Result(String) {
-  use value <- result.then(access(flags, name))
+  use value <- result.try(access(flags, name))
   get_string_value(#(name, value))
 }
 
@@ -409,7 +424,7 @@ pub fn get_strings_value(from flag: #(String, Flag)) -> Result(List(String)) {
 /// Gets the current value for the associated strings flag
 ///
 pub fn get_strings(from flags: Map, for name: String) -> Result(List(String)) {
-  use value <- result.then(access(flags, name))
+  use value <- result.try(access(flags, name))
   get_strings_value(#(name, value))
 }
 
@@ -426,7 +441,7 @@ pub fn get_float_value(from flag: #(String, Flag)) -> Result(Float) {
 /// Gets the current value for the associated float flag
 ///
 pub fn get_float(from flags: Map, for name: String) -> Result(Float) {
-  use value <- result.then(access(flags, name))
+  use value <- result.try(access(flags, name))
   get_float_value(#(name, value))
 }
 
@@ -443,6 +458,6 @@ pub fn get_floats_value(from flag: #(String, Flag)) -> Result(List(Float)) {
 /// Gets the current value for the associated floats flag
 ///
 pub fn get_floats(from flags: Map, for name: String) -> Result(List(Float)) {
-  use value <- result.then(access(flags, name))
+  use value <- result.try(access(flags, name))
   get_floats_value(#(name, value))
 }

@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- update to gleam v0.28
+- update to gleam v0.20
 - `flag` module now provides a getter per flag type instead of a unified one that previously returned the `Value` type.
 - `glint` gains the `with_print_output` function to allow printing of command output when calling `run`.
 - new builder api for commands and flags:
@@ -12,6 +12,8 @@
   - `flag.new` to create a new flag
   - `flag.default` to attach a default value to a flag
   - `flag.constraint` to attach a constraint to a flag
+- rename `glint.with_global_flags` to `glint.global_flags`
+- `glint` gains the `global_flag` and `flag_tuple` functions.
 
 ## [0.11.2](https://github.com/TanklesXL/glint/compare/v0.11.1...v0.11.2)
 

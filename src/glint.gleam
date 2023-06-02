@@ -59,7 +59,7 @@ type CommandNode(a) {
   )
 }
 
-/// DEPRECATED: use `glint.cmd` and related builder functions instead to create a Command
+/// DEPRECATED: use `glint.cmd` and related new functions instead to create a Command
 /// 
 /// Create command stubs to be used in `add_command_from_stub`
 ///
@@ -72,7 +72,7 @@ pub type Stub(a) {
   )
 }
 
-/// DEPRECATED: use `glint.cmd` and related builder functions instead to create a Command
+/// DEPRECATED: use `glint.cmd` and related new functions instead to create a Command
 /// 
 /// Add a command to the root given a stub 
 ///
@@ -98,24 +98,6 @@ pub fn with_config(glint: Glint(a), config: Config(a)) -> Glint(a) {
   Glint(..glint, config: config)
 }
 
-/// Add global flags to the existing command tree
-pub fn with_global_flag(
-  glint: Glint(a),
-  at key: String,
-  of flag: Flag,
-) -> Glint(a) {
-  Glint(..glint, global_flags: map.insert(glint.global_flags, key, flag))
-}
-
-/// Add global flags to the existing command tree
-pub fn with_global_flags(
-  glint: Glint(a),
-  flags: List(#(String, Flag)),
-) -> Glint(a) {
-  use acc, #(key, flag) <- list.fold(flags, glint)
-  with_global_flag(acc, key, flag)
-}
-
 /// Helper for initializing empty commands
 ///
 fn empty_command() -> CommandNode(a) {
@@ -124,14 +106,14 @@ fn empty_command() -> CommandNode(a) {
 
 /// Enable custom colours for help text headers
 /// For a pre-made colouring use `default_pretty_help()`
-/// 
+///
 pub fn with_pretty_help(glint: Glint(a), pretty: PrettyHelp) -> Glint(a) {
   Config(pretty_help: Some(pretty))
   |> with_config(glint, _)
 }
 
 /// Disable custom colours for help text headers
-/// 
+///
 pub fn without_pretty_help(glint: Glint(a)) -> Glint(a) {
   Config(pretty_help: None)
   |> with_config(glint, _)
@@ -238,7 +220,7 @@ fn execute_root(
 ) -> CmdResult(a) {
   case cmd.contents {
     Some(contents) -> {
-      use new_flags <- result.then(list.try_fold(
+      use new_flags <- result.try(list.try_fold(
         over: flag_inputs,
         from: map.merge(global_flags, contents.flags),
         with: flag.update_flags,
@@ -514,13 +496,75 @@ fn heading_style(heading: String, colour: Colour) -> String {
   |> ansi.reset
 }
 
-// ******** WIP ************
+// ***** Add flags to commands ******
 
-pub fn flag(cmd: Command(a), at key: String, of flag: Flag) -> Command(a) {
-  Command(..cmd, flags: map.insert(cmd.flags, key, flag))
+/// add a `flag.Flag` to a `Command`
+///
+pub fn flag(
+  cmd: Command(a),
+  at key: String,
+  of flag: flag.FlagBuilder(_),
+) -> Command(a) {
+  Command(..cmd, flags: map.insert(cmd.flags, key, flag.build(flag)))
 }
 
+/// Add a `flag.Flag to a `Command` when the flag name and builder are bundled as a #(String, flag.FlagBuilder(a)).
+/// 
+/// This is merely a convenience function and calls `glint.flag` under the hood. 
+///
+pub fn flag_tuple(
+  cmd: Command(a),
+  with tup: #(String, flag.FlagBuilder(_)),
+) -> Command(a) {
+  flag(cmd, tup.0, tup.1)
+}
+
+/// Add multiple `Flag`s to a `Command`, note that this function uses `Flag` and not `FlagBuilder(_)`, so the user will need to call `flag.build` before providing the flags here.
+/// 
+/// It is recommended to call `glint.flag` instead.
+///
 pub fn flags(cmd: Command(a), with flags: List(#(String, Flag))) -> Command(a) {
   use cmd, #(key, flag) <- list.fold(flags, cmd)
   Command(..cmd, flags: map.insert(cmd.flags, key, flag))
+}
+
+/// Add global flags to the existing command tree
+///
+pub fn global_flag(
+  glint: Glint(a),
+  at key: String,
+  of flag: flag.FlagBuilder(_),
+) -> Glint(a) {
+  Glint(
+    ..glint,
+    global_flags: map.insert(glint.global_flags, key, flag.build(flag)),
+  )
+}
+
+/// Add global flags to the existing command tree.
+///
+pub fn global_flag_tuple(
+  glint: Glint(a),
+  with tup: #(String, flag.FlagBuilder(_)),
+) -> Glint(a) {
+  global_flag(glint, tup.0, tup.1)
+}
+
+/// Add global flags to the existing command tree. 
+/// 
+/// Like `glint.flags`, this function requires `Flag`s insead of `FlagBuilder(_)`.
+/// 
+/// It is recommended to use `glint.global_flag` instead.
+///
+pub fn global_flags(glint: Glint(a), flags: List(#(String, Flag))) -> Glint(a) {
+  Glint(
+    ..glint,
+    global_flags: {
+      list.fold(
+        flags,
+        glint.global_flags,
+        fn(acc, tup) { map.insert(acc, tup.0, tup.1) },
+      )
+    },
+  )
 }
