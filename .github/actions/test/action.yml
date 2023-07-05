@@ -5,8 +5,7 @@ description: run gleam checks and tests
 inputs:
   gleam-version:
     description: gleam version
-    required: false
-    default: 0.29.0
+    required: true
   erlang-version:
     description: erlang-otp version
     required: false

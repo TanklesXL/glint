@@ -18,12 +18,13 @@ pub fn one_of(allowed: List(a)) -> Constraint(a) {
     case set.contains(allowed_set, val) {
       True -> Ok(Nil)
       False ->
-        "invalid value '" <> string.inspect(val) <> "', must be one of: [" <> {
-          allowed
-          |> list.map(fn(a) { "'" <> string.inspect(a) <> "'" })
-          |> string.join(", ") <> "]"
-        }
-        |> snag.error
+        snag.error(
+          "invalid value '" <> string.inspect(val) <> "', must be one of: [" <> {
+            allowed
+            |> list.map(fn(a) { "'" <> string.inspect(a) <> "'" })
+            |> string.join(", ") <> "]"
+          },
+        )
     }
   }
 }
@@ -36,12 +37,15 @@ pub fn none_of(disallowed: List(a)) -> Constraint(a) {
     case set.contains(disallowed_set, val) {
       False -> Ok(Nil)
       True ->
-        "invalid value '" <> string.inspect(val) <> "', must not be one of: [" <> {
-          disallowed
-          |> list.map(fn(a) { "'" <> string.inspect(a) <> "'" })
-          |> string.join(", ") <> "]"
-        }
-        |> snag.error
+        snag.error(
+          "invalid value '" <> string.inspect(val) <> "', must not be one of: [" <> {
+            {
+              disallowed
+              |> list.map(fn(a) { "'" <> string.inspect(a) <> "'" })
+              |> string.join(", ") <> "]"
+            }
+          },
+        )
     }
   }
 }

@@ -282,12 +282,11 @@ fn parse_string_list(key, value, internal: Internal(List(String))) {
 
 // Error creation and manipulation functions
 fn layer_invalid_flag(err: Snag, flag: String) -> Snag {
-  "invalid flag '" <> flag <> "'"
-  |> snag.layer(err, _)
+  snag.layer(err, "invalid flag '" <> flag <> { "'" })
 }
 
 fn no_value_flag_err(flag_input: String) -> Snag {
-  "flag '" <> flag_input <> "' has no assigned value"
+  { "flag '" <> flag_input <> "' has no assigned value" }
   |> snag.new()
   |> layer_invalid_flag(flag_input)
 }
@@ -299,7 +298,7 @@ fn undefined_flag_err(key: String) -> Snag {
 }
 
 fn cannot_parse(flag key: String, with value: String, is kind: String) -> Snag {
-  "cannot parse flag '" <> key <> "' value '" <> value <> "' as " <> kind
+  { "cannot parse flag '" <> key <> "' value '" <> value <> "' as " <> kind }
   |> snag.new()
   |> layer_invalid_flag(key)
 }
