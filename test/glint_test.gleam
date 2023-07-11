@@ -133,6 +133,7 @@ pub fn help_test() {
 
   let cli =
     glint.new()
+    |> glint.with_name("test")
     |> glint.global_flag(global_flag.0, global_flag.1)
     |> glint.add(
       at: [],
@@ -180,7 +181,7 @@ pub fn help_test() {
     "This is the root command
 
 USAGE:
-\tgleam run [ ARGS ] [ --flag1=<STRING> --global=<STRING> ]
+\ttest [ ARGS ] [ --flag1=<STRING> --global=<STRING> ]
 
 FLAGS:
 \t--flag1=<STRING>\t\tThis is flag1
@@ -200,7 +201,7 @@ SUBCOMMANDS:
 This is cmd1
 
 USAGE:
-\tgleam run cmd1 [ ARGS ] [ --flag2=<INT> --flag5=<FLOAT_LIST> --global=<STRING> ]
+\ttest cmd1 [ ARGS ] [ --flag2=<INT> --flag5=<FLOAT_LIST> --global=<STRING> ]
 
 FLAGS:
 \t--flag2=<INT>\t\tThis is flag2
@@ -220,7 +221,7 @@ SUBCOMMANDS:
 This is cmd4
 
 USAGE:
-\tgleam run cmd1 cmd4 [ ARGS ] [ --flag4=<FLOAT> --global=<STRING> ]
+\ttest cmd1 cmd4 [ ARGS ] [ --flag4=<FLOAT> --global=<STRING> ]
 
 FLAGS:
 \t--flag4=<FLOAT>\t\tThis is flag4
@@ -235,7 +236,7 @@ FLAGS:
 This is cmd2
 
 USAGE:
-\tgleam run cmd2 [ ARGS ] [ --global=<STRING> ]
+\ttest cmd2 [ ARGS ] [ --global=<STRING> ]
 
 FLAGS:
 \t--global=<STRING>\t\tThis is a global flag
