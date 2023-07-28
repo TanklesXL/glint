@@ -335,6 +335,8 @@ pub fn flags_help(flags: Map) -> List(String) {
   |> list.map(flag_help)
 }
 
+// -- FLAG ACCESS FUNCTIONS --
+
 /// Access the contents for the associated flag
 ///
 fn access(flags: Map, name: String) -> Result(Flag) {

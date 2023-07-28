@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: ./.github/actions/test
         with:
-          gleam-version: "0.30.0-rc3"
+          gleam-version: "0.30.3"
       - name: publish to hex
         env:
           HEXPM_USER: ${{ secrets.HEXPM_USER }}
