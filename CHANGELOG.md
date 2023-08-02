@@ -15,6 +15,12 @@
 - rename `glint.with_global_flags` to `glint.global_flags`
 - `glint` gains the `global_flag` and `flag_tuple` functions.
 
+## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.11.3...HEAD)
+
+## [0.11.3](https://github.com/TanklesXL/glint/compare/v0.11.2...v0.11.3)
+
+- fixes string concat precedence bug
+
 ## [0.11.2](https://github.com/TanklesXL/glint/compare/v0.11.1...v0.11.2)
 
 - works on gleam 0.27
