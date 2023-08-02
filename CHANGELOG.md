@@ -1,6 +1,10 @@
 # Changelog
 
-## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.10.0...HEAD)
+## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.11.3...HEAD)
+
+## [0.11.3](https://github.com/TanklesXL/glint/compare/v0.11.2...v0.11.3)
+
+- fixes string concat precedence bug
 
 ## [0.11.2](https://github.com/TanklesXL/glint/compare/v0.11.1...v0.11.2)
 
