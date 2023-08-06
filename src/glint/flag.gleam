@@ -282,7 +282,8 @@ fn parse_string_list(key, value, internal: Internal(List(String))) {
 
 // Error creation and manipulation functions
 fn layer_invalid_flag(err: Snag, flag: String) -> Snag {
-  snag.layer(err, "invalid flag '" <> flag <> { "'" })
+  { "invalid flag '" <> flag <> "'" }
+  |> snag.layer(err, _)
 }
 
 fn no_value_flag_err(flag_input: String) -> Snag {
