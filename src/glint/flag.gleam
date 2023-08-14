@@ -145,11 +145,10 @@ pub fn update_flags(in flags: Map, with flag_input: String) -> Result(Map) {
 fn update_flag_value(in flags: Map, with data: #(String, String)) -> Result(Map) {
   let #(key, input) = data
   use contents <- result.try(access(flags, key))
-  use value <- result.map(compute_flag(
-    for: key,
-    with: input,
-    given: contents.value,
-  ))
+  use value <- result.map(
+    compute_flag(with: input, given: contents.value)
+    |> result.map_error(layer_invalid_flag(_, key)),
+  )
   map.insert(flags, key, Flag(..contents, value: value))
 }
 
@@ -180,104 +179,111 @@ fn flag_not_provided_error(name) {
   snag.error("value for flag '" <> name <> "' not provided")
 }
 
-fn apply_constraints(
-  name: String,
-  val: a,
-  constraints: List(Constraint(a)),
-) -> Result(a) {
+fn apply_constraints(val: a, constraints: List(Constraint(a))) -> Result(a) {
   constraints
   |> list.try_map(apply1(_, val))
-  |> snag.context(
-    "value for flag '" <> name <> "' does not satisfy constraints",
-  )
+  |> snag.context("value does not satisfy constraints")
   |> result.replace(val)
 }
 
 /// Computes the new flag value given the input and the expected flag type 
 ///
-fn compute_flag(
-  for name: String,
-  with input: String,
-  given default: Value,
-) -> Result(Value) {
+fn compute_flag(with input: String, given default: Value) -> Result(Value) {
   case default {
-    I(internal) -> parse_int(name, input, internal)
-    LI(internal) -> parse_int_list(name, input, internal)
-    F(internal) -> parse_float(name, input, internal)
-    LF(internal) -> parse_float_list(name, input, internal)
-    S(internal) -> parse_string(name, input, internal)
-    LS(internal) -> parse_string_list(name, input, internal)
-    B(internal) -> parse_bool(name, input, internal)
+    I(internal) ->
+      input
+      |> parse_int(internal)
+      |> result.map(I)
+    LI(internal) ->
+      input
+      |> parse_int_list(internal)
+      |> result.map(LI)
+    F(internal) ->
+      input
+      |> parse_float(internal)
+      |> result.map(F)
+    LF(internal) ->
+      input
+      |> parse_float_list(internal)
+      |> result.map(LF)
+    S(internal) ->
+      input
+      |> parse_string(internal)
+      |> result.map(S)
+    LS(internal) ->
+      input
+      |> parse_string_list(internal)
+      |> result.map(LS)
+    B(internal) ->
+      input
+      |> parse_bool(internal)
+      |> result.map(B)
   }
+  |> snag.context("failed to compute value for flag")
 }
 
 // Parser functions
-fn parse_int(key, value, internal: Internal(Int)) {
-  use i <- result.try(
-    int.parse(value)
-    |> result.replace_error(cannot_parse(key, value, "int")),
-  )
+type Parser(a) =
+  fn(String) -> Result(a)
 
-  apply_constraints(key, i, internal.constraints)
-  |> result.replace(I(Internal(..internal, value: Some(i))))
+fn parse(internal: Internal(a), parser: Parser(a)) -> Parser(Internal(a)) {
+  fn(value) {
+    use val <- result.try(parser(value))
+    apply_constraints(val, internal.constraints)
+    |> result.replace(Internal(..internal, value: Some(val)))
+  }
 }
 
-fn parse_int_list(key, value, internal: Internal(List(Int))) {
-  use li <- result.try(
-    value
-    |> string.split(",")
-    |> list.try_map(int.parse)
-    |> result.replace_error(cannot_parse(key, value, "int list")),
-  )
+fn parse_int(internal: Internal(Int)) -> Parser(Internal(Int)) {
+  use val <- parse(internal)
+  int.parse(val)
+  |> result.replace_error(cannot_parse(val, "int"))
+}
 
-  apply_constraints(key, li, internal.constraints)
-  |> result.replace(LI(Internal(..internal, value: Some(li))))
+fn parse_int_list(internal: Internal(List(Int))) -> Parser(Internal(List(Int))) {
+  use val <- parse(internal)
+  val
+  |> string.split(",")
+  |> list.try_map(int.parse)
+  |> result.replace_error(cannot_parse(val, "int list"))
 }
 
 // fn xxx(key,val,constraints){apply_constraints(key, li, internal.constraints)|> }
-fn parse_float(key, value, internal: Internal(Float)) {
-  use f <- result.try(
-    float.parse(value)
-    |> result.replace_error(cannot_parse(key, value, "float")),
-  )
-
-  apply_constraints(key, f, internal.constraints)
-  |> result.replace(F(Internal(..internal, value: Some(f))))
+fn parse_float(internal: Internal(Float)) -> Parser(Internal(Float)) {
+  use val <- parse(internal)
+  float.parse(val)
+  |> result.replace_error(cannot_parse(val, "float"))
 }
 
-fn parse_float_list(key, value, internal: Internal(List(Float))) {
-  use lf <- result.try(
-    value
-    |> string.split(",")
-    |> list.try_map(float.parse)
-    |> result.replace_error(cannot_parse(key, value, "float list")),
-  )
-  apply_constraints(key, lf, internal.constraints)
-  |> result.replace(LF(Internal(..internal, value: Some(lf))))
+fn parse_float_list(
+  internal: Internal(List(Float)),
+) -> Parser(Internal(List(Float))) {
+  use val <- parse(internal)
+  val
+  |> string.split(",")
+  |> list.try_map(float.parse)
+  |> result.replace_error(cannot_parse(val, "float list"))
 }
 
-fn parse_bool(key, value, internal: Internal(Bool)) {
-  use val <- result.try(case string.lowercase(value) {
+fn parse_bool(internal: Internal(Bool)) -> Parser(Internal(Bool)) {
+  use val <- parse(internal)
+  case string.lowercase(val) {
     "true" | "t" -> Ok(True)
     "false" | "f" -> Ok(False)
-    _ -> Error(cannot_parse(key, value, "bool"))
-  })
-
-  apply_constraints(key, val, internal.constraints)
-  |> result.replace(B(Internal(..internal, value: Some(val))))
+    _ -> Error(cannot_parse(val, "bool"))
+  }
 }
 
-fn parse_string(key, value, internal: Internal(String)) {
-  apply_constraints(key, value, internal.constraints)
-  |> result.replace(S(Internal(..internal, value: Some(value))))
+fn parse_string(internal: Internal(String)) -> Parser(Internal(String)) {
+  use val <- parse(internal)
+  Ok(val)
 }
 
-fn parse_string_list(key, value, internal: Internal(List(String))) {
-  let value = string.split(value, ",")
-
-  value
-  |> apply_constraints(key, _, internal.constraints)
-  |> result.replace(LS(Internal(..internal, value: Some(value))))
+fn parse_string_list(
+  internal: Internal(List(String)),
+) -> Parser(Internal(List(String))) {
+  use val <- parse(internal)
+  Ok(string.split(val, ","))
 }
 
 // Error creation and manipulation functions
@@ -298,10 +304,9 @@ fn undefined_flag_err(key: String) -> Snag {
   |> layer_invalid_flag(key)
 }
 
-fn cannot_parse(flag key: String, with value: String, is kind: String) -> Snag {
-  { "cannot parse flag '" <> key <> "' value '" <> value <> "' as " <> kind }
+fn cannot_parse(with value: String, is kind: String) -> Snag {
+  { "cannot parse value '" <> value <> "' as " <> kind }
   |> snag.new()
-  |> layer_invalid_flag(key)
 }
 
 // Help Message Functions
