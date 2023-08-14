@@ -8,6 +8,7 @@ import snag.{Result, Snag}
 import gleam/option.{None, Option, Some}
 import gleam/function.{apply1}
 import glint/flag/constraint.{Constraint}
+import gleam
 
 /// Flag inputs must start with this prefix
 ///
@@ -223,66 +224,71 @@ fn compute_flag(with input: String, given default: Value) -> Result(Value) {
 }
 
 // Parser functions
-type Parser(a) =
-  fn(String) -> Result(a)
 
-fn parse(internal: Internal(a), parser: Parser(a)) -> Parser(Internal(a)) {
+type Parser(a, b) =
+  fn(String) -> gleam.Result(a, b)
+
+type InternalParser(a) =
+  Parser(Internal(a), Snag)
+
+fn parse(
+  internal: Internal(a),
+  kind: String,
+  parser: fn(String) -> gleam.Result(a, _),
+) -> InternalParser(a) {
   fn(value) {
-    use val <- result.try(parser(value))
+    use val <- result.try(
+      value
+      |> parser
+      |> result.replace_error(cannot_parse(value, kind)),
+    )
     apply_constraints(val, internal.constraints)
     |> result.replace(Internal(..internal, value: Some(val)))
   }
 }
 
-fn parse_int(internal: Internal(Int)) -> Parser(Internal(Int)) {
-  use val <- parse(internal)
-  int.parse(val)
-  |> result.replace_error(cannot_parse(val, "int"))
+fn parse_int(internal: Internal(Int)) -> InternalParser(Int) {
+  parse(internal, "int", int.parse)
 }
 
-fn parse_int_list(internal: Internal(List(Int))) -> Parser(Internal(List(Int))) {
-  use val <- parse(internal)
+fn parse_int_list(internal: Internal(List(Int))) -> InternalParser(List(Int)) {
+  use val <- parse(internal, "int list")
   val
   |> string.split(",")
   |> list.try_map(int.parse)
-  |> result.replace_error(cannot_parse(val, "int list"))
 }
 
 // fn xxx(key,val,constraints){apply_constraints(key, li, internal.constraints)|> }
-fn parse_float(internal: Internal(Float)) -> Parser(Internal(Float)) {
-  use val <- parse(internal)
-  float.parse(val)
-  |> result.replace_error(cannot_parse(val, "float"))
+fn parse_float(internal: Internal(Float)) -> InternalParser(Float) {
+  parse(internal, "float", float.parse)
 }
 
 fn parse_float_list(
   internal: Internal(List(Float)),
-) -> Parser(Internal(List(Float))) {
-  use val <- parse(internal)
+) -> InternalParser(List(Float)) {
+  use val <- parse(internal, "float list")
   val
   |> string.split(",")
   |> list.try_map(float.parse)
-  |> result.replace_error(cannot_parse(val, "float list"))
 }
 
-fn parse_bool(internal: Internal(Bool)) -> Parser(Internal(Bool)) {
-  use val <- parse(internal)
+fn parse_bool(internal: Internal(Bool)) -> InternalParser(Bool) {
+  use val <- parse(internal, "bool")
   case string.lowercase(val) {
     "true" | "t" -> Ok(True)
     "false" | "f" -> Ok(False)
-    _ -> Error(cannot_parse(val, "bool"))
+    _ -> Error(Nil)
   }
 }
 
-fn parse_string(internal: Internal(String)) -> Parser(Internal(String)) {
-  use val <- parse(internal)
-  Ok(val)
+fn parse_string(internal: Internal(String)) -> InternalParser(String) {
+  parse(internal, "string", Ok)
 }
 
 fn parse_string_list(
   internal: Internal(List(String)),
-) -> Parser(Internal(List(String))) {
-  use val <- parse(internal)
+) -> InternalParser(List(String)) {
+  use val <- parse(internal, "string list")
   Ok(string.split(val, ","))
 }
 
