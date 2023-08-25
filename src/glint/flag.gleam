@@ -276,9 +276,9 @@ fn construct_value(
 
 /// Computes the new flag value given the input and the expected flag type 
 ///
-fn compute_flag(with input: String, given default: Value) -> Result(Value) {
+fn compute_flag(with input: String, given current: Value) -> Result(Value) {
   input
-  |> case default {
+  |> case current {
     I(internal) -> construct_value(_, internal, I)
     LI(internal) -> construct_value(_, internal, LI)
     F(internal) -> construct_value(_, internal, F)
@@ -292,8 +292,7 @@ fn compute_flag(with input: String, given default: Value) -> Result(Value) {
 
 // Error creation and manipulation functions
 fn layer_invalid_flag(err: Snag, flag: String) -> Snag {
-  { "invalid flag '" <> flag <> "'" }
-  |> snag.layer(err, _)
+  snag.layer(err, "invalid flag '" <> flag <> "'")
 }
 
 fn no_value_flag_err(flag_input: String) -> Snag {
