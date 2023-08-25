@@ -31,7 +31,7 @@ gleam add glint
 
 ### Mini Example
 
-You can import `glint` as a dependency and use it to build simple command-line applications like the following simplified version of the [the hello world example](./examples/hello/README.md)
+You can import `glint` as a dependency and use it to build simple command-line applications like the following simplified version of the [the hello world example](https://github.com/TanklesXL/glint/tree/main/examples/hello/README.md)
 
 ```gleam
 // stdlib imports
