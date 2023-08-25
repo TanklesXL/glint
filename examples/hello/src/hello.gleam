@@ -59,7 +59,7 @@ pub const caps = "caps"
 /// a boolean flag with default False to control message capitalization.
 ///
 pub fn caps_flag() -> flag.FlagBuilder(Bool) {
-  flag.new(flag.B)
+  flag.bool()
   |> flag.default(False)
   |> flag.description("Capitalize the provided name")
 }
@@ -71,7 +71,7 @@ pub const repeat = "repeat"
 /// this flag has the `gtz` constraint applied to it.
 ///
 pub fn repeat_flag() -> flag.FlagBuilder(Int) {
-  flag.new(flag.I)
+  flag.int()
   |> flag.default(1)
   |> flag.constraint(gtz)
   |> flag.description("Repeat the message n-times")

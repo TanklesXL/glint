@@ -6,7 +6,6 @@ import gleam/list
 import gleam/float
 import snag.{Result, Snag}
 import gleam/option.{None, Option, Some}
-import gleam/function.{apply1}
 import glint/flag/constraint.{Constraint}
 import gleam
 
@@ -18,7 +17,6 @@ pub const prefix = "--"
 const delimiter = "="
 
 /// Supported flag types.
-/// The constructors of this Value type can also be used as `ValueBuilder`s
 ///
 pub type Value {
   /// Boolean flags, to be passed in as `--flag=true` or `--flag=false`.
@@ -52,20 +50,132 @@ pub type Value {
   LS(Internal(List(String)))
 }
 
-/// ValueBuilder is a conveniency type to describe the constructors of the Value type.
+/// A type that facilitates the creation of `Flag`s
 ///
-pub type ValueBuilder(a) =
-  fn(Internal(a)) -> Value
-
-/// A type that facilitates the usage of new functions for creating `Flag`s
-///
-pub type FlagBuilder(a) =
-  fn(Internal(a)) -> Flag
+pub opaque type FlagBuilder(a) {
+  FlagBuilder(
+    desc: Description,
+    parser: Parser(a, Snag),
+    value: fn(Internal(a)) -> Value,
+    default: Option(a),
+  )
+}
 
 /// An internal representation of flag contents
 ///
 pub opaque type Internal(a) {
-  Internal(value: Option(a), constraints: List(Constraint(a)))
+  Internal(value: Option(a), parser: Parser(a, Snag))
+}
+
+// Builder initializers
+
+type Parser(a, b) =
+  fn(String) -> gleam.Result(a, b)
+
+/// initialise an int flag builder
+///
+pub fn int() -> FlagBuilder(Int) {
+  use input <- new(I)
+  input
+  |> int.parse
+  |> result.replace_error(cannot_parse(input, "int"))
+}
+
+/// initialise an int list flag builder
+///
+pub fn int_list() -> FlagBuilder(List(Int)) {
+  use input <- new(LI)
+  input
+  |> string.split(",")
+  |> list.try_map(int.parse)
+  |> result.replace_error(cannot_parse(input, "int list"))
+}
+
+/// initialise a float flag builder
+///
+pub fn float() -> FlagBuilder(Float) {
+  use input <- new(F)
+  input
+  |> float.parse
+  |> result.replace_error(cannot_parse(input, "float"))
+}
+
+/// initialise a float list flag builder
+///
+pub fn float_list() -> FlagBuilder(List(Float)) {
+  use input <- new(LF)
+  input
+  |> string.split(",")
+  |> list.try_map(float.parse)
+  |> result.replace_error(cannot_parse(input, "float list"))
+}
+
+/// initialise a string flag builder
+///
+pub fn string() -> FlagBuilder(String) {
+  new(S, fn(s) { Ok(s) })
+}
+
+/// intitialise a string list flag builder
+/// 
+pub fn string_list() -> FlagBuilder(List(String)) {
+  use input <- new(LS)
+  input
+  |> string.split(",")
+  |> Ok
+}
+
+/// initialise a bool flag builder
+/// 
+pub fn bool() -> FlagBuilder(Bool) {
+  use input <- new(B)
+  case string.lowercase(input) {
+    "true" | "t" -> Ok(True)
+    "false" | "f" -> Ok(False)
+    _ -> Error(cannot_parse(input, "bool"))
+  }
+}
+
+/// initialize custom flag builders using a Value constructor and a parsing function
+/// 
+fn new(valuer: fn(Internal(a)) -> Value, p: Parser(a, Snag)) -> FlagBuilder(a) {
+  FlagBuilder(desc: "", parser: p, value: valuer, default: None)
+}
+
+/// convert a FlagBuilder(a) into its corresponding Flag representation
+/// 
+pub fn build(fb: FlagBuilder(a)) -> Flag {
+  Flag(
+    value: fb.value(Internal(value: fb.default, parser: fb.parser)),
+    description: fb.desc,
+  )
+}
+
+/// attach a constraint to a `Flag`
+///
+pub fn constraint(
+  builder: FlagBuilder(a),
+  constraint: Constraint(a),
+) -> FlagBuilder(a) {
+  FlagBuilder(
+    ..builder,
+    parser: wrap_with_constraint(builder.parser, constraint),
+  )
+}
+
+fn wrap_with_constraint(
+  p: Parser(a, Snag),
+  constraint: Constraint(a),
+) -> Parser(a, Snag) {
+  fn(input: String) -> Result(a) { attempt(p(input), constraint) }
+}
+
+fn attempt(
+  val: gleam.Result(a, e),
+  f: fn(a) -> gleam.Result(_, e),
+) -> gleam.Result(a, e) {
+  use a <- result.try(val)
+  result.replace(f(a), a)
 }
 
 /// Flag descriptions
@@ -79,44 +189,19 @@ pub type Flag {
   Flag(value: Value, description: Description)
 }
 
-/// create a new FlagBuilder from the provided ValueBuilder
-///
-pub fn new(of new: ValueBuilder(a)) -> FlagBuilder(a) {
-  fn(internal) { Flag(new(internal), "") }
-}
-
-/// create a new `Flag` from a `FlagBuilder(a)`
-///
-pub fn build(of new: FlagBuilder(a)) -> Flag {
-  new(Internal(None, []))
-}
-
 /// attach a description to a `Flag`
 ///
 pub fn description(
-  for flag: FlagBuilder(a),
+  for builder: FlagBuilder(a),
   of description: Description,
 ) -> FlagBuilder(a) {
-  fn(internal) { Flag(..flag(internal), description: description) }
-}
-
-/// attach a constraint to a `Flag`
-///
-pub fn constraint(
-  for flag: FlagBuilder(a),
-  of constraint: Constraint(a),
-) -> FlagBuilder(a) {
-  fn(internal) {
-    flag(
-      Internal(..internal, constraints: [constraint, ..internal.constraints]),
-    )
-  }
+  FlagBuilder(..builder, desc: description)
 }
 
 /// Set the default value for a flag `Value`
 ///
-pub fn default(for val: FlagBuilder(a), of default: a) -> FlagBuilder(a) {
-  fn(internal) { val(Internal(..internal, value: Some(default))) }
+pub fn default(for builder: FlagBuilder(a), of default: a) -> FlagBuilder(a) {
+  FlagBuilder(..builder, default: Some(default))
 }
 
 /// Associate flag names to their current values.
@@ -180,116 +265,29 @@ fn flag_not_provided_error(name) {
   snag.error("value for flag '" <> name <> "' not provided")
 }
 
-fn apply_constraints(val: a, constraints: List(Constraint(a))) -> Result(a) {
-  constraints
-  |> list.try_map(apply1(_, val))
-  |> snag.context("value does not satisfy constraints")
-  |> result.replace(val)
+fn construct_value(
+  input: String,
+  internal: Internal(a),
+  constructor: fn(Internal(a)) -> Value,
+) -> Result(Value) {
+  use val <- result.map(internal.parser(input))
+  constructor(Internal(..internal, value: Some(val)))
 }
 
 /// Computes the new flag value given the input and the expected flag type 
 ///
 fn compute_flag(with input: String, given default: Value) -> Result(Value) {
-  case default {
-    I(internal) ->
-      input
-      |> parse_int(internal)
-      |> result.map(I)
-    LI(internal) ->
-      input
-      |> parse_int_list(internal)
-      |> result.map(LI)
-    F(internal) ->
-      input
-      |> parse_float(internal)
-      |> result.map(F)
-    LF(internal) ->
-      input
-      |> parse_float_list(internal)
-      |> result.map(LF)
-    S(internal) ->
-      input
-      |> parse_string(internal)
-      |> result.map(S)
-    LS(internal) ->
-      input
-      |> parse_string_list(internal)
-      |> result.map(LS)
-    B(internal) ->
-      input
-      |> parse_bool(internal)
-      |> result.map(B)
+  input
+  |> case default {
+    I(internal) -> construct_value(_, internal, I)
+    LI(internal) -> construct_value(_, internal, LI)
+    F(internal) -> construct_value(_, internal, F)
+    LF(internal) -> construct_value(_, internal, LF)
+    S(internal) -> construct_value(_, internal, S)
+    LS(internal) -> construct_value(_, internal, LS)
+    B(internal) -> construct_value(_, internal, B)
   }
   |> snag.context("failed to compute value for flag")
-}
-
-// Parser functions
-
-type Parser(a, b) =
-  fn(String) -> gleam.Result(a, b)
-
-type InternalParser(a) =
-  Parser(Internal(a), Snag)
-
-fn parse(
-  internal: Internal(a),
-  kind: String,
-  parser: fn(String) -> gleam.Result(a, _),
-) -> InternalParser(a) {
-  fn(value) {
-    use val <- result.try(
-      value
-      |> parser
-      |> result.replace_error(cannot_parse(value, kind)),
-    )
-    apply_constraints(val, internal.constraints)
-    |> result.replace(Internal(..internal, value: Some(val)))
-  }
-}
-
-fn parse_int(internal: Internal(Int)) -> InternalParser(Int) {
-  parse(internal, "int", int.parse)
-}
-
-fn parse_int_list(internal: Internal(List(Int))) -> InternalParser(List(Int)) {
-  use val <- parse(internal, "int list")
-  val
-  |> string.split(",")
-  |> list.try_map(int.parse)
-}
-
-// fn xxx(key,val,constraints){apply_constraints(key, li, internal.constraints)|> }
-fn parse_float(internal: Internal(Float)) -> InternalParser(Float) {
-  parse(internal, "float", float.parse)
-}
-
-fn parse_float_list(
-  internal: Internal(List(Float)),
-) -> InternalParser(List(Float)) {
-  use val <- parse(internal, "float list")
-  val
-  |> string.split(",")
-  |> list.try_map(float.parse)
-}
-
-fn parse_bool(internal: Internal(Bool)) -> InternalParser(Bool) {
-  use val <- parse(internal, "bool")
-  case string.lowercase(val) {
-    "true" | "t" -> Ok(True)
-    "false" | "f" -> Ok(False)
-    _ -> Error(Nil)
-  }
-}
-
-fn parse_string(internal: Internal(String)) -> InternalParser(String) {
-  parse(internal, "string", Ok)
-}
-
-fn parse_string_list(
-  internal: Internal(List(String)),
-) -> InternalParser(List(String)) {
-  use val <- parse(internal, "string list")
-  Ok(string.split(val, ","))
 }
 
 // Error creation and manipulation functions

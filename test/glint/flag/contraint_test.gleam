@@ -59,8 +59,7 @@ pub fn flag_one_of_none_of_test() {
   use test_case <- list.each([
     #(
       "i",
-      flag.I
-      |> flag.new
+      flag.int()
       |> flag.constraint(one_of([1, 2, 3]))
       |> flag.constraint(none_of([4, 5, 6]))
       |> flag.build,
@@ -69,8 +68,7 @@ pub fn flag_one_of_none_of_test() {
     ),
     #(
       "li",
-      flag.LI
-      |> flag.new
+      flag.int_list()
       |> flag.constraint(
         [1, 2, 3]
         |> one_of
@@ -87,8 +85,7 @@ pub fn flag_one_of_none_of_test() {
     ),
     #(
       "f",
-      flag.F
-      |> flag.new
+      flag.float()
       |> flag.constraint(one_of([1.0, 2.0, 3.0]))
       |> flag.constraint(none_of([4.0, 5.0, 6.0]))
       |> flag.build,
@@ -97,8 +94,7 @@ pub fn flag_one_of_none_of_test() {
     ),
     #(
       "lf",
-      flag.LF
-      |> flag.new
+      flag.float_list()
       |> flag.constraint(
         [1.0, 2.0, 3.0]
         |> one_of()
@@ -115,8 +111,7 @@ pub fn flag_one_of_none_of_test() {
     ),
     #(
       "s",
-      flag.S
-      |> flag.new
+      flag.string()
       |> flag.constraint(one_of(["t1", "t2", "t3"]))
       |> flag.constraint(none_of(["t4", "t5", "t6"]))
       |> flag.build,
@@ -125,8 +120,7 @@ pub fn flag_one_of_none_of_test() {
     ),
     #(
       "ls",
-      flag.LS
-      |> flag.new
+      flag.string_list()
       |> flag.constraint(
         ["t1", "t2", "t3"]
         |> one_of

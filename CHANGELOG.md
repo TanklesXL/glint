@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.11.3...HEAD)
 
 - update to gleam v0.20
 - `flag` module now provides a getter per flag type instead of a unified one that previously returned the `Value` type.
@@ -9,13 +9,11 @@
   - `glint.cmd` to create a command
   - `glint.description` to attach a description to a command
   - `glint.flag` to attach a flag to a command
-  - `flag.new` to create a new flag
+  - `flag.{int, float, int_list, float_list, string, string_list, bool}` to initialize flag builders
   - `flag.default` to attach a default value to a flag
   - `flag.constraint` to attach a constraint to a flag
 - rename `glint.with_global_flags` to `glint.global_flags`
 - `glint` gains the `global_flag` and `flag_tuple` functions.
-
-## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.11.3...HEAD)
 
 ## [0.11.3](https://github.com/TanklesXL/glint/compare/v0.11.2...v0.11.3)
 

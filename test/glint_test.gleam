@@ -99,35 +99,35 @@ pub fn help_test() {
   let nil = function.constant(Nil)
   let global_flag = #(
     "global",
-    flag.new(flag.S)
+    flag.string()
     |> flag.description("This is a global flag"),
   )
 
   let flag_1 = #(
     "flag1",
-    flag.new(flag.S)
+    flag.string()
     |> flag.description("This is flag1"),
   )
 
   let flag_2 = #(
     "flag2",
-    flag.new(flag.I)
+    flag.int()
     |> flag.description("This is flag2"),
   )
   let flag_3 = #(
     "flag3",
-    flag.new(flag.B)
+    flag.bool()
     |> flag.description("This is flag3"),
   )
   let flag_4 = #(
     "flag4",
-    flag.new(flag.F)
+    flag.float()
     |> flag.description("This is flag4"),
   )
 
   let flag_5 = #(
     "flag5",
-    flag.new(flag.LF)
+    flag.float_list()
     |> flag.description("This is flag5"),
   )
 
@@ -249,8 +249,7 @@ pub fn global_flags_test() {
     glint.new()
     |> glint.global_flag(
       "f",
-      flag.I
-      |> flag.new
+      flag.int()
       |> flag.default(2)
       |> flag.description("global flag example"),
     )
@@ -269,8 +268,7 @@ pub fn global_flags_test() {
       })
       |> glint.flag(
         "f",
-        flag.B
-        |> flag.new
+        flag.bool()
         |> flag.default(True)
         |> flag.description("i decided to override the global flag"),
       ),
