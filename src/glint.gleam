@@ -574,10 +574,9 @@ pub type Stub(a) {
   )
 }
 
-/// DEPRECATED: use `glint.cmd` and related new functions instead to create a Command
-/// 
 /// Add a command to the root given a stub 
 ///
+@deprecated("use `glint.cmd` and related new functions instead to create a Command")
 pub fn add_command_from_stub(to glint: Glint(a), with stub: Stub(a)) -> Glint(a) {
   add(
     to: glint,
