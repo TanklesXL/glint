@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         erlang: ["25.3.2.3", "26.0.2"]
-        gleam: ["0.30.4"]
+        gleam: ["0.31.0"]
     steps:
       - uses: actions/checkout@v2
       - uses: ./.github/actions/test

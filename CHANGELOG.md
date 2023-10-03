@@ -1,6 +1,8 @@
 # Changelog
 
-## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.11.3...HEAD)
+## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.12.0...HEAD)
+
+## [0.12.0](https://github.com/TanklesXL/glint/compare/v0.11.3...v0.12.0)
 
 - update to gleam v0.20
 - `flag` module now provides a getter per flag type instead of a unified one that previously returned the `Value` type.
