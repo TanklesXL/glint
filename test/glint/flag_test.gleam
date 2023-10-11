@@ -474,3 +474,80 @@ pub fn flags_help_test() {
     "--s=<STRING>\t\ta string flag",
   ])
 }
+
+pub fn getters_test() {
+  let flags =
+    [
+      #(
+        "bflag",
+        flag.build(
+          flag.bool()
+          |> flag.default(True),
+        ),
+      ),
+      #(
+        "sflag",
+        flag.build(
+          flag.string()
+          |> flag.default(""),
+        ),
+      ),
+      #(
+        "lsflag",
+        flag.build(
+          flag.string_list()
+          |> flag.default([]),
+        ),
+      ),
+      #(
+        "iflag",
+        flag.build(
+          flag.int()
+          |> flag.default(1),
+        ),
+      ),
+      #(
+        "liflag",
+        flag.build(
+          flag.int_list()
+          |> flag.default([]),
+        ),
+      ),
+      #(
+        "fflag",
+        flag.build(
+          flag.float()
+          |> flag.default(1.0),
+        ),
+      ),
+      #(
+        "lfflag",
+        flag.build(
+          flag.float_list()
+          |> flag.default([]),
+        ),
+      ),
+    ]
+    |> flag.build_map()
+
+  flag.get_bool(flags, "bflag")
+  |> should.equal(Ok(True))
+
+  flag.get_string(flags, "sflag")
+  |> should.equal(Ok(""))
+
+  flag.get_strings(flags, "lsflag")
+  |> should.equal(Ok([]))
+
+  flag.get_int(flags, "iflag")
+  |> should.equal(Ok(1))
+
+  flag.get_ints(flags, "liflag")
+  |> should.equal(Ok([]))
+
+  flag.get_float(flags, "fflag")
+  |> should.equal(Ok(1.0))
+
+  flag.get_floats(flags, "lfflag")
+  |> should.equal(Ok([]))
+}
