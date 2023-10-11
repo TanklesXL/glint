@@ -2,6 +2,8 @@
 
 ## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.12.0...HEAD)
 
+- clean up `flag.get_*` and `flag.get_*_values` functions
+
 ## [0.12.0](https://github.com/TanklesXL/glint/compare/v0.11.3...v0.12.0)
 
 - update to gleam v0.20
