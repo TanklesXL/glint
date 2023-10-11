@@ -96,8 +96,6 @@ pub fn main() {
       do: glint.command(hello)
       // with flag `caps`
       |> glint.flag(caps, caps_flag())
-      // with flag `repeat`
-      |> glint.flag(repeat, repeat_flag())
       // with a short description
       |> glint.description("Prints Hello, <NAME>!"),
   )
