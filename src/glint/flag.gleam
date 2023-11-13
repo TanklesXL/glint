@@ -4,9 +4,9 @@ import gleam/result
 import gleam/int
 import gleam/list
 import gleam/float
-import snag.{Result, Snag}
-import gleam/option.{None, Option, Some}
-import glint/flag/constraint.{Constraint}
+import snag.{type Result, type Snag}
+import gleam/option.{type Option, None, Some}
+import glint/flag/constraint.{type Constraint}
 import gleam
 
 /// Flag inputs must start with this prefix

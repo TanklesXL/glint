@@ -1,5 +1,5 @@
 import gleeunit/should
-import glint.{CommandInput}
+import glint.{type CommandInput}
 import glint/flag
 import gleam/map
 import gleam/list

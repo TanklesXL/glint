@@ -1,13 +1,13 @@
-import gleam/map.{Map}
-import gleam/option.{None, Option, Some}
+import gleam/map.{type Map}
+import gleam/option.{type Option, None, Some}
 import gleam/list
 import gleam/io
 import gleam/string
-import snag.{Result}
-import glint/flag.{Flag, Map as FlagMap}
+import snag.{type Result}
+import glint/flag.{type Flag, type Map as FlagMap}
 import gleam/string_builder as sb
 import gleam_community/ansi
-import gleam_community/colour.{Colour}
+import gleam_community/colour.{type Colour}
 import gleam/result
 import gleam/function
 

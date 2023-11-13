@@ -2,7 +2,7 @@ import gleam/list
 import gleam/result
 import gleam/string
 import gleam/set
-import snag.{Result}
+import snag.{type Result}
 
 /// Constraint type for verifying flag values
 ///

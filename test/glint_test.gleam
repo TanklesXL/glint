@@ -1,6 +1,6 @@
 import gleeunit
 import gleeunit/should
-import glint.{CommandInput, Help, Out}
+import glint.{type CommandInput, Help, Out}
 import glint/flag
 import gleam/function
 import snag
