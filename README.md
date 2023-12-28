@@ -29,7 +29,14 @@ gleam add glint
    1. assign the command a custom description
 1. run your cli with `glnt.run`, run with a function to handle command output with `glint.run_and_handle`
 
-### Mini Example
+## ✨ Complementary packages
+
+Glint works amazingly with these other packages:
+
+- [argv](https://github.com/lpil/argv), use this for cross-platform argument fetching
+- [gleescript](https://github.com/lpil/gleescript), use this to generate erlang escripts for your applications
+
+## Mini Example
 
 You can import `glint` as a dependency and use it to build simple command-line applications like the following simplified version of the [the hello world example](https://github.com/TanklesXL/glint/tree/main/examples/hello/README.md)
 
@@ -41,13 +48,10 @@ import gleam/result
 import gleam/string.{uppercase}
 // external dep imports
 import snag
+import argv
 // glint imports
 import glint
 import glint/flag
-// erlang-specific imports
-
-@target(erlang)
-import gleam/erlang.{start_arguments}
 
 /// the key for the caps flag
 const caps = "caps"
@@ -99,6 +103,6 @@ pub fn main() {
       // with a short description
       |> glint.description("Prints Hello, <NAME>!"),
   )
-  |> glint.run(start_arguments())
+  |> glint.run(argv.load().arguments)
 }
 ```

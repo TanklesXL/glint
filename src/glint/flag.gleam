@@ -1,4 +1,4 @@
-import gleam/map
+import gleam/dict
 import gleam/string
 import gleam/result
 import gleam/int
@@ -209,12 +209,12 @@ pub fn default(for builder: FlagBuilder(a), of default: a) -> FlagBuilder(a) {
 /// Associate flag names to their current values.
 ///
 pub type Map =
-  map.Map(String, Flag)
+  dict.Dict(String, Flag)
 
 /// Convert a list of flags to a Map.
 ///
 pub fn build_map(flags: List(#(String, Flag))) -> Map {
-  map.from_list(flags)
+  dict.from_list(flags)
 }
 
 /// Updates a flag value, ensuring that the new value can satisfy the required type.
@@ -237,7 +237,7 @@ fn update_flag_value(in flags: Map, with data: #(String, String)) -> Result(Map)
     compute_flag(with: input, given: contents.value)
     |> result.map_error(layer_invalid_flag(_, key)),
   )
-  map.insert(flags, key, Flag(..contents, value: value))
+  dict.insert(flags, key, Flag(..contents, value: value))
 }
 
 fn attempt_toggle_flag(in flags: Map, at key: String) -> Result(Map) {
@@ -247,14 +247,14 @@ fn attempt_toggle_flag(in flags: Map, at key: String) -> Result(Map) {
       Internal(..internal, value: Some(True))
       |> B
       |> fn(val) { Flag(..contents, value: val) }
-      |> map.insert(into: flags, for: key)
-      |> Ok()
+      |> dict.insert(into: flags, for: key)
+      |> Ok
     B(Internal(Some(val), ..) as internal) ->
       Internal(..internal, value: Some(!val))
       |> B
       |> fn(val) { Flag(..contents, value: val) }
-      |> map.insert(into: flags, for: key)
-      |> Ok()
+      |> dict.insert(into: flags, for: key)
+      |> Ok
     _ -> Error(no_value_flag_err(key))
   }
 }
@@ -342,7 +342,7 @@ fn flag_help(flag: #(String, Flag)) -> String {
 ///
 pub fn flags_help(flags: Map) -> List(String) {
   flags
-  |> map.to_list
+  |> dict.to_list
   |> list.map(flag_help)
 }
 
@@ -351,7 +351,7 @@ pub fn flags_help(flags: Map) -> List(String) {
 /// Access the contents for the associated flag
 ///
 fn access(flags: Map, name: String) -> Result(Flag) {
-  map.get(flags, name)
+  dict.get(flags, name)
   |> result.replace_error(undefined_flag_err(name))
 }
 

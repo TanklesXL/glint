@@ -1,4 +1,4 @@
-import gleam/map.{type Map}
+import gleam/dict
 import gleam/option.{type Option, None, Some}
 import gleam/list
 import gleam/io
@@ -93,7 +93,7 @@ pub type Runner(a) =
 type CommandNode(a) {
   CommandNode(
     contents: Option(Command(a)),
-    subcommands: Map(String, CommandNode(a)),
+    subcommands: dict.Dict(String, CommandNode(a)),
   )
 }
 
@@ -116,7 +116,7 @@ pub type CmdResult(a) =
 /// Creates a new command tree.
 ///
 pub fn new() -> Glint(a) {
-  Glint(config: default_config, cmd: empty_command(), global_flags: map.new())
+  Glint(config: default_config, cmd: empty_command(), global_flags: dict.new())
 }
 
 /// Adds a new command to be run at the specified path.
@@ -154,7 +154,7 @@ fn do_add(
       CommandNode(
         ..root,
         subcommands: {
-          use node <- map.update(root.subcommands, x)
+          use node <- dict.update(root.subcommands, x)
           node
           |> option.lazy_unwrap(empty_command)
           |> do_add(xs, contents)
@@ -166,7 +166,7 @@ fn do_add(
 /// Helper for initializing empty commands
 ///
 fn empty_command() -> CommandNode(a) {
-  CommandNode(contents: None, subcommands: map.new())
+  CommandNode(contents: None, subcommands: dict.new())
 }
 
 /// Trim each path element and remove any resulting empty strings.
@@ -180,7 +180,7 @@ fn sanitize_path(path: List(String)) -> List(String) {
 /// Create a Command(a) from a Runner(a)
 ///
 pub fn command(do runner: Runner(a)) -> Command(a) {
-  Command(do: runner, flags: map.new(), description: "")
+  Command(do: runner, flags: dict.new(), description: "")
 }
 
 /// Attach a description to a Command(a)
@@ -196,7 +196,7 @@ pub fn flag(
   at key: String,
   of flag: flag.FlagBuilder(_),
 ) -> Command(a) {
-  Command(..cmd, flags: map.insert(cmd.flags, key, flag.build(flag)))
+  Command(..cmd, flags: dict.insert(cmd.flags, key, flag.build(flag)))
 }
 
 /// Add a `flag.Flag to a `Command` when the flag name and builder are bundled as a #(String, flag.FlagBuilder(a)).
@@ -216,7 +216,7 @@ pub fn flag_tuple(
 ///
 pub fn flags(cmd: Command(a), with flags: List(#(String, Flag))) -> Command(a) {
   use cmd, #(key, flag) <- list.fold(flags, cmd)
-  Command(..cmd, flags: map.insert(cmd.flags, key, flag))
+  Command(..cmd, flags: dict.insert(cmd.flags, key, flag))
 }
 
 /// Add global flags to the existing command tree
@@ -228,7 +228,7 @@ pub fn global_flag(
 ) -> Glint(a) {
   Glint(
     ..glint,
-    global_flags: map.insert(glint.global_flags, key, flag.build(flag)),
+    global_flags: dict.insert(glint.global_flags, key, flag.build(flag)),
   )
 }
 
@@ -251,11 +251,8 @@ pub fn global_flags(glint: Glint(a), flags: List(#(String, Flag))) -> Glint(a) {
   Glint(
     ..glint,
     global_flags: {
-      list.fold(
-        flags,
-        glint.global_flags,
-        fn(acc, tup) { map.insert(acc, tup.0, tup.1) },
-      )
+      use acc, elem <- list.fold(flags, glint.global_flags)
+      dict.insert(acc, elem.0, elem.1)
     },
   )
 }
@@ -315,18 +312,13 @@ fn do_execute(
     // when there are arguments remaining
     // check if the next one is a subcommand of the current command
     [arg, ..rest] ->
-      case map.get(cmd.subcommands, arg) {
+      case dict.get(cmd.subcommands, arg) {
         // subcommand found, continue
         Ok(cmd) ->
-          do_execute(
-            cmd,
-            config,
-            global_flags,
-            rest,
-            flags,
-            help,
-            [arg, ..command_path],
-          )
+          do_execute(cmd, config, global_flags, rest, flags, help, [
+            arg,
+            ..command_path
+          ])
         // subcommand not found, but help flag has been passed
         // generate and return help message
         _ if help ->
@@ -353,7 +345,7 @@ fn execute_root(
     Some(contents) -> {
       use new_flags <- result.try(list.try_fold(
         over: flag_inputs,
-        from: map.merge(global_flags, contents.flags),
+        from: dict.merge(global_flags, contents.flags),
         with: flag.update_flags,
       ))
       CommandInput(args, new_flags)
@@ -450,7 +442,7 @@ fn usage_help(cmd_name: String, flags: FlagMap, config: Config) -> String {
   let app_name = option.unwrap(config.name, "gleam run")
   let flags =
     flags
-    |> map.to_list
+    |> dict.to_list
     |> list.map(flag.flag_type_help)
     |> list.sort(string.compare)
 
@@ -470,7 +462,8 @@ fn usage_help(cmd_name: String, flags: FlagMap, config: Config) -> String {
   |> sb.prepend(
     config.pretty_help
     |> option.map(fn(styling) { heading_style(usage_heading, styling.usage) })
-    |> option.unwrap(usage_heading) <> "\n\t",
+    |> option.unwrap(usage_heading)
+    <> "\n\t",
   )
   |> sb.to_string
 }
@@ -491,13 +484,15 @@ fn cmd_help(
 
   let flags =
     option.map(cmd.contents, fn(contents) { contents.flags })
-    |> option.lazy_unwrap(map.new)
-    |> map.merge(global_flags, _)
+    |> option.lazy_unwrap(dict.new)
+    |> dict.merge(global_flags, _)
 
   let flags_help_body =
     config.pretty_help
     |> option.map(fn(p) { heading_style(flags_heading, p.flags) })
-    |> option.unwrap(flags_heading) <> "\n\t" <> string.join(
+    |> option.unwrap(flags_heading)
+    <> "\n\t"
+    <> string.join(
       list.sort([help_flag_message, ..flag.flags_help(flags)], string.compare),
       "\n\t",
     )
@@ -521,7 +516,9 @@ fn cmd_help(
     subcommands_help_body ->
       config.pretty_help
       |> option.map(fn(p) { heading_style(subcommands_heading, p.subcommands) })
-      |> option.unwrap(subcommands_heading) <> "\n\t" <> subcommands_help_body
+      |> option.unwrap(subcommands_heading)
+      <> "\n\t"
+      <> subcommands_help_body
   }
 
   // join the resulting help blocks into the final help message
@@ -531,10 +528,10 @@ fn cmd_help(
 }
 
 // create the help text for subcommands
-fn subcommands_help(cmds: Map(String, CommandNode(a))) -> String {
+fn subcommands_help(cmds: dict.Dict(String, CommandNode(a))) -> String {
   cmds
-  |> map.map_values(subcommand_help)
-  |> map.values
+  |> dict.map_values(subcommand_help)
+  |> dict.values
   |> list.sort(string.compare)
   |> string.join("\n\t")
 }
@@ -557,32 +554,4 @@ fn heading_style(heading: String, colour: Colour) -> String {
   |> ansi.italic
   |> ansi.hex(colour.to_rgb_hex(colour))
   |> ansi.reset
-}
-
-// -- DEPRECATED: STUBS --
-
-/// DEPRECATED: use `glint.cmd` and related new functions instead to create a Command
-/// 
-/// Create command stubs to be used in `add_command_from_stub`
-///
-pub type Stub(a) {
-  Stub(
-    path: List(String),
-    run: Runner(a),
-    flags: List(#(String, Flag)),
-    description: String,
-  )
-}
-
-/// Add a command to the root given a stub 
-///
-@deprecated("use `glint.cmd` and related new functions instead to create a Command")
-pub fn add_command_from_stub(to glint: Glint(a), with stub: Stub(a)) -> Glint(a) {
-  add(
-    to: glint,
-    at: stub.path,
-    do: command(stub.run)
-    |> flags(stub.flags)
-    |> description(stub.description),
-  )
 }

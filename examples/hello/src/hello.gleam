@@ -7,9 +7,7 @@ import snag
 // glint imports
 import glint
 import glint/flag
-// erlang-specific imports
-@target(erlang)
-import gleam/erlang.{start_arguments}
+import argv
 
 // ----- APPLICATION LOGIC -----
 
@@ -122,8 +120,7 @@ pub fn app() {
   )
 }
 
-@target(erlang)
 pub fn main() {
   // run with a handler that prints the command output
-  glint.run_and_handle(app(), start_arguments(), io.println)
+  glint.run_and_handle(app(), argv.load().arguments, io.println)
 }

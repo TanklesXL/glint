@@ -1,7 +1,7 @@
 import gleeunit/should
 import glint.{type CommandInput}
 import glint/flag
-import gleam/map
+import gleam/dict as map
 import gleam/list
 import gleam/string
 

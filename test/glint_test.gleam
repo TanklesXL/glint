@@ -177,8 +177,9 @@ pub fn help_test() {
 
   // help message for root command
   glint.execute(cli, [glint.help_flag()])
-  |> should.equal(Ok(Help(
-    "This is the root command
+  |> should.equal(
+    Ok(Help(
+      "This is the root command
 
 USAGE:
 \ttest [ ARGS ] [ --flag1=<STRING> --global=<STRING> ]
@@ -192,12 +193,14 @@ SUBCOMMANDS:
 \tcmd1\t\tThis is cmd1
 \tcmd2\t\tThis is cmd2
 \tcmd5",
-  )))
+    )),
+  )
 
   // help message for command
   glint.execute(cli, ["cmd1", glint.help_flag()])
-  |> should.equal(Ok(Help(
-    "cmd1
+  |> should.equal(
+    Ok(Help(
+      "cmd1
 This is cmd1
 
 USAGE:
@@ -212,12 +215,14 @@ FLAGS:
 SUBCOMMANDS:
 \tcmd3\t\tThis is cmd3
 \tcmd4\t\tThis is cmd4",
-  )))
+    )),
+  )
 
   // help message for nested command
   glint.execute(cli, ["cmd1", "cmd4", glint.help_flag()])
-  |> should.equal(Ok(Help(
-    "cmd1 cmd4
+  |> should.equal(
+    Ok(Help(
+      "cmd1 cmd4
 This is cmd4
 
 USAGE:
@@ -227,12 +232,14 @@ FLAGS:
 \t--flag4=<FLOAT>\t\tThis is flag4
 \t--global=<STRING>\t\tThis is a global flag
 \t--help\t\t\tPrint help information",
-  )))
+    )),
+  )
 
   // help message for command with no additional flags
   glint.execute(cli, ["cmd2", glint.help_flag()])
-  |> should.equal(Ok(Help(
-    "cmd2
+  |> should.equal(
+    Ok(Help(
+      "cmd2
 This is cmd2
 
 USAGE:
@@ -241,7 +248,8 @@ USAGE:
 FLAGS:
 \t--global=<STRING>\t\tThis is a global flag
 \t--help\t\t\tPrint help information",
-  )))
+    )),
+  )
 }
 
 pub fn global_flags_test() {

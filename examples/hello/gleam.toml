@@ -1,6 +1,7 @@
 name = "hello"
 version = "0.1.0"
 description = "A Gleam project"
+gleam = ">= 0.33.0"
 
 # Fill out these fields if you intend to generate HTML documentation or publish
 # your project to the Hex package manager.
@@ -13,7 +14,8 @@ description = "A Gleam project"
 gleam_stdlib = "~> 0.29"
 glint = { path = "../.." }
 snag = "~> 0.2"
-gleam_erlang = "~> 0.19"
+argv = "~> 1.0"
 
 [dev-dependencies]
-gleeunit = "~> 0.10"
+gleeunit = "~> 1.0"
+gleescript = "~> 1.0"
