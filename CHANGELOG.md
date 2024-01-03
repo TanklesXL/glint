@@ -1,6 +1,8 @@
 # Changelog
 
-## [0.14.0](https://github.com/TanklesXL/glint/compare/v0.14.0...HEAD)
+## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.14.0...HEAD)
+
+## [0.14.0](https://github.com/TanklesXL/glint/compare/v0.13.0...v0.14.0)
 
 - updated to work with gleam 0.33
 - removed deprecated stub api
