@@ -1,3 +1,4 @@
+import gleam/bool
 import gleam/dict
 import gleam/option.{type Option, None, Some}
 import gleam/list
@@ -437,37 +438,6 @@ fn wrap_with_space(s: String) -> String {
   }
 }
 
-/// generate the usage help string for a command
-fn usage_help(cmd_name: String, flags: FlagMap, config: Config) -> String {
-  let app_name = option.unwrap(config.name, "gleam run")
-  let flags =
-    flags
-    |> dict.to_list
-    |> list.map(flag.flag_type_help)
-    |> list.sort(string.compare)
-
-  let flag_sb = case flags {
-    [] -> sb.new()
-    _ ->
-      flags
-      |> list.intersperse(" ")
-      |> sb.from_strings()
-      |> sb.prepend(prefix: " [ ")
-      |> sb.append(suffix: " ]")
-  }
-
-  [app_name, wrap_with_space(cmd_name), "[ ARGS ]"]
-  |> sb.from_strings
-  |> sb.append_builder(flag_sb)
-  |> sb.prepend(
-    config.pretty_help
-    |> option.map(fn(styling) { heading_style(usage_heading, styling.usage) })
-    |> option.unwrap(usage_heading)
-    <> "\n\t",
-  )
-  |> sb.to_string
-}
-
 /// generate the help text for a command
 fn cmd_help(
   path: List(String),
@@ -477,71 +447,11 @@ fn cmd_help(
 ) -> String {
   // recreate the path of the current command
   // reverse the path because it is created by prepending each section as do_execute walks down the tree
-  let name =
-    path
-    |> list.reverse
-    |> string.join(" ")
-
-  let flags =
-    option.map(cmd.contents, fn(contents) { contents.flags })
-    |> option.lazy_unwrap(dict.new)
-    |> dict.merge(global_flags, _)
-
-  let flags_help_body =
-    config.pretty_help
-    |> option.map(fn(p) { heading_style(flags_heading, p.flags) })
-    |> option.unwrap(flags_heading)
-    <> "\n\t"
-    <> string.join(
-      list.sort([help_flag_message, ..flag.flags_help(flags)], string.compare),
-      "\n\t",
-    )
-
-  let usage = usage_help(name, flags, config)
-
-  let description =
-    cmd.contents
-    |> option.map(fn(contents) { contents.description })
-    |> option.unwrap("")
-
-  // create the header block from the name and description
-  let header_items =
-    [name, description]
-    |> list.filter(is_not_empty)
-    |> string.join("\n")
-
-  // create the subcommands help block
-  let subcommands = case subcommands_help(cmd.subcommands) {
-    "" -> ""
-    subcommands_help_body ->
-      config.pretty_help
-      |> option.map(fn(p) { heading_style(subcommands_heading, p.subcommands) })
-      |> option.unwrap(subcommands_heading)
-      <> "\n\t"
-      <> subcommands_help_body
-  }
-
-  // join the resulting help blocks into the final help message
-  [header_items, usage, flags_help_body, subcommands]
-  |> list.filter(is_not_empty)
-  |> string.join("\n\n")
-}
-
-// create the help text for subcommands
-fn subcommands_help(cmds: dict.Dict(String, CommandNode(a))) -> String {
-  cmds
-  |> dict.map_values(subcommand_help)
-  |> dict.values
-  |> list.sort(string.compare)
-  |> string.join("\n\t")
-}
-
-// generate the help text for a subcommand
-fn subcommand_help(name: String, cmd: CommandNode(_)) -> String {
-  case cmd.contents {
-    None -> name
-    Some(contents) -> name <> "\t\t" <> contents.description
-  }
+  path
+  |> list.reverse
+  |> string.join(" ")
+  |> build_command_help_metadata(cmd, global_flags)
+  |> command_help_to_string(config)
 }
 
 /// Style heading text with the provided rgb colouring
@@ -554,4 +464,222 @@ fn heading_style(heading: String, colour: Colour) -> String {
   |> ansi.italic
   |> ansi.hex(colour.to_rgb_hex(colour))
   |> ansi.reset
+}
+
+// ----- HELP -----
+
+// --- HELP: TYPES ---
+
+/// Common metadata for commands and flags
+///
+type Metadata {
+  Metadata(name: String, description: String)
+}
+
+/// Help type for flag metadata
+///
+type FlagHelp {
+  FlagHelp(meta: Metadata, type_: String)
+}
+
+/// Help type for command metadata
+type CommandHelp {
+  CommandHelp(
+    // Every command has a name and description
+    meta: Metadata,
+    // A command can have >= 0 flags associated with it
+    flags: List(FlagHelp),
+    // A command can have >= 0 subcommands associated with it
+    subcommands: List(Metadata),
+  )
+}
+
+// -- HELP - FUNCTIONS - BUILDERS --
+
+/// build the help representation for a subtree of commands
+///
+fn build_command_help_metadata(
+  name: String,
+  node: CommandNode(_),
+  global_flags: FlagMap,
+) -> CommandHelp {
+  let #(description, flags) = case node.contents {
+    None -> #("", [])
+    Some(cmd) -> #(
+      cmd.description,
+      build_flags_help(dict.merge(global_flags, cmd.flags)),
+    )
+  }
+
+  CommandHelp(
+    meta: Metadata(name: name, description: description),
+    flags: flags,
+    subcommands: build_subcommands_help(node.subcommands),
+  )
+}
+
+/// generate the string representation for the type of a flag
+/// 
+fn flag_type_info(flag: Flag) {
+  case flag.value {
+    flag.I(_) -> "INT"
+    flag.B(_) -> "BOOL"
+    flag.F(_) -> "FLOAT"
+    flag.LF(_) -> "FLOAT_LIST"
+    flag.LI(_) -> "INT_LIST"
+    flag.LS(_) -> "STRING_LIST"
+    flag.S(_) -> "STRING"
+  }
+}
+
+/// build the help representation for a list of flags
+/// 
+fn build_flags_help(flag: FlagMap) -> List(FlagHelp) {
+  use acc, name, flag <- dict.fold(flag, [])
+  [
+    FlagHelp(
+      meta: Metadata(name: name, description: flag.description),
+      type_: flag_type_info(flag),
+    ),
+    ..acc
+  ]
+}
+
+/// build the help representation for a list of subcommands
+/// 
+fn build_subcommands_help(
+  subcommands: dict.Dict(String, CommandNode(_)),
+) -> List(Metadata) {
+  use acc, name, cmd <- dict.fold(subcommands, [])
+  [
+    Metadata(
+      name: name,
+      description: cmd.contents
+      |> option.map(fn(command) { command.description })
+      |> option.unwrap(""),
+    ),
+    ..acc
+  ]
+}
+
+// -- HELP - FUNCTIONS - STRINGIFIERS --
+
+/// convert a CommandHelp to a styled string
+/// 
+fn command_help_to_string(help: CommandHelp, config: Config) -> String {
+  // create the header block from the name and description
+  let header_items =
+    [help.meta.name, help.meta.description]
+    |> list.filter(is_not_empty)
+    |> string.join("\n")
+
+  // join the resulting help blocks into the final help message
+  [
+    header_items,
+    command_help_to_usage_string(help, config),
+    flags_help(help.flags, config),
+    subcommands_help_to_string(help.subcommands, config),
+  ]
+  |> list.filter(is_not_empty)
+  |> string.join("\n\n")
+}
+
+// -- HELP - FUNCTIONS - STRINGIFIERS - USAGE --
+
+/// convert a List(FlagHelp) to a list of strings for use in usage text
+/// 
+fn flags_help_to_usage_strings(help: List(FlagHelp)) -> List(String) {
+  help
+  |> list.map(flag_help_to_string)
+  |> list.sort(string.compare)
+}
+
+/// generate the usage help text for the flags of a command
+fn flags_help_to_usage_string(help: List(FlagHelp)) -> String {
+  use <- bool.guard(help == [], "")
+
+  help
+  |> flags_help_to_usage_strings
+  |> list.intersperse(" ")
+  |> sb.from_strings()
+  |> sb.prepend(prefix: "[ ")
+  |> sb.append(suffix: " ]")
+  |> sb.to_string
+}
+
+/// convert a CommandHelp to a styled usage block
+/// 
+fn command_help_to_usage_string(help: CommandHelp, config: Config) -> String {
+  let app_name = option.unwrap(config.name, "gleam run")
+  let flags = flags_help_to_usage_string(help.flags)
+
+  case config.pretty_help {
+    None -> usage_heading
+    Some(pretty) -> heading_style(usage_heading, pretty.usage)
+  }
+  <> "\n\t"
+  <> app_name
+  <> wrap_with_space(help.meta.name)
+  <> "[ ARGS ] "
+  <> flags
+}
+
+// -- HELP - FUNCTIONS - STRINGIFIERS - FLAGS --
+
+/// generate the usage help string for a command
+/// 
+fn flags_help(help: List(FlagHelp), config: Config) -> String {
+  use <- bool.guard(help == [], "")
+
+  case config.pretty_help {
+    None -> flags_heading
+    Some(pretty) -> heading_style(flags_heading, pretty.flags)
+  }
+  <> {
+    [help_flag_message, ..list.map(help, flag_help_to_string_with_description)]
+    |> list.sort(string.compare)
+    |> list.map(string.append("\n\t", _))
+    |> string.concat
+  }
+}
+
+/// generate the help text for a flag without a description
+/// 
+fn flag_help_to_string(help: FlagHelp) -> String {
+  flag.prefix <> help.meta.name <> "=<" <> help.type_ <> ">"
+}
+
+/// generate the help text for a flag with a description
+/// 
+fn flag_help_to_string_with_description(help: FlagHelp) -> String {
+  flag_help_to_string(help) <> "\t\t" <> help.meta.description
+}
+
+// -- HELP - FUNCTIONS - STRINGIFIERS - SUBCOMMANDS --
+
+/// generate the styled help text for a list of subcommands
+/// 
+fn subcommands_help_to_string(help: List(Metadata), config: Config) -> String {
+  use <- bool.guard(help == [], "")
+
+  case config.pretty_help {
+    None -> subcommands_heading
+    Some(pretty) -> heading_style(subcommands_heading, pretty.subcommands)
+  }
+  <> {
+    help
+    |> list.map(subcommand_help_to_string)
+    |> list.sort(string.compare)
+    |> list.map(string.append("\n\t", _))
+    |> string.concat
+  }
+}
+
+/// generate the help text for a single subcommand given its name and description
+/// 
+fn subcommand_help_to_string(help: Metadata) -> String {
+  case help.description {
+    "" -> help.name
+    _ -> help.name <> "\t\t" <> help.description
+  }
 }

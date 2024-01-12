@@ -2,6 +2,9 @@
 
 ## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.14.0...HEAD)
 
+- refactor of help generation logic, no change to help text output
+- the `glint/flag` module loses the `flags_help` and `flag_type_help` functions
+
 ## [0.14.0](https://github.com/TanklesXL/glint/compare/v0.13.0...v0.14.0)
 
 - updated to work with gleam 0.33
