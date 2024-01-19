@@ -2,8 +2,6 @@ import gleeunit/should
 import glint.{type CommandInput}
 import glint/flag
 import gleam/dict as map
-import gleam/list
-import gleam/string
 
 pub fn update_flag_test() {
   let flags =
@@ -443,36 +441,6 @@ pub fn toggle_test() {
   )
   |> glint.execute([flag_input])
   |> should.be_error()
-}
-
-pub fn flags_help_test() {
-  [
-    #(
-      "s",
-      flag.string()
-      |> flag.description("a string flag")
-      |> flag.build,
-    ),
-    #(
-      "i",
-      flag.int()
-      |> flag.description("an int flag")
-      |> flag.build,
-    ),
-    #(
-      "f",
-      flag.float()
-      |> flag.description("a float flag")
-      |> flag.build,
-    ),
-  ]
-  |> flag.build_map()
-  |> flag.flags_help()
-  |> list.sort(string.compare)
-  |> should.equal([
-    "--f=<FLOAT>\t\ta float flag", "--i=<INT>\t\tan int flag",
-    "--s=<STRING>\t\ta string flag",
-  ])
 }
 
 pub fn getters_test() {

@@ -314,38 +314,6 @@ fn cannot_parse(with value: String, is kind: String) -> Snag {
   |> snag.new()
 }
 
-// Help Message Functions
-/// Generate the help message contents for a single flag
-/// 
-pub fn flag_type_help(flag: #(String, Flag)) {
-  let #(name, contents) = flag
-  let kind = case contents.value {
-    I(_) -> "INT"
-    B(_) -> "BOOL"
-    F(_) -> "FLOAT"
-    LF(_) -> "FLOAT_LIST"
-    LI(_) -> "INT_LIST"
-    LS(_) -> "STRING_LIST"
-    S(_) -> "STRING"
-  }
-
-  prefix <> name <> delimiter <> "<" <> kind <> ">"
-}
-
-/// Generate help message line for a single flag
-///
-fn flag_help(flag: #(String, Flag)) -> String {
-  flag_type_help(flag) <> "\t\t" <> { flag.1 }.description
-}
-
-/// Generate help messages for all flags
-///
-pub fn flags_help(flags: Map) -> List(String) {
-  flags
-  |> dict.to_list
-  |> list.map(flag_help)
-}
-
 // -- FLAG ACCESS FUNCTIONS --
 
 /// Access the contents for the associated flag
