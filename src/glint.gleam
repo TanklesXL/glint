@@ -3,6 +3,7 @@ import gleam/dict
 import gleam/option.{type Option, None, Some}
 import gleam/list
 import gleam/io
+import gleam/int
 import gleam/string
 import snag.{type Result}
 import glint/flag.{type Flag, type Map as FlagMap}
@@ -19,7 +20,11 @@ import gleam/function
 /// Config for glint
 ///
 pub type Config {
-  Config(pretty_help: Option(PrettyHelp), name: Option(String))
+  Config(
+    pretty_help: Option(PrettyHelp),
+    name: Option(String),
+    as_gleam_module: Bool,
+  )
 }
 
 /// PrettyHelp defines the header colours to be used when styling help text
@@ -32,7 +37,11 @@ pub type PrettyHelp {
 
 /// Default config
 ///
-pub const default_config = Config(pretty_help: None, name: None)
+pub const default_config = Config(
+  pretty_help: None,
+  name: None,
+  as_gleam_module: False,
+)
 
 // -- CONFIGURATION: FUNCTIONS --
 
@@ -57,8 +66,17 @@ pub fn without_pretty_help(glint: Glint(a)) -> Glint(a) {
   |> with_config(glint, _)
 }
 
+/// Give the current glint application a name
+///
 pub fn with_name(glint: Glint(a), name: String) -> Glint(a) {
   Config(..glint.config, name: Some(name))
+  |> with_config(glint, _)
+}
+
+/// Adjust the generated help text to reflect that the current glint app should be run as a gleam module.
+/// Use in conjunction with `glint.with_name` to get usage text output like `gleam run -m <name>`
+pub fn as_gleam_module(glint: Glint(a)) -> Glint(a) {
+  Config(..glint.config, as_gleam_module: True)
   |> with_config(glint, _)
 }
 
@@ -72,10 +90,23 @@ pub opaque type Glint(a) {
   Glint(config: Config, cmd: CommandNode(a), global_flags: FlagMap)
 }
 
+/// Specify the expected number of arguments with this type and the `glint.args_count` function
+///
+pub type ArgsCount {
+  Equal(Int)
+  AtLeast(Int)
+  AtMost(Int)
+}
+
 /// CommandNode contents
 ///
 pub opaque type Command(a) {
-  Command(do: Runner(a), flags: FlagMap, description: String)
+  Command(
+    do: Runner(a),
+    flags: FlagMap,
+    description: String,
+    args_count: Option(ArgsCount),
+  )
 }
 
 /// Input type for `Runner`.
@@ -181,13 +212,19 @@ fn sanitize_path(path: List(String)) -> List(String) {
 /// Create a Command(a) from a Runner(a)
 ///
 pub fn command(do runner: Runner(a)) -> Command(a) {
-  Command(do: runner, flags: dict.new(), description: "")
+  Command(do: runner, flags: dict.new(), description: "", args_count: None)
 }
 
 /// Attach a description to a Command(a)
 ///
 pub fn description(cmd: Command(a), description: String) -> Command(a) {
   Command(..cmd, description: description)
+}
+
+/// Specify a specific number of args that a given command expects
+/// 
+pub fn args(cmd: Command(a), count: ArgsCount) -> Command(a) {
+  Command(..cmd, args_count: Some(count))
 }
 
 /// add a `flag.Flag` to a `Command`
@@ -334,6 +371,22 @@ fn do_execute(
   }
 }
 
+fn args_compare(expected: ArgsCount, actual: Int) -> Result(Nil) {
+  case expected {
+    Equal(expected) if actual == expected -> Ok(Nil)
+    AtLeast(expected) if actual >= expected -> Ok(Nil)
+    AtMost(expected) if actual <= expected -> Ok(Nil)
+    Equal(expected) -> Error(int.to_string(expected))
+    AtLeast(expected) -> Error("at least " <> int.to_string(expected))
+    AtMost(expected) -> Error("at most " <> int.to_string(expected))
+  }
+  |> result.map_error(fn(err) {
+    snag.new(
+      "expected: " <> err <> " argument(s), provided: " <> int.to_string(actual),
+    )
+  })
+}
+
 /// Executes the current root command.
 ///
 fn execute_root(
@@ -349,10 +402,25 @@ fn execute_root(
         from: dict.merge(global_flags, contents.flags),
         with: flag.update_flags,
       ))
-      CommandInput(args, new_flags)
-      |> contents.do
-      |> Out
-      |> Ok
+
+      case contents.args_count {
+        Some(expected_count) -> {
+          let args_count = list.length(args)
+          use _ <- result.map(
+            args_compare(expected_count, args_count)
+            |> snag.context("invalid number of arguments provided"),
+          )
+          CommandInput(args, new_flags)
+          |> contents.do
+          |> Out
+        }
+        _ -> {
+          CommandInput(args, new_flags)
+          |> contents.do
+          |> Out
+          |> Ok
+        }
+      }
     }
     None -> snag.error("command not found")
   }
@@ -491,6 +559,8 @@ type CommandHelp {
     flags: List(FlagHelp),
     // A command can have >= 0 subcommands associated with it
     subcommands: List(Metadata),
+    // A command cann have a set number of arguments 
+    args_count: Option(ArgsCount),
   )
 }
 
@@ -503,11 +573,12 @@ fn build_command_help_metadata(
   node: CommandNode(_),
   global_flags: FlagMap,
 ) -> CommandHelp {
-  let #(description, flags) = case node.contents {
-    None -> #("", [])
+  let #(description, flags, args_count) = case node.contents {
+    None -> #("", [], None)
     Some(cmd) -> #(
       cmd.description,
       build_flags_help(dict.merge(global_flags, cmd.flags)),
+      cmd.args_count,
     )
   }
 
@@ -515,6 +586,7 @@ fn build_command_help_metadata(
     meta: Metadata(name: name, description: description),
     flags: flags,
     subcommands: build_subcommands_help(node.subcommands),
+    args_count: args_count,
   )
 }
 
@@ -595,6 +667,7 @@ fn flags_help_to_usage_strings(help: List(FlagHelp)) -> List(String) {
 }
 
 /// generate the usage help text for the flags of a command
+/// 
 fn flags_help_to_usage_string(help: List(FlagHelp)) -> String {
   use <- bool.guard(help == [], "")
 
@@ -607,11 +680,58 @@ fn flags_help_to_usage_string(help: List(FlagHelp)) -> String {
   |> sb.to_string
 }
 
+/// convert an ArgsCount to a string for usage text
+/// 
+fn args_count_to_usage_string(count: ArgsCount) -> String {
+  case count {
+    Equal(0) -> ""
+    Equal(1) -> "[ 1 argument ]"
+    Equal(n) -> "[ " <> int.to_string(n) <> " arguments ]"
+    AtLeast(n) -> "[ " <> int.to_string(n) <> " or more arguments ]"
+    AtMost(n) -> "[ " <> int.to_string(n) <> " or less arguments ]"
+  }
+}
+
+fn args_count_to_notes_string(count: ArgsCount) -> String {
+  "this command accepts "
+  <> case count {
+    Equal(0) -> "no arguments"
+    Equal(1) -> "1 argument"
+    Equal(n) -> int.to_string(n) <> " arguments"
+    AtLeast(n) -> int.to_string(n) <> " or more arguments"
+    AtMost(n) -> int.to_string(n) <> " or less arguments"
+  }
+}
+
 /// convert a CommandHelp to a styled usage block
 /// 
 fn command_help_to_usage_string(help: CommandHelp, config: Config) -> String {
-  let app_name = option.unwrap(config.name, "gleam run")
+  let app_name = case config.name {
+    Some(name) if config.as_gleam_module -> "gleam run -m " <> name
+    Some(name) -> name
+    None -> "gleam run"
+  }
+
   let flags = flags_help_to_usage_string(help.flags)
+
+  let args = case help.args_count {
+    None -> ""
+    Some(count) -> args_count_to_usage_string(count)
+  }
+
+  let notes =
+    [
+      help.args_count
+      |> option.map(args_count_to_notes_string)
+      |> option.unwrap(""),
+    ]
+    |> list.filter_map(fn(elem) {
+      case elem {
+        "" -> Error(Nil)
+        s -> Ok(string.append("\n- ", s))
+      }
+    })
+    |> string.concat
 
   case config.pretty_help {
     None -> usage_heading
@@ -619,9 +739,11 @@ fn command_help_to_usage_string(help: CommandHelp, config: Config) -> String {
   }
   <> "\n\t"
   <> app_name
-  <> wrap_with_space(help.meta.name)
-  <> "[ ARGS ] "
+  <> help.meta.name
+  <> wrap_with_space(args)
   <> flags
+  <> "\n"
+  <> notes
 }
 
 // -- HELP - FUNCTIONS - STRINGIFIERS - FLAGS --

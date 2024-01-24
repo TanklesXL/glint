@@ -110,6 +110,8 @@ pub fn app() {
   glint.new()
   // with an app name of "hello", this is used when printing help text
   |> glint.with_name("hello")
+  // show in usage text that the current app is run as a gleam module
+  |> glint.as_gleam_module
   // with pretty help enabled, using the built-in colours
   |> glint.with_pretty_help(glint.default_pretty_help())
   // with a root command that executes the `hello` function
