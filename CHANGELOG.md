@@ -4,6 +4,10 @@
 
 - refactor of help generation logic, no change to help text output
 - the `glint/flag` module loses the `flags_help` and `flag_type_help` functions
+- the `glint` module gains the ArgsCount type and the `count_args` function to support exact and minimum arguments count
+- the `glint` module gains the `named_args` function to support named arguments
+- the `glint.CommandInput` type gains the `.named_args` field to access named arguments
+- help text has been updated to support named and counted arguments
 
 ## [0.14.0](https://github.com/TanklesXL/glint/compare/v0.13.0...v0.14.0)
 
