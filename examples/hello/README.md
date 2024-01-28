@@ -10,10 +10,10 @@ Feel free to browse `src/hello.gleam` to get a sense of how a small cli applicat
 
 You can run this example from the `examples/hello` directory by calling `gleam run` which prints `Hello, <NAMES>!`
 
-The `hello` application accepts any number of arguments, being the names of people to say hello to.
+The `hello` application accepts at least one argument, being the names of people to say hello to.
 
 - No input: `gleam run` -> prints "Hello, Joe!"
-- One input: `gleam run Rob` -> prints "Hello, Rob!"
+- One input: `gleam run Joe` -> prints "Hello, Joe!"
 - Two inputs: `gleam run Rob Louis` -> prints "Hello, Rob and Louis!"
 - \>2 inputs: `gleam run Rob Louis Hayleigh` -> prints "Hello, Rob, Louis and Hayleigh!"
 

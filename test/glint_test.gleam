@@ -134,10 +134,12 @@ pub fn help_test() {
   let cli =
     glint.new()
     |> glint.with_name("test")
+    |> glint.as_gleam_module
     |> glint.global_flag(global_flag.0, global_flag.1)
     |> glint.add(
       at: [],
       do: glint.command(do: nil)
+      |> glint.named_args(["arg1", "arg2"])
       |> glint.flag(flag_1.0, flag_1.1)
       |> glint.description("This is the root command"),
     )
@@ -163,6 +165,8 @@ pub fn help_test() {
     |> glint.add(
       at: ["cmd2"],
       do: glint.command(nil)
+      |> glint.named_args(["arg1", "arg2"])
+      |> glint.count_args(glint.MinArgs(2))
       |> glint.description("This is cmd2"),
     )
     |> glint.add(
@@ -172,7 +176,7 @@ pub fn help_test() {
     )
 
   // execute root command
-  glint.execute(cli, [])
+  glint.execute(cli, ["a", "b"])
   |> should.equal(Ok(Out(Nil)))
 
   // help message for root command
@@ -182,7 +186,9 @@ pub fn help_test() {
       "This is the root command
 
 USAGE:
-\ttest [ ARGS ] [ --flag1=<STRING> --global=<STRING> ]
+\tgleam run -m test <arg1> <arg2> [ --flag1=<STRING> --global=<STRING> ]
+notes:
+* this command has named arguments: \"arg1\", \"arg2\"
 
 FLAGS:
 \t--flag1=<STRING>\t\tThis is flag1
@@ -204,7 +210,7 @@ SUBCOMMANDS:
 This is cmd1
 
 USAGE:
-\ttest cmd1 [ ARGS ] [ --flag2=<INT> --flag5=<FLOAT_LIST> --global=<STRING> ]
+\tgleam run -m test cmd1 [ ARGS ] [ --flag2=<INT> --flag5=<FLOAT_LIST> --global=<STRING> ]
 
 FLAGS:
 \t--flag2=<INT>\t\tThis is flag2
@@ -226,7 +232,7 @@ SUBCOMMANDS:
 This is cmd4
 
 USAGE:
-\ttest cmd1 cmd4 [ ARGS ] [ --flag4=<FLOAT> --global=<STRING> ]
+\tgleam run -m test cmd1 cmd4 [ ARGS ] [ --flag4=<FLOAT> --global=<STRING> ]
 
 FLAGS:
 \t--flag4=<FLOAT>\t\tThis is flag4
@@ -234,7 +240,6 @@ FLAGS:
 \t--help\t\t\tPrint help information",
     )),
   )
-
   // help message for command with no additional flags
   glint.execute(cli, ["cmd2", glint.help_flag()])
   |> should.equal(
@@ -243,7 +248,10 @@ FLAGS:
 This is cmd2
 
 USAGE:
-\ttest cmd2 [ ARGS ] [ --global=<STRING> ]
+\tgleam run -m test cmd2 <arg1> <arg2>... [ --global=<STRING> ]
+notes:
+* this command accepts 2 or more arguments
+* this command has named arguments: \"arg1\", \"arg2\"
 
 FLAGS:
 \t--global=<STRING>\t\tThis is a global flag

@@ -2,6 +2,7 @@
 import gleam/io
 import gleam/list
 import gleam/string.{uppercase}
+import gleam/dict
 // external dep imports
 import snag
 // glint imports
@@ -14,9 +15,8 @@ import argv
 /// a helper function to join a list of names
 fn join_names(names: List(String)) -> String {
   case names {
-    [] -> "Joe"
-    [name] -> name
-    [name, ..rest] -> do_join_names(rest, name)
+    [] -> ""
+    _ -> do_join_names(names, "")
   }
 }
 
@@ -29,10 +29,6 @@ fn do_join_names(names: List(String), acc: String) {
   }
 }
 
-pub fn message(names: List(String)) {
-  "Hello, " <> join_names(names) <> "!"
-}
-
 pub fn capitalize(msg, caps) -> String {
   case caps {
     True -> uppercase(msg)
@@ -41,9 +37,13 @@ pub fn capitalize(msg, caps) -> String {
 }
 
 /// hello is a function that 
-pub fn hello(names: List(String), caps: Bool, repeat: Int) -> String {
-  names
-  |> message
+pub fn hello(
+  primary: String,
+  rest: List(String),
+  caps: Bool,
+  repeat: Int,
+) -> String {
+  { "Hello, " <> primary <> join_names(rest) <> "!" }
   |> capitalize(caps)
   |> list.repeat(repeat)
   |> string.join("\n")
@@ -89,19 +89,29 @@ fn gtz(n: Int) -> snag.Result(Nil) {
 pub fn hello_cmd() -> glint.Command(String) {
   {
     use input <- glint.command()
+
     // the caps flag has a default value, so we can be sure it will always be present
     let assert Ok(caps) = flag.get_bool(from: input.flags, for: caps)
+
     // the repeat flag has a default value, so we can be sure it will always be present
     let assert Ok(repeat) = flag.get_int(from: input.flags, for: repeat)
+
+    // access named args directly
+    let assert Ok(name) = dict.get(input.named_args, "name")
+
     // call the hello function with all necessary inputs
-    hello(input.args, caps, repeat)
+    hello(name, input.args, caps, repeat)
   }
   // with flag `caps`
   |> glint.flag(caps, caps_flag())
   // with flag `repeat`
   |> glint.flag(repeat, repeat_flag())
   // with flag `repeat`
-  |> glint.description("Prints Hello, <NAMES>!")
+  |> glint.description("Prints Hello, <names>!")
+  // with a first arg called name
+  |> glint.named_args(["name"])
+  // requiring at least 1 argument
+  |> glint.count_args(glint.MinArgs(1))
 }
 
 // the function that describes our cli structure
