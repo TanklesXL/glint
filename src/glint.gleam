@@ -652,8 +652,8 @@ fn build_subcommands_help(
     Metadata(
       name: name,
       description: cmd.contents
-      |> option.map(fn(command) { command.description })
-      |> option.unwrap(""),
+        |> option.map(fn(command) { command.description })
+        |> option.unwrap(""),
     ),
     ..acc
   ]

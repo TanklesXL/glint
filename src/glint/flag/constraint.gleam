@@ -20,14 +20,14 @@ pub fn one_of(allowed: List(a)) -> Constraint(a) {
       False ->
         snag.error(
           "invalid value '"
-            <> string.inspect(val)
-            <> "', must be one of: ["
-            <> {
-              allowed
-              |> list.map(fn(a) { "'" <> string.inspect(a) <> "'" })
-              |> string.join(", ")
-            }
-            <> "]",
+          <> string.inspect(val)
+          <> "', must be one of: ["
+          <> {
+            allowed
+            |> list.map(fn(a) { "'" <> string.inspect(a) <> "'" })
+            |> string.join(", ")
+          }
+          <> "]",
         )
     }
   }
@@ -43,16 +43,16 @@ pub fn none_of(disallowed: List(a)) -> Constraint(a) {
       True ->
         snag.error(
           "invalid value '"
-            <> string.inspect(val)
-            <> "', must not be one of: ["
-            <> {
-              {
-                disallowed
-                |> list.map(fn(a) { "'" <> string.inspect(a) <> "'" })
-                |> string.join(", ")
-                <> "]"
-              }
-            },
+          <> string.inspect(val)
+          <> "', must not be one of: ["
+          <> {
+            {
+              disallowed
+              |> list.map(fn(a) { "'" <> string.inspect(a) <> "'" })
+              |> string.join(", ")
+              <> "]"
+            }
+          },
         )
     }
   }
