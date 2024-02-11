@@ -12,6 +12,6 @@ packages = [
 [requirements]
 gleam_community_ansi = { version = "~> 1.0" }
 gleam_community_colour = { version = "~> 1.0" }
-gleam_stdlib = { version = "~> 0.19" }
+gleam_stdlib = { version = "~> 0.34 or ~> 1.0" }
 gleeunit = { version = "~> 1.0" }
 snag = { version = "~> 0.2" }
