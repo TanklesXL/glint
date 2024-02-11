@@ -2,11 +2,10 @@
 
 ## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.14.0...HEAD)
 
-## [0.15.0-rc1](https://github.com/TanklesXL/glint/compare/v0.14.0...v0.15.0-rc1)
+
+## [0.15.0](https://github.com/TanklesXL/glint/compare/v0.14.0...v0.15.0)
+
 - support gleam >=0.34 or 1.0.x
-
-## [0.15.0-rc1](https://github.com/TanklesXL/glint/compare/v0.14.0...v0.15.0-rc1)
-
 - refactor of help generation logic, no change to help text output
 - the `glint/flag` module loses the `flags_help` and `flag_type_help` functions
 - the `glint` module gains the ArgsCount type and the `count_args` function to support exact and minimum arguments count
