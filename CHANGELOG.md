@@ -1,7 +1,8 @@
 # Changelog
 
-## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.14.0...HEAD)
-
+## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.15.0...HEAD)
+- `glint.CommandResult(a)` is now a `Result(Out(a), String)` instead of a `Result(Out(a),Snag)`
+- command exectution failures due to things like invalid flags or too few args now print help text for the current command
 
 ## [0.15.0](https://github.com/TanklesXL/glint/compare/v0.14.0...v0.15.0)
 

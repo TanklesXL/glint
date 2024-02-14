@@ -12,6 +12,7 @@ import gleam_community/ansi
 import gleam_community/colour.{type Colour}
 import gleam/result
 import gleam/function
+import gleam
 
 // --- CONFIGURATION ---
 
@@ -94,10 +95,10 @@ pub opaque type Glint(a) {
 ///
 pub type ArgsCount {
   /// Specifies that a command must accept a specific number of arguments
-  /// 
+  ///
   EqArgs(Int)
   /// Specifies that a command must accept a minimum number of arguments
-  /// 
+  ///
   MinArgs(Int)
 }
 
@@ -118,10 +119,10 @@ pub opaque type Command(a) {
 /// Arguments passed to `glint` are provided as the `args` field.
 ///
 /// Flags passed to `glint` are provided as the `flags` field.
-/// 
+///
 /// If named arguments are specified at command creation, they will be accessible via the `named_args` field.
 /// IMPORTANT: Arguments matched by `named_args` will not be present in the `args` field.
-/// 
+///
 pub type CommandInput {
   CommandInput(
     args: List(String),
@@ -156,7 +157,7 @@ pub type Out(a) {
 /// Result type for command execution
 ///
 pub type CmdResult(a) =
-  Result(Out(a))
+  gleam.Result(Out(a), String)
 
 // -- CORE: BUILDER FUNCTIONS --
 
@@ -252,7 +253,7 @@ pub fn count_args(cmd: Command(a), count: ArgsCount) -> Command(a) {
 /// These named arguments will be matched with the first N arguments passed to the command
 /// All named arguments must match for a command to succeed, this is considered an implicit MinArgs(N)
 /// This works in combination with CommandInput.named_args which will contain the matched args in a Dict(String,String)
-/// IMPORTANT: Matched named arguments will not be present in CommandInput.args 
+/// IMPORTANT: Matched named arguments will not be present in CommandInput.args
 ///
 pub fn named_args(cmd: Command(a), args: List(String)) -> Command(a) {
   Command(..cmd, named_args: args)
@@ -376,7 +377,7 @@ fn do_execute(
 
     // when there are no more available arguments
     // run the current command
-    [] -> execute_root(cmd, global_flags, [], flags)
+    [] -> execute_root(command_path, config, cmd, global_flags, [], flags)
 
     // when there are arguments remaining
     // check if the next one is a subcommand of the current command
@@ -397,7 +398,7 @@ fn do_execute(
           |> Ok
         // subcommand not found, but help flag has not been passed
         // execute the current command
-        _ -> execute_root(cmd, global_flags, args, flags)
+        _ -> execute_root(command_path, config, cmd, global_flags, args, flags)
       }
   }
 }
@@ -419,40 +420,57 @@ fn args_compare(expected: ArgsCount, actual: Int) -> Result(Nil) {
 /// Executes the current root command.
 ///
 fn execute_root(
+  path: List(String),
+  config: Config,
   cmd: CommandNode(a),
   global_flags: FlagMap,
   args: List(String),
   flag_inputs: List(String),
 ) -> CmdResult(a) {
-  {
-    use contents <- option.map(cmd.contents)
-    use new_flags <- result.try(list.try_fold(
-      over: flag_inputs,
-      from: dict.merge(global_flags, contents.flags),
-      with: flag.update_flags,
-    ))
+  let res =
+    {
+      use contents <- option.map(cmd.contents)
+      use new_flags <- result.try(list.try_fold(
+        over: flag_inputs,
+        from: dict.merge(global_flags, contents.flags),
+        with: flag.update_flags,
+      ))
 
-    use _ <- result.try(case contents.count_args {
-      Some(count) ->
-        args_compare(count, list.length(args))
-        |> snag.context("invalid number of arguments provided")
-      None -> Ok(Nil)
+      use _ <- result.try(case contents.count_args {
+        Some(count) ->
+          args_compare(count, list.length(args))
+          |> snag.context("invalid number of arguments provided")
+        None -> Ok(Nil)
+      })
+
+      let #(named_args, rest) =
+        list.split(args, list.length(contents.named_args))
+
+      use named_args_dict <- result.map(
+        contents.named_args
+        |> list.strict_zip(named_args)
+        |> result.replace_error(snag.new("not enough arguments")),
+      )
+
+      CommandInput(rest, new_flags, dict.from_list(named_args_dict))
+      |> contents.do
+      |> Out
+    }
+    |> option.unwrap(snag.error("command not found"))
+    |> snag.context("failed to run command")
+    |> result.map_error(fn(err) {
+      #(err, cmd_help(path, cmd, config, global_flags))
     })
 
-    let #(named_args, rest) = list.split(args, list.length(contents.named_args))
-
-    use named_args_dict <- result.map(
-      contents.named_args
-      |> list.strict_zip(named_args)
-      |> result.replace_error(snag.new("not enough arguments")),
-    )
-
-    CommandInput(rest, new_flags, dict.from_list(named_args_dict))
-    |> contents.do
-    |> Out
+  case res {
+    Ok(out) -> Ok(out)
+    Error(#(snag, help)) ->
+      Error(
+        snag.pretty_print(snag)
+        <> "\nSee the following help text, available via the '--help' flag.\n\n"
+        <> help,
+      )
   }
-  |> option.unwrap(snag.error("command not found"))
-  |> snag.context("failed to run command")
 }
 
 /// A wrapper for `execute` that prints any errors enountered or the help text if requested.
@@ -472,11 +490,7 @@ pub fn run_and_handle(
   with handle: fn(a) -> _,
 ) -> Nil {
   case execute(glint, args) {
-    Error(err) ->
-      err
-      |> snag.pretty_print
-      |> io.println
-    Ok(Help(help)) -> io.println(help)
+    Error(s) | Ok(Help(s)) -> io.println(s)
     Ok(Out(out)) -> {
       handle(out)
       Nil

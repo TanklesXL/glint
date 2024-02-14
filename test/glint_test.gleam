@@ -179,6 +179,24 @@ pub fn help_test() {
   glint.execute(cli, ["a", "b"])
   |> should.equal(Ok(Out(Nil)))
 
+  glint.execute(cli, ["a"])
+  |> should.be_error()
+
+  glint.execute(cli, [])
+  |> should.be_error()
+
+  glint.execute(cli, ["cmd2"])
+  |> should.be_error()
+
+  glint.execute(cli, ["cmd2", "1"])
+  |> should.be_error()
+
+  glint.execute(cli, ["cmd2", "1", "2"])
+  |> should.equal(Ok(Out(Nil)))
+
+  glint.execute(cli, ["cmd2", "1", "2", "3"])
+  |> should.equal(Ok(Out(Nil)))
+
   // help message for root command
   glint.execute(cli, [glint.help_flag()])
   |> should.equal(
