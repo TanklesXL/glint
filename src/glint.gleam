@@ -467,8 +467,8 @@ fn execute_root(
     Error(#(snag, help)) ->
       Error(
         snag.pretty_print(snag)
-        <> "\nSee the following help text, available via the '--help' flag.\n\n"
-        <> help,
+          <> "\nSee the following help text, available via the '--help' flag.\n\n"
+          <> help,
       )
   }
 }
@@ -666,8 +666,8 @@ fn build_subcommands_help(
     Metadata(
       name: name,
       description: cmd.contents
-        |> option.map(fn(command) { command.description })
-        |> option.unwrap(""),
+      |> option.map(fn(command) { command.description })
+      |> option.unwrap(""),
     ),
     ..acc
   ]
@@ -744,13 +744,6 @@ fn args_count_to_notes_string(count: Option(ArgsCount)) -> String {
   |> option.unwrap("")
 }
 
-fn named_args_to_notes_string(named: List(String)) -> String {
-  named
-  |> list.map(fn(name) { "\"" <> name <> "\"" })
-  |> string.join(", ")
-  |> string_map(fn(s) { "this command has named arguments: " <> s })
-}
-
 fn args_to_usage_string(count: Option(ArgsCount), named: List(String)) -> String {
   case
     named
@@ -773,15 +766,11 @@ fn args_to_usage_string(count: Option(ArgsCount), named: List(String)) -> String
   }
 }
 
-fn usage_notes(count: Option(ArgsCount), named: List(String)) -> String {
-  [args_count_to_notes_string(count), named_args_to_notes_string(named)]
-  |> list.filter_map(fn(elem) {
-    case elem {
-      "" -> Error(Nil)
-      s -> Ok(string.append("\n* ", s))
-    }
-  })
-  |> string.concat
+fn usage_notes(count: Option(ArgsCount)) -> String {
+  case args_count_to_notes_string(count) {
+    "" -> ""
+    s -> "\n* " <> s
+  }
   |> string_map(fn(s) { "\nnotes:" <> s })
 }
 
@@ -805,9 +794,12 @@ fn command_help_to_usage_string(help: CommandHelp, config: Config) -> String {
   <> "\n\t"
   <> app_name
   <> string_map(help.meta.name, string.append(" ", _))
-  <> string_map(args, fn(s) { " " <> s <> " " })
+  <> case args {
+    "" -> " "
+    _ -> " " <> args <> " "
+  }
   <> flags
-  <> usage_notes(help.count_args, help.named_args)
+  <> usage_notes(help.count_args)
 }
 
 // -- HELP - FUNCTIONS - STRINGIFIERS - FLAGS --
