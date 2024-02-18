@@ -109,7 +109,7 @@ pub opaque type Command(a) {
     do: Runner(a),
     flags: FlagMap,
     description: String,
-    count_args: Option(ArgsCount),
+    unnamed_args: Option(ArgsCount),
     named_args: List(String),
   )
 }
@@ -232,7 +232,7 @@ pub fn command(do runner: Runner(a)) -> Command(a) {
     do: runner,
     flags: dict.new(),
     description: "",
-    count_args: None,
+    unnamed_args: None,
     named_args: [],
   )
 }
@@ -243,15 +243,15 @@ pub fn description(cmd: Command(a), description: String) -> Command(a) {
   Command(..cmd, description: description)
 }
 
-/// Specify a specific number of args that a given command expects
+/// Specify a specific number of unnamed args that a given command expects
 ///
-pub fn count_args(cmd: Command(a), count: ArgsCount) -> Command(a) {
-  Command(..cmd, count_args: Some(count))
+pub fn unnamed_args(cmd: Command(a), count: ArgsCount) -> Command(a) {
+  Command(..cmd, unnamed_args: Some(count))
 }
 
 /// Add a list of named arguments to a Command
 /// These named arguments will be matched with the first N arguments passed to the command
-/// All named arguments must match for a command to succeed, this is considered an implicit MinArgs(N)
+/// All named arguments must match for a command to succeed
 /// This works in combination with CommandInput.named_args which will contain the matched args in a Dict(String,String)
 /// IMPORTANT: Matched named arguments will not be present in CommandInput.args
 ///
@@ -369,7 +369,8 @@ fn do_execute(
   case args {
     // when there are no more available arguments
     // and help flag has been passed, generate help message
-    [] if help ->
+    [] if help
+    ->
       command_path
       |> cmd_help(cmd, config, global_flags)
       |> Help
@@ -436,23 +437,34 @@ fn execute_root(
         with: flag.update_flags,
       ))
 
-      use _ <- result.try(case contents.count_args {
+      use named_args <- result.try({
+        let named = list.zip(contents.named_args, args)
+        case list.length(named) == list.length(contents.named_args) {
+          True -> Ok(dict.from_list(named))
+          False ->
+            snag.error(
+              "unmatched named arguments: "
+              <> {
+                contents.named_args
+                |> list.drop(list.length(named))
+                |> list.map(fn(s) { "'" <> s <> "'" })
+                |> string.join(", ")
+              },
+            )
+        }
+      })
+
+      let args = list.drop(args, dict.size(named_args))
+
+      use _ <- result.map(case contents.unnamed_args {
         Some(count) ->
-          args_compare(count, list.length(args))
+          count
+          |> args_compare(list.length(args))
           |> snag.context("invalid number of arguments provided")
         None -> Ok(Nil)
       })
 
-      let #(named_args, rest) =
-        list.split(args, list.length(contents.named_args))
-
-      use named_args_dict <- result.map(
-        contents.named_args
-        |> list.strict_zip(named_args)
-        |> result.replace_error(snag.new("not enough arguments")),
-      )
-
-      CommandInput(rest, new_flags, dict.from_list(named_args_dict))
+      CommandInput(args, new_flags, named_args)
       |> contents.do
       |> Out
     }
@@ -467,8 +479,8 @@ fn execute_root(
     Error(#(snag, help)) ->
       Error(
         snag.pretty_print(snag)
-          <> "\nSee the following help text, available via the '--help' flag.\n\n"
-          <> help,
+        <> "\nSee the following help text, available via the '--help' flag.\n\n"
+        <> help,
       )
   }
 }
@@ -594,8 +606,8 @@ type CommandHelp {
     flags: List(FlagHelp),
     // A command can have >= 0 subcommands associated with it
     subcommands: List(Metadata),
-    // A command cann have a set number of arguments
-    count_args: Option(ArgsCount),
+    // A command can have a set number of unnamed arguments
+    unnamed_args: Option(ArgsCount),
     // A command can specify named arguments
     named_args: List(String),
   )
@@ -610,12 +622,12 @@ fn build_command_help_metadata(
   node: CommandNode(_),
   global_flags: FlagMap,
 ) -> CommandHelp {
-  let #(description, flags, count_args, named_args) = case node.contents {
+  let #(description, flags, unnamed_args, named_args) = case node.contents {
     None -> #("", [], None, [])
     Some(cmd) -> #(
       cmd.description,
       build_flags_help(dict.merge(global_flags, cmd.flags)),
-      cmd.count_args,
+      cmd.unnamed_args,
       cmd.named_args,
     )
   }
@@ -624,7 +636,7 @@ fn build_command_help_metadata(
     meta: Metadata(name: name, description: description),
     flags: flags,
     subcommands: build_subcommands_help(node.subcommands),
-    count_args: count_args,
+    unnamed_args: unnamed_args,
     named_args: named_args,
   )
 }
@@ -666,8 +678,8 @@ fn build_subcommands_help(
     Metadata(
       name: name,
       description: cmd.contents
-      |> option.map(fn(command) { command.description })
-      |> option.unwrap(""),
+        |> option.map(fn(command) { command.description })
+        |> option.unwrap(""),
     ),
     ..acc
   ]
@@ -730,48 +742,24 @@ fn args_count_to_usage_string(count: ArgsCount) -> String {
   }
 }
 
-fn args_count_to_notes_string(count: Option(ArgsCount)) -> String {
-  {
-    use count <- option.map(count)
-    "this command accepts "
-    <> case count {
-      EqArgs(0) -> "no arguments"
-      EqArgs(1) -> "1 argument"
-      EqArgs(n) -> int.to_string(n) <> " arguments"
-      MinArgs(n) -> int.to_string(n) <> " or more arguments"
-    }
-  }
-  |> option.unwrap("")
-}
-
-fn args_to_usage_string(count: Option(ArgsCount), named: List(String)) -> String {
-  case
+fn args_to_usage_string(
+  unnamed: Option(ArgsCount),
+  named: List(String),
+) -> String {
+  let named_args =
     named
     |> list.map(fn(s) { "<" <> s <> ">" })
     |> string.join(" ")
-  {
-    "" ->
-      count
-      |> option.map(args_count_to_usage_string)
-      |> option.unwrap("[ ARGS ]")
-    named_args ->
-      count
-      |> option.map(fn(count) {
-        case count {
-          EqArgs(_) -> named_args
-          MinArgs(_) -> named_args <> "..."
-        }
-      })
-      |> option.unwrap(named_args)
-  }
-}
+  let unnamed_args =
+    option.map(unnamed, args_count_to_usage_string)
+    |> option.unwrap("[ ARGS ]")
 
-fn usage_notes(count: Option(ArgsCount)) -> String {
-  case args_count_to_notes_string(count) {
-    "" -> ""
-    s -> "\n* " <> s
+  case named_args, unnamed_args {
+    "", "" -> ""
+    "", _ -> unnamed_args
+    _, "" -> named_args
+    _, _ -> named_args <> " " <> unnamed_args
   }
-  |> string_map(fn(s) { "\nnotes:" <> s })
 }
 
 /// convert a CommandHelp to a styled usage block
@@ -785,7 +773,7 @@ fn command_help_to_usage_string(help: CommandHelp, config: Config) -> String {
 
   let flags = flags_help_to_usage_string(help.flags)
 
-  let args = args_to_usage_string(help.count_args, help.named_args)
+  let args = args_to_usage_string(help.unnamed_args, help.named_args)
 
   case config.pretty_help {
     None -> usage_heading
@@ -799,7 +787,6 @@ fn command_help_to_usage_string(help: CommandHelp, config: Config) -> String {
     _ -> " " <> args <> " "
   }
   <> flags
-  <> usage_notes(help.count_args)
 }
 
 // -- HELP - FUNCTIONS - STRINGIFIERS - FLAGS --

@@ -4,7 +4,9 @@
 - `glint.CommandResult(a)` is now a `Result(Out(a), String)` instead of a `Result(Out(a),Snag)`
 - command exectution failures due to things like invalid flags or too few args now print help text for the current command
 - fix help text formatting for commands that do not include arguments
-- remove named args from help text usage notes
+- remove named args from help text usage
+- change `glint.count_args` to `glint.unnamed_args`, behaviour changes for this function to explicitly only check the number of unnamed arguments
+- remove notes section from usage text
 
 ## [0.15.0](https://github.com/TanklesXL/glint/compare/v0.14.0...v0.15.0)
 
