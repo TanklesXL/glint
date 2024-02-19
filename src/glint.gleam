@@ -91,7 +91,7 @@ pub opaque type Glint(a) {
   Glint(config: Config, cmd: CommandNode(a), global_flags: FlagMap)
 }
 
-/// Specify the expected number of arguments with this type and the `glint.count_args` function
+/// Specify the expected number of arguments with this type and the `glint.unnamed_args` function
 ///
 pub type ArgsCount {
   /// Specifies that a command must accept a specific number of arguments
@@ -369,8 +369,7 @@ fn do_execute(
   case args {
     // when there are no more available arguments
     // and help flag has been passed, generate help message
-    [] if help
-    ->
+    [] if help ->
       command_path
       |> cmd_help(cmd, config, global_flags)
       |> Help
@@ -444,12 +443,12 @@ fn execute_root(
           False ->
             snag.error(
               "unmatched named arguments: "
-              <> {
-                contents.named_args
-                |> list.drop(list.length(named))
-                |> list.map(fn(s) { "'" <> s <> "'" })
-                |> string.join(", ")
-              },
+                <> {
+                  contents.named_args
+                  |> list.drop(list.length(named))
+                  |> list.map(fn(s) { "'" <> s <> "'" })
+                  |> string.join(", ")
+                },
             )
         }
       })
@@ -479,8 +478,8 @@ fn execute_root(
     Error(#(snag, help)) ->
       Error(
         snag.pretty_print(snag)
-        <> "\nSee the following help text, available via the '--help' flag.\n\n"
-        <> help,
+          <> "\nSee the following help text, available via the '--help' flag.\n\n"
+          <> help,
       )
   }
 }
@@ -678,8 +677,8 @@ fn build_subcommands_help(
     Metadata(
       name: name,
       description: cmd.contents
-        |> option.map(fn(command) { command.description })
-        |> option.unwrap(""),
+      |> option.map(fn(command) { command.description })
+      |> option.unwrap(""),
     ),
     ..acc
   ]
