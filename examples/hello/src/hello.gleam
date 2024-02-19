@@ -36,7 +36,7 @@ pub fn capitalize(msg, caps) -> String {
   }
 }
 
-/// hello is a function that 
+/// hello is a function that says hello
 pub fn hello(
   primary: String,
   rest: List(String),
@@ -96,11 +96,10 @@ pub fn hello_cmd() -> glint.Command(String) {
     // the repeat flag has a default value, so we can be sure it will always be present
     let assert Ok(repeat) = flag.get_int(from: input.flags, for: repeat)
 
-    // access named args directly
-    let assert Ok(name) = dict.get(input.named_args, "name")
-
     // call the hello function with all necessary inputs
-    hello(name, input.args, caps, repeat)
+    // we can assert here because we have told glint that this command expects at least one argument
+    let assert [name, ..rest] = input.args
+    hello(name, rest, caps, repeat)
   }
   // with flag `caps`
   |> glint.flag(caps, caps_flag())
@@ -108,10 +107,38 @@ pub fn hello_cmd() -> glint.Command(String) {
   |> glint.flag(repeat, repeat_flag())
   // with flag `repeat`
   |> glint.description("Prints Hello, <names>!")
-  // with a first arg called name
-  |> glint.named_args(["name"])
-  // requiring at least 1 argument
-  |> glint.count_args(glint.MinArgs(1))
+  // with at least 1 unnamed argument
+  |> glint.unnamed_args(glint.MinArgs(1))
+}
+
+/// the command function that will be executed as the "single" command
+///
+pub fn hello_single_cmd() -> glint.Command(String) {
+  {
+    use input <- glint.command()
+
+    // the caps flag has a default value, so we can be sure it will always be present
+    let assert Ok(caps) = flag.get_bool(from: input.flags, for: caps)
+
+    // the repeat flag has a default value, so we can be sure it will always be present
+    let assert Ok(repeat) = flag.get_int(from: input.flags, for: repeat)
+
+    // access named args directly
+    let assert Ok(name) = dict.get(input.named_args, "name")
+
+    // call the hello function with all necessary inputs
+    hello(name, [], caps, repeat)
+  }
+  // with flag `caps`
+  |> glint.flag(caps, caps_flag())
+  // with flag `repeat`
+  |> glint.flag(repeat, repeat_flag())
+  // with flag `repeat`
+  |> glint.description("Prints Hello, <name>!")
+  // with a named arg called 'name'
+  |> glint.named_args(["name", "nom"])
+  // with at least 1 unnamed argument
+  |> glint.unnamed_args(glint.EqArgs(0))
 }
 
 // the function that describes our cli structure
@@ -129,6 +156,11 @@ pub fn app() {
     // add the hello command to the root
     at: [],
     do: hello_cmd(),
+  )
+  |> glint.add(
+    // add the hello single command
+    at: ["single"],
+    do: hello_single_cmd(),
   )
 }
 

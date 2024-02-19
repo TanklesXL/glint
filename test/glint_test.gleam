@@ -154,20 +154,23 @@ pub fn help_test() {
       at: ["cmd1", "cmd3"],
       do: glint.command(nil)
         |> glint.flag(flag_3.0, flag_3.1)
-        |> glint.description("This is cmd3"),
+        |> glint.description("This is cmd3")
+        |> glint.unnamed_args(glint.MinArgs(2))
+        |> glint.named_args(["woo"]),
     )
     |> glint.add(
       at: ["cmd1", "cmd4"],
       do: glint.command(nil)
         |> glint.flag(flag_4.0, flag_4.1)
-        |> glint.description("This is cmd4"),
+        |> glint.description("This is cmd4")
+        |> glint.unnamed_args(glint.EqArgs(0)),
     )
     |> glint.add(
       at: ["cmd2"],
       do: glint.command(nil)
         |> glint.named_args(["arg1", "arg2"])
-        |> glint.count_args(glint.MinArgs(2))
-        |> glint.description("This is cmd2"),
+        |> glint.description("This is cmd2")
+        |> glint.unnamed_args(glint.EqArgs(0)),
     )
     |> glint.add(
       at: ["cmd5", "cmd6"],
@@ -195,7 +198,7 @@ pub fn help_test() {
   |> should.equal(Ok(Out(Nil)))
 
   glint.execute(cli, ["cmd2", "1", "2", "3"])
-  |> should.equal(Ok(Out(Nil)))
+  |> should.be_error()
 
   // help message for root command
   glint.execute(cli, [glint.help_flag()])
@@ -204,9 +207,7 @@ pub fn help_test() {
       "This is the root command
 
 USAGE:
-\tgleam run -m test <arg1> <arg2> [ --flag1=<STRING> --global=<STRING> ]
-notes:
-* this command has named arguments: \"arg1\", \"arg2\"
+\tgleam run -m test <arg1> <arg2> [ ARGS ] [ --flag1=<STRING> --global=<STRING> ]
 
 FLAGS:
 \t--flag1=<STRING>\t\tThis is flag1
@@ -250,7 +251,7 @@ SUBCOMMANDS:
 This is cmd4
 
 USAGE:
-\tgleam run -m test cmd1 cmd4 [ ARGS ] [ --flag4=<FLOAT> --global=<STRING> ]
+\tgleam run -m test cmd1 cmd4 [ --flag4=<FLOAT> --global=<STRING> ]
 
 FLAGS:
 \t--flag4=<FLOAT>\t\tThis is flag4
@@ -266,12 +267,26 @@ FLAGS:
 This is cmd2
 
 USAGE:
-\tgleam run -m test cmd2 <arg1> <arg2>... [ --global=<STRING> ]
-notes:
-* this command accepts 2 or more arguments
-* this command has named arguments: \"arg1\", \"arg2\"
+\tgleam run -m test cmd2 <arg1> <arg2> [ --global=<STRING> ]
 
 FLAGS:
+\t--global=<STRING>\t\tThis is a global flag
+\t--help\t\t\tPrint help information",
+    )),
+  )
+
+  // help message for command with no additional flags
+  glint.execute(cli, ["cmd1", "cmd3", glint.help_flag()])
+  |> should.equal(
+    Ok(Help(
+      "cmd1 cmd3
+This is cmd3
+
+USAGE:
+\tgleam run -m test cmd1 cmd3 <woo> [ 2 or more arguments ] [ --flag3=<BOOL> --global=<STRING> ]
+
+FLAGS:
+\t--flag3=<BOOL>\t\tThis is flag3
 \t--global=<STRING>\t\tThis is a global flag
 \t--help\t\t\tPrint help information",
     )),
@@ -308,7 +323,7 @@ pub fn global_flags_test() {
         ),
     )
 
-  // root command keeps the global flag as an int 
+  // root command keeps the global flag as an int
   cli
   |> glint.execute(["--f=2"])
   |> should.be_ok
