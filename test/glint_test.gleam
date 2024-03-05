@@ -96,7 +96,7 @@ pub fn runner_test() {
 }
 
 pub fn help_test() {
-  let nil = function.constant(Nil)
+  let nil = fn(_) { Nil }
   let global_flag = #(
     "global",
     flag.string()

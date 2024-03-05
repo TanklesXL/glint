@@ -369,8 +369,7 @@ fn do_execute(
   case args {
     // when there are no more available arguments
     // and help flag has been passed, generate help message
-    [] if help
-    ->
+    [] if help ->
       command_path
       |> cmd_help(cmd, config, global_flags)
       |> Help
@@ -490,7 +489,7 @@ fn execute_root(
 /// If you would like to do something with the command output please see the run_and_handle function.
 ///
 pub fn run(from glint: Glint(a), for args: List(String)) -> Nil {
-  run_and_handle(from: glint, for: args, with: function.constant(Nil))
+  run_and_handle(from: glint, for: args, with: fn(_) { Nil })
 }
 
 /// A wrapper for `execute` that prints any errors enountered or the help text if requested.

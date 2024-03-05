@@ -1,6 +1,10 @@
 # Changelog
 
-## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.15.0...HEAD)
+## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.17.0...HEAD)
+
+## [0.17.0](https://github.com/TanklesXL/glint/compare/v0.16.0...v0.17.0)
+
+- support gleam 1.0.0
 
 ## [0.16.0](https://github.com/TanklesXL/glint/compare/v0.15.0...v0.16.0)
 
