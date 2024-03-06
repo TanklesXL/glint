@@ -11,7 +11,6 @@ import gleam/string_builder as sb
 import gleam_community/ansi
 import gleam_community/colour.{type Colour}
 import gleam/result
-import gleam/function
 import gleam
 
 // --- CONFIGURATION ---

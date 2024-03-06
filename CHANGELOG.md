@@ -1,6 +1,10 @@
 # Changelog
 
-## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.17.0...HEAD)
+## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.17.1...HEAD)
+
+## [0.17.1](https://github.com/TanklesXL/glint/compare/v0.17.0...v0.17.1)
+
+- remove unused function import to silence compiler warnings
 
 ## [0.17.0](https://github.com/TanklesXL/glint/compare/v0.16.0...v0.17.0)
 
