@@ -9,11 +9,11 @@ inputs:
   erlang-version:
     description: erlang-otp version
     required: false
-    default: 26.2.2
+    default: "~> 26.2"
   node-version:
     description: nodeJS version
     required: false
-    default: 18.12.1
+    default: 20.11.1
 
 runs:
   using: composite
