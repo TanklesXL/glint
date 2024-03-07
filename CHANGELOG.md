@@ -1,6 +1,10 @@
 # Changelog
 
-## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.17.1...HEAD)
+## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.18.0...HEAD)
+
+## [0.18.0](https://github.com/TanklesXL/glint/compare/v0.17.1...v0.18.0)
+
+- support for group flags at a given path
 
 ## [0.17.1](https://github.com/TanklesXL/glint/compare/v0.17.0...v0.17.1)
 
