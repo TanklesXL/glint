@@ -292,7 +292,7 @@ FLAGS:
   )
 }
 
-pub fn global_flags_test() {
+pub fn global_and_group_flags_test() {
   let cli =
     glint.new()
     |> glint.global_flag(
@@ -321,6 +321,25 @@ pub fn global_flags_test() {
             |> flag.description("i decided to override the global flag"),
         ),
     )
+    |> glint.group_flag(
+      ["sub"],
+      "sub_group_flag",
+      flag.int()
+        |> flag.default(1),
+    )
+    |> glint.add(
+      ["sub", "sub"],
+      glint.command(fn(ctx) {
+          flag.get_int(ctx.flags, "sub_group_flag")
+          |> should.equal(Ok(2))
+        })
+        |> glint.flag(
+          "f",
+          flag.bool()
+            |> flag.default(True)
+            |> flag.description("i decided to override the global flag"),
+        ),
+    )
 
   // root command keeps the global flag as an int
   cli
@@ -339,6 +358,9 @@ pub fn global_flags_test() {
   cli
   |> glint.execute(["sub", "--f=123"])
   |> should.be_error
+
+  cli
+  |> glint.execute(["sub", "sub", "--sub_group_flag=2"])
 }
 
 pub fn default_pretty_help_test() {

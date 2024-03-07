@@ -101,11 +101,6 @@ pub fn hello_cmd() -> glint.Command(String) {
     let assert [name, ..rest] = input.args
     hello(name, rest, caps, repeat)
   }
-  // with flag `caps`
-  |> glint.flag(caps, caps_flag())
-  // with flag `repeat`
-  |> glint.flag(repeat, repeat_flag())
-  // with flag `repeat`
   |> glint.description("Prints Hello, <names>!")
   // with at least 1 unnamed argument
   |> glint.unnamed_args(glint.MinArgs(1))
@@ -129,15 +124,10 @@ pub fn hello_single_cmd() -> glint.Command(String) {
     // call the hello function with all necessary inputs
     hello(name, [], caps, repeat)
   }
-  // with flag `caps`
-  |> glint.flag(caps, caps_flag())
-  // with flag `repeat`
-  |> glint.flag(repeat, repeat_flag())
-  // with flag `repeat`
   |> glint.description("Prints Hello, <name>!")
   // with a named arg called 'name'
-  |> glint.named_args(["name", "nom"])
-  // with at least 1 unnamed argument
+  |> glint.named_args(["name"])
+  // with no unnamed arguments
   |> glint.unnamed_args(glint.EqArgs(0))
 }
 
@@ -151,6 +141,11 @@ pub fn app() {
   |> glint.as_gleam_module
   // with pretty help enabled, using the built-in colours
   |> glint.with_pretty_help(glint.default_pretty_help())
+  // with group level flags
+  // with flag `caps` for all commands (equivalent of using glint.global_flag)
+  |> glint.group_flag([], caps, caps_flag())
+  // with flag `repeat` for all commands (equivalent of using glint.global_flag)
+  |> glint.group_flag([], repeat, repeat_flag())
   // with a root command that executes the `hello` function
   |> glint.add(
     // add the hello command to the root
