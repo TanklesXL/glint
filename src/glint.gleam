@@ -87,7 +87,7 @@ pub fn as_gleam_module(glint: Glint(a)) -> Glint(a) {
 /// Glint container type for config and commands
 ///
 pub opaque type Glint(a) {
-  Glint(config: Config, cmd: CommandNode(a), global_flags: FlagMap)
+  Glint(config: Config, cmd: CommandNode(a))
 }
 
 /// Specify the expected number of arguments with this type and the `glint.unnamed_args` function
@@ -141,6 +141,7 @@ type CommandNode(a) {
   CommandNode(
     contents: Option(Command(a)),
     subcommands: dict.Dict(String, CommandNode(a)),
+    group_flags: FlagMap,
   )
 }
 
@@ -163,7 +164,7 @@ pub type CmdResult(a) =
 /// Creates a new command tree.
 ///
 pub fn new() -> Glint(a) {
-  Glint(config: default_config, cmd: empty_command(), global_flags: dict.new())
+  Glint(config: default_config, cmd: empty_command())
 }
 
 /// Adds a new command to be run at the specified path.
@@ -213,7 +214,7 @@ fn do_add(
 /// Helper for initializing empty commands
 ///
 fn empty_command() -> CommandNode(a) {
-  CommandNode(contents: None, subcommands: dict.new())
+  CommandNode(contents: None, subcommands: dict.new(), group_flags: dict.new())
 }
 
 /// Trim each path element and remove any resulting empty strings.
@@ -279,7 +280,8 @@ pub fn flag_tuple(
   flag(cmd, tup.0, tup.1)
 }
 
-/// Add multiple `Flag`s to a `Command`, note that this function uses `Flag` and not `FlagBuilder(_)`, so the user will need to call `flag.build` before providing the flags here.
+/// Add multiple `Flag`s to a `Command`, note that this function uses `Flag` and not `FlagBuilder(_)`.
+/// The user will need to call `flag.build` before providing the flags here.
 ///
 /// It is recommended to call `glint.flag` instead.
 ///
@@ -289,41 +291,117 @@ pub fn flags(cmd: Command(a), with flags: List(#(String, Flag))) -> Command(a) {
 }
 
 /// Add global flags to the existing command tree
+/// This is the equivalent to calling `glint.group_flag` with a path parameter of `[]`.
 ///
+///
+@deprecated("use group_flag with a path parameter of [] instead")
 pub fn global_flag(
   glint: Glint(a),
   at key: String,
   of flag: flag.FlagBuilder(_),
 ) -> Glint(a) {
-  Glint(
-    ..glint,
-    global_flags: dict.insert(glint.global_flags, key, flag.build(flag)),
-  )
+  group_flag(in: glint, at: [], for: key, of: flag)
 }
 
 /// Add global flags to the existing command tree.
+/// This is the equivalent to calling `glint.group_flag_tuple` with a path parameter of `[]`.
 ///
+@deprecated("use group_flag_tuple with a path parameter of [] instead")
 pub fn global_flag_tuple(
   glint: Glint(a),
   with tup: #(String, flag.FlagBuilder(_)),
 ) -> Glint(a) {
-  global_flag(glint, tup.0, tup.1)
+  group_flag(glint, [], tup.0, tup.1)
 }
 
 /// Add global flags to the existing command tree.
 ///
 /// Like `glint.flags`, this function requires `Flag`s insead of `FlagBuilder(_)`.
+/// This is the equivalent to calling `glint.group_flags` with a path parameter of `[]`.
 ///
+/// Note: use of this function requires calling `flag.build` yourself on any `flag.FlagBuilder`s you wish to convert to `flag.Flag`s
 /// It is recommended to use `glint.global_flag` instead.
 ///
+@deprecated("use group_flags with a path parameter of [] instead")
 pub fn global_flags(glint: Glint(a), flags: List(#(String, Flag))) -> Glint(a) {
+  group_flags(in: glint, at: [], with: flags)
+}
+
+/// Add flags for groups of commands.
+/// It is recommended to use `glint.group_flag` instead if possible
+///
+/// The provided flags will be available to all commands at or beyond the provided path
+///
+/// Note: use of this function requires calling `flag.build` yourself on any `flag.FlagBuilder`s you wish to convert to `flag.Flag`s
+///
+pub fn group_flags(
+  in glint: Glint(a),
+  at path: List(String),
+  with flags: List(#(String, Flag)),
+) -> Glint(a) {
+  use glint, flag <- list.fold(flags, glint)
   Glint(
     ..glint,
-    global_flags: {
-      use acc, elem <- list.fold(flags, glint.global_flags)
-      dict.insert(acc, elem.0, elem.1)
-    },
+    cmd: do_group_flag(in: glint.cmd, at: path, for: flag.0, of: flag.1),
   )
+}
+
+/// Add a flag for a group of commands.
+/// The provided flags will be available to all commands at or beyond the provided path
+///
+pub fn group_flag(
+  in glint: Glint(a),
+  at path: List(String),
+  for name: String,
+  of flag: flag.FlagBuilder(_),
+) -> Glint(a) {
+  Glint(
+    ..glint,
+    cmd: do_group_flag(in: glint.cmd, at: path, for: name, of: flag.build(flag)),
+  )
+}
+
+/// Add a flag for a group of commands.
+/// The provided flags will be available to all commands at or beyond the provided path
+///
+/// This is a convenience function and calls `glint.group_flag` under the hood.
+///
+pub fn group_flag_tuple(
+  in glint: Glint(a),
+  at path: List(String),
+  of flag: #(String, flag.FlagBuilder(_)),
+) -> Glint(a) {
+  group_flag(in: glint, at: path, for: flag.0, of: flag.1)
+}
+
+/// add a group flag to a command node
+/// descend recursively down the command tree to find the node that the flag should be inserted at
+///
+fn do_group_flag(
+  in node: CommandNode(a),
+  at path: List(String),
+  for name: String,
+  of flag: Flag,
+) -> CommandNode(a) {
+  case path {
+    [] ->
+      CommandNode(
+        ..node,
+        group_flags: dict.insert(node.group_flags, name, flag),
+      )
+
+    [head, ..tail] ->
+      CommandNode(
+        ..node,
+        subcommands: {
+          use node <- dict.update(node.subcommands, head)
+
+          node
+          |> option.unwrap(empty_command())
+          |> do_group_flag(at: tail, for: name, of: flag)
+        },
+      )
+  }
 }
 
 // -- CORE: EXECUTION FUNCTIONS --
@@ -351,7 +429,7 @@ pub fn execute(glint: Glint(a), args: List(String)) -> CmdResult(a) {
   let #(flags, args) = list.partition(args, string.starts_with(_, flag.prefix))
 
   // search for command and execute
-  do_execute(glint.cmd, glint.config, glint.global_flags, args, flags, help, [])
+  do_execute(glint.cmd, glint.config, args, flags, help, [])
 }
 
 /// Find which command to execute and run it with computed flags and args
@@ -359,7 +437,6 @@ pub fn execute(glint: Glint(a), args: List(String)) -> CmdResult(a) {
 fn do_execute(
   cmd: CommandNode(a),
   config: Config,
-  global_flags: FlagMap,
   args: List(String),
   flags: List(String),
   help: Bool,
@@ -370,34 +447,40 @@ fn do_execute(
     // and help flag has been passed, generate help message
     [] if help ->
       command_path
-      |> cmd_help(cmd, config, global_flags)
+      |> cmd_help(cmd, config)
       |> Help
       |> Ok
 
     // when there are no more available arguments
     // run the current command
-    [] -> execute_root(command_path, config, cmd, global_flags, [], flags)
+    [] -> execute_root(command_path, config, cmd, [], flags)
 
     // when there are arguments remaining
     // check if the next one is a subcommand of the current command
     [arg, ..rest] ->
       case dict.get(cmd.subcommands, arg) {
         // subcommand found, continue
-        Ok(cmd) ->
-          do_execute(cmd, config, global_flags, rest, flags, help, [
+        Ok(sub_command) -> {
+          let sub_command =
+            CommandNode(
+              ..sub_command,
+              group_flags: dict.merge(cmd.group_flags, sub_command.group_flags),
+            )
+          do_execute(sub_command, config, rest, flags, help, [
             arg,
             ..command_path
           ])
+        }
         // subcommand not found, but help flag has been passed
         // generate and return help message
         _ if help ->
           command_path
-          |> cmd_help(cmd, config, global_flags)
+          |> cmd_help(cmd, config)
           |> Help
           |> Ok
         // subcommand not found, but help flag has not been passed
         // execute the current command
-        _ -> execute_root(command_path, config, cmd, global_flags, args, flags)
+        _ -> execute_root(command_path, config, cmd, args, flags)
       }
   }
 }
@@ -422,7 +505,6 @@ fn execute_root(
   path: List(String),
   config: Config,
   cmd: CommandNode(a),
-  global_flags: FlagMap,
   args: List(String),
   flag_inputs: List(String),
 ) -> CmdResult(a) {
@@ -431,7 +513,7 @@ fn execute_root(
       use contents <- option.map(cmd.contents)
       use new_flags <- result.try(list.try_fold(
         over: flag_inputs,
-        from: dict.merge(global_flags, contents.flags),
+        from: dict.merge(cmd.group_flags, contents.flags),
         with: flag.update_flags,
       ))
 
@@ -468,9 +550,7 @@ fn execute_root(
     }
     |> option.unwrap(snag.error("command not found"))
     |> snag.context("failed to run command")
-    |> result.map_error(fn(err) {
-      #(err, cmd_help(path, cmd, config, global_flags))
-    })
+    |> result.map_error(fn(err) { #(err, cmd_help(path, cmd, config)) })
 
   case res {
     Ok(out) -> Ok(out)
@@ -552,18 +632,13 @@ pub fn help_flag() -> String {
 // -- HELP: FUNCTIONS --
 
 /// generate the help text for a command
-fn cmd_help(
-  path: List(String),
-  cmd: CommandNode(a),
-  config: Config,
-  global_flags: FlagMap,
-) -> String {
+fn cmd_help(path: List(String), cmd: CommandNode(a), config: Config) -> String {
   // recreate the path of the current command
   // reverse the path because it is created by prepending each section as do_execute walks down the tree
   path
   |> list.reverse
   |> string.join(" ")
-  |> build_command_help_metadata(cmd, global_flags)
+  |> build_command_help_metadata(cmd)
   |> command_help_to_string(config)
 }
 
@@ -618,13 +693,12 @@ type CommandHelp {
 fn build_command_help_metadata(
   name: String,
   node: CommandNode(_),
-  global_flags: FlagMap,
 ) -> CommandHelp {
   let #(description, flags, unnamed_args, named_args) = case node.contents {
     None -> #("", [], None, [])
     Some(cmd) -> #(
       cmd.description,
-      build_flags_help(dict.merge(global_flags, cmd.flags)),
+      build_flags_help(dict.merge(node.group_flags, cmd.flags)),
       cmd.unnamed_args,
       cmd.named_args,
     )
