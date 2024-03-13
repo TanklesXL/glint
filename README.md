@@ -24,7 +24,7 @@ gleam add glint
 1. create a new glint instance with `glint.new`
 1. configure it with `glint.with_pretty_help` and other configuration functions
 1. add commands with `glint.add`
-   1. create a new command with `glint.cmd`
+   1. create a new command with `glint.command`
    1. assign that command any flags required
    1. assign the command a custom description
 1. run your cli with `glnt.run`, run with a function to handle command output with `glint.run_and_handle`
