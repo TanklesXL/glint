@@ -1,7 +1,6 @@
 import gleeunit/should
 import glint
 import glint/flag
-import gleam/dict as map
 
 pub fn update_flag_test() {
   let flags =
@@ -99,7 +98,7 @@ pub fn flag_default_test() {
   let flag = #(
     "flag",
     flag.string()
-      |> flag.default("default"),
+    |> flag.default("default"),
   )
 
   glint.new()
@@ -315,7 +314,7 @@ pub fn global_flag_test() {
     do: glint.flag(
       "flag",
       flag.float_list()
-        |> flag.default([1.0, 2.0]),
+      |> flag.default([1.0, 2.0]),
       fn(_) { testcase([1.0, 2.0]) },
     ),
   )
@@ -328,13 +327,13 @@ pub fn global_flag_test() {
     [],
     "flag",
     flag.float_list()
-      |> flag.default([3.0, 4.0]),
+    |> flag.default([3.0, 4.0]),
   )
   |> glint.add(at: [], do: {
     use _flag <- glint.flag(
       "flag",
       flag.float_list()
-        |> flag.default([1.0, 2.0]),
+      |> flag.default([1.0, 2.0]),
     )
 
     testcase([5.0, 6.0])
@@ -375,7 +374,7 @@ pub fn toggle_test() {
     use flag <- glint.flag(
       "flag",
       flag.bool()
-        |> flag.default(True),
+      |> flag.default(True),
     )
     use _, _, flags <- glint.command()
     flag(flags)
@@ -398,10 +397,10 @@ pub fn toggle_test() {
   // cannot toggle non-bool flag
   glint.new()
   |> glint.add([], {
-    use flag <- glint.flag(
+    use _flag <- glint.flag(
       "flag",
       flag.int()
-        |> flag.default(1),
+      |> flag.default(1),
     )
     use _, _, _ <- glint.command()
     Nil
