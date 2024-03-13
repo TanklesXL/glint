@@ -583,7 +583,7 @@ const help_flag_message = "--help\t\t\tPrint help information"
 /// Function to create the help flag string
 /// Exported for testing purposes only
 ///
-pub fn help_flag() -> String {
+fn help_flag() -> String {
   flag.prefix <> help_flag_name
 }
 
