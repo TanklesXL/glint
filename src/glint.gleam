@@ -484,12 +484,12 @@ fn execute_root(
           False ->
             snag.error(
               "unmatched named arguments: "
-              <> {
-                contents.named_args
-                |> list.drop(list.length(named))
-                |> list.map(fn(s) { "'" <> s <> "'" })
-                |> string.join(", ")
-              },
+                <> {
+                  contents.named_args
+                  |> list.drop(list.length(named))
+                  |> list.map(fn(s) { "'" <> s <> "'" })
+                  |> string.join(", ")
+                },
             )
         }
       })
@@ -515,8 +515,8 @@ fn execute_root(
     Error(#(snag, help)) ->
       Error(
         snag.pretty_print(snag)
-        <> "\nSee the following help text, available via the '--help' flag.\n\n"
-        <> help,
+          <> "\nSee the following help text, available via the '--help' flag.\n\n"
+          <> help,
       )
   }
 }
@@ -708,8 +708,8 @@ fn build_subcommands_help(
     Metadata(
       name: name,
       description: cmd.contents
-        |> option.map(fn(command) { command.description })
-        |> option.unwrap(""),
+      |> option.map(fn(command) { command.description })
+      |> option.unwrap(""),
     ),
     ..acc
   ]
