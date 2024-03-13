@@ -58,7 +58,7 @@ const caps = "caps"
 
 /// a boolean flag with default False to control message capitalization.
 ///
-fn caps_flag() -> flag.FlagBuilder(Bool) {
+fn caps_flag() -> flag.Builder(Bool) {
   flag.bool()
   |> flag.default(False)
   |> flag.description("Capitalize the hello message")

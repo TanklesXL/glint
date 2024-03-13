@@ -1,6 +1,6 @@
 import gleeunit
 import gleeunit/should
-import glint.{type CommandInput, Help, Out}
+import glint.{Help, Out}
 import glint/flag
 import snag
 
@@ -10,7 +10,10 @@ pub fn main() {
 
 pub fn path_clean_test() {
   glint.new()
-  |> glint.add(["", " ", " cmd", "subcmd\t"], glint.command(fn(_) { Nil }))
+  |> glint.add(
+    ["", " ", " cmd", "subcmd\t"],
+    glint.command(fn(_, _, _) { Nil }),
+  )
   |> glint.execute(["cmd", "subcmd"])
   |> should.be_ok()
 }
@@ -20,14 +23,14 @@ pub fn root_command_test() {
   glint.new()
   |> glint.add(
     at: [],
-    do: glint.command(fn(in: CommandInput) { should.equal(in.args, []) }),
+    do: glint.command(fn(_, args, _) { should.equal(args, []) }),
   )
   |> glint.execute([])
   |> should.be_ok()
 
   // expecting some args
   let args = ["arg1", "arg2"]
-  let is_args = fn(in: CommandInput) { should.equal(in.args, args) }
+  let is_args = fn(_, in_args, _) { should.equal(in_args, args) }
 
   glint.new()
   |> glint.add(at: [], do: glint.command(is_args))
@@ -37,8 +40,7 @@ pub fn root_command_test() {
 
 pub fn command_routing_test() {
   let args = ["arg1", "arg2"]
-  let is_args = fn(in: CommandInput) { should.equal(in.args, args) }
-
+  let is_args = fn(_, in_args, _) { should.equal(in_args, args) }
   let has_subcommand =
     glint.new()
     |> glint.add(["subcommand"], glint.command(is_args))
@@ -56,7 +58,7 @@ pub fn command_routing_test() {
 
 pub fn nested_commands_test() {
   let args = ["arg1", "arg2"]
-  let is_args = fn(in: CommandInput) { should.equal(in.args, args) }
+  let is_args = fn(_, in_args, _) { should.equal(in_args, args) }
 
   let cmd =
     glint.new()
@@ -77,10 +79,10 @@ pub fn nested_commands_test() {
 pub fn runner_test() {
   let cmd =
     glint.new()
-    |> glint.add(at: [], do: glint.command(fn(_) { Ok("success") }))
+    |> glint.add(at: [], do: glint.command(fn(_, _, _) { Ok("success") }))
     |> glint.add(
       at: ["subcommand"],
-      do: glint.command(fn(_) { snag.error("failed") }),
+      do: glint.command(fn(_, _, _) { snag.error("failed") }),
     )
 
   // command returns its own successful result
@@ -95,86 +97,82 @@ pub fn runner_test() {
 }
 
 pub fn help_test() {
-  let nil = fn(_) { Nil }
+  let nil = fn(_, _, _) { Nil }
   let global_flag = #(
     "global",
     flag.string()
-      |> flag.description("This is a global flag"),
+    |> flag.description("This is a global flag"),
   )
 
   let flag_1 = #(
     "flag1",
     flag.string()
-      |> flag.description("This is flag1"),
+    |> flag.description("This is flag1"),
   )
 
   let flag_2 = #(
     "flag2",
     flag.int()
-      |> flag.description("This is flag2"),
+    |> flag.description("This is flag2"),
   )
   let flag_3 = #(
     "flag3",
     flag.bool()
-      |> flag.description("This is flag3"),
+    |> flag.description("This is flag3"),
   )
   let flag_4 = #(
     "flag4",
     flag.float()
-      |> flag.description("This is flag4"),
+    |> flag.description("This is flag4"),
   )
 
   let flag_5 = #(
     "flag5",
     flag.float_list()
-      |> flag.description("This is flag5"),
+    |> flag.description("This is flag5"),
   )
 
   let cli =
     glint.new()
     |> glint.with_name("test")
     |> glint.as_gleam_module
-    |> glint.global_flag(global_flag.0, global_flag.1)
-    |> glint.add(
-      at: [],
-      do: glint.command(do: nil)
-        |> glint.named_args(["arg1", "arg2"])
-        |> glint.flag(flag_1.0, flag_1.1)
-        |> glint.description("This is the root command"),
-    )
-    |> glint.add(
-      at: ["cmd1"],
-      do: glint.command(nil)
-        |> glint.flag(flag_2.0, flag_2.1)
-        |> glint.flag(flag_5.0, flag_5.1)
-        |> glint.description("This is cmd1"),
-    )
-    |> glint.add(
-      at: ["cmd1", "cmd3"],
-      do: glint.command(nil)
-        |> glint.flag(flag_3.0, flag_3.1)
-        |> glint.description("This is cmd3")
-        |> glint.unnamed_args(glint.MinArgs(2))
-        |> glint.named_args(["woo"]),
-    )
-    |> glint.add(
-      at: ["cmd1", "cmd4"],
-      do: glint.command(nil)
-        |> glint.flag(flag_4.0, flag_4.1)
-        |> glint.description("This is cmd4")
-        |> glint.unnamed_args(glint.EqArgs(0)),
-    )
-    |> glint.add(
-      at: ["cmd2"],
-      do: glint.command(nil)
-        |> glint.named_args(["arg1", "arg2"])
-        |> glint.description("This is cmd2")
-        |> glint.unnamed_args(glint.EqArgs(0)),
-    )
+    |> glint.group_flag([], global_flag.0, global_flag.1)
+    |> glint.add(at: [], do: {
+      use <- glint.description("This is the root command")
+      use _arg1 <- glint.named_arg("arg1")
+      use _arg2 <- glint.named_arg("arg2")
+      use _flag <- glint.flag(flag_1.0, flag_1.1)
+      glint.command(nil)
+    })
+    |> glint.add(at: ["cmd1"], do: {
+      use <- glint.description("This is cmd1")
+      use _flag2 <- glint.flag(flag_2.0, flag_2.1)
+      use _flag5 <- glint.flag(flag_5.0, flag_5.1)
+      glint.command(nil)
+    })
+    |> glint.add(at: ["cmd1", "cmd3"], do: {
+      use <- glint.description("This is cmd3")
+      use _flag3 <- glint.flag(flag_3.0, flag_3.1)
+      use <- glint.unnamed_args(glint.MinArgs(2))
+      use _woo <- glint.named_arg("woo")
+      glint.command(nil)
+    })
+    |> glint.add(at: ["cmd1", "cmd4"], do: {
+      use <- glint.description("This is cmd4")
+      use _flag4 <- glint.flag(flag_4.0, flag_4.1)
+      use <- glint.unnamed_args(glint.EqArgs(0))
+      glint.command(nil)
+    })
+    |> glint.add(at: ["cmd2"], do: {
+      use <- glint.description("This is cmd2")
+      use <- glint.unnamed_args(glint.EqArgs(0))
+      use _arg1 <- glint.named_arg("arg1")
+      use _arg2 <- glint.named_arg("arg2")
+      glint.command(nil)
+    })
     |> glint.add(
       at: ["cmd5", "cmd6"],
-      do: glint.command(nil)
-        |> glint.description("This is cmd6"),
+      do: glint.description("This is cmd6", fn() { glint.command(nil) }),
     )
 
   // execute root command
@@ -295,51 +293,52 @@ FLAGS:
 pub fn global_and_group_flags_test() {
   let cli =
     glint.new()
-    |> glint.global_flag(
+    |> glint.group_flag(
+      [],
       "f",
       flag.int()
-        |> flag.default(2)
-        |> flag.description("global flag example"),
+      |> flag.default(2)
+      |> flag.description("global flag example"),
     )
     |> glint.add(
       [],
-      glint.command(fn(ctx) {
-        flag.get_int(ctx.flags, "f")
+      glint.command(fn(_, _, flags) {
+        flag.get_int(flags, "f")
         |> should.equal(Ok(2))
       }),
     )
-    |> glint.add(
-      ["sub"],
-      glint.command(fn(ctx) {
-          flag.get_bool(ctx.flags, "f")
-          |> should.equal(Ok(True))
-        })
-        |> glint.flag(
-          "f",
-          flag.bool()
-            |> flag.default(True)
-            |> flag.description("i decided to override the global flag"),
-        ),
-    )
+    |> glint.add(["sub"], {
+      use f <- glint.flag(
+        "f",
+        flag.bool()
+        |> flag.default(True)
+        |> flag.description("i decided to override the global flag"),
+      )
+      use _, _, flags <- glint.command()
+      f(flags)
+      |> should.equal(Ok(True))
+    })
     |> glint.group_flag(
       ["sub"],
       "sub_group_flag",
       flag.int()
-        |> flag.default(1),
+      |> flag.default(1),
     )
-    |> glint.add(
-      ["sub", "sub"],
-      glint.command(fn(ctx) {
-          flag.get_int(ctx.flags, "sub_group_flag")
-          |> should.equal(Ok(2))
-        })
-        |> glint.flag(
-          "f",
-          flag.bool()
-            |> flag.default(True)
-            |> flag.description("i decided to override the global flag"),
-        ),
-    )
+    |> glint.add(["sub", "sub"], {
+      use f <- glint.flag(
+        "f",
+        flag.bool()
+        |> flag.default(True)
+        |> flag.description("i decided to override the global flag"),
+      )
+      use _, _, flags <- glint.command()
+      f(flags)
+      |> should.equal(Ok(True))
+
+      flags
+      |> flag.get_int("sub_group_flag")
+      |> should.equal(Ok(2))
+    })
 
   // root command keeps the global flag as an int
   cli

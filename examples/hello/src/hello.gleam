@@ -2,7 +2,6 @@
 import gleam/io
 import gleam/list
 import gleam/string.{uppercase}
-import gleam/dict
 // external dep imports
 import snag
 // glint imports
@@ -56,7 +55,7 @@ pub const caps = "caps"
 
 /// a boolean flag with default False to control message capitalization.
 ///
-pub fn caps_flag() -> flag.FlagBuilder(Bool) {
+pub fn caps_flag() -> flag.Builder(Bool) {
   flag.bool()
   |> flag.default(False)
   |> flag.description("Capitalize the hello message")
@@ -68,7 +67,7 @@ pub const repeat = "repeat"
 /// an int flag with default 1 to control how many times to repeat the message.
 /// this flag has the `gtz` constraint applied to it.
 ///
-pub fn repeat_flag() -> flag.FlagBuilder(Int) {
+pub fn repeat_flag() -> flag.Builder(Int) {
   flag.int()
   |> flag.default(1)
   |> flag.constraint(gtz)
@@ -87,48 +86,27 @@ fn gtz(n: Int) -> snag.Result(Nil) {
 /// the command function that will be executed as the root command
 ///
 pub fn hello_cmd() -> glint.Command(String) {
-  {
-    use input <- glint.command()
-
-    // the caps flag has a default value, so we can be sure it will always be present
-    let assert Ok(caps) = flag.get_bool(from: input.flags, for: caps)
-
-    // the repeat flag has a default value, so we can be sure it will always be present
-    let assert Ok(repeat) = flag.get_int(from: input.flags, for: repeat)
-
-    // call the hello function with all necessary inputs
-    // we can assert here because we have told glint that this command expects at least one argument
-    let assert [name, ..rest] = input.args
-    hello(name, rest, caps, repeat)
-  }
-  |> glint.description("Prints Hello, <names>!")
-  // with at least 1 unnamed argument
-  |> glint.unnamed_args(glint.MinArgs(1))
+  // register
+  use <- glint.description("Prints Hello, <names>!")
+  use <- glint.unnamed_args(glint.MinArgs(1))
+  use _, args, flags <- glint.command()
+  let assert Ok(caps) = flag.get_bool(flags, caps)
+  let assert Ok(repeat) = flag.get_int(flags, repeat)
+  let assert [name, ..rest] = args
+  hello(name, rest, caps, repeat)
 }
 
 /// the command function that will be executed as the "single" command
 ///
 pub fn hello_single_cmd() -> glint.Command(String) {
-  {
-    use input <- glint.command()
-
-    // the caps flag has a default value, so we can be sure it will always be present
-    let assert Ok(caps) = flag.get_bool(from: input.flags, for: caps)
-
-    // the repeat flag has a default value, so we can be sure it will always be present
-    let assert Ok(repeat) = flag.get_int(from: input.flags, for: repeat)
-
-    // access named args directly
-    let assert Ok(name) = dict.get(input.named_args, "name")
-
-    // call the hello function with all necessary inputs
-    hello(name, [], caps, repeat)
-  }
-  |> glint.description("Prints Hello, <name>!")
-  // with a named arg called 'name'
-  |> glint.named_args(["name"])
-  // with no unnamed arguments
-  |> glint.unnamed_args(glint.EqArgs(0))
+  use <- glint.description("Prints Hello, <name>!")
+  use <- glint.unnamed_args(glint.EqArgs(0))
+  use name <- glint.named_arg("name")
+  use named_args, _, flags <- glint.command()
+  let assert Ok(caps) = flag.get_bool(flags, caps)
+  let assert Ok(repeat) = flag.get_int(flags, repeat)
+  let name = name(named_args)
+  hello(name, [], caps, repeat)
 }
 
 // the function that describes our cli structure
@@ -144,7 +122,7 @@ pub fn app() {
   // with group level flags
   // with flag `caps` for all commands (equivalent of using glint.global_flag)
   |> glint.group_flag([], caps, caps_flag())
-  // with flag `repeat` for all commands (equivalent of using glint.global_flag)
+  // // with flag `repeat` for all commands (equivalent of using glint.global_flag)
   |> glint.group_flag([], repeat, repeat_flag())
   // with a root command that executes the `hello` function
   |> glint.add(
