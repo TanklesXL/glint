@@ -321,19 +321,6 @@ pub fn group_flag(
   )
 }
 
-/// Add a flag for a group of commands.
-/// The provided flags will be available to all commands at or beyond the provided path
-///
-/// This is a convenience function and calls `glint.group_flag` under the hood.
-///
-pub fn group_flag_tuple(
-  in glint: Glint(a),
-  at path: List(String),
-  of flag: #(String, flag.Builder(_)),
-) -> Glint(a) {
-  group_flag(in: glint, at: path, for: flag.0, of: flag.1)
-}
-
 /// add a group flag to a command node
 /// descend recursively down the command tree to find the node that the flag should be inserted at
 ///
