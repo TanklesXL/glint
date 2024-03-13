@@ -101,35 +101,35 @@ pub fn help_test() {
   let global_flag = #(
     "global",
     flag.string()
-    |> flag.description("This is a global flag"),
+      |> flag.description("This is a global flag"),
   )
 
   let flag_1 = #(
     "flag1",
     flag.string()
-    |> flag.description("This is flag1"),
+      |> flag.description("This is flag1"),
   )
 
   let flag_2 = #(
     "flag2",
     flag.int()
-    |> flag.description("This is flag2"),
+      |> flag.description("This is flag2"),
   )
   let flag_3 = #(
     "flag3",
     flag.bool()
-    |> flag.description("This is flag3"),
+      |> flag.description("This is flag3"),
   )
   let flag_4 = #(
     "flag4",
     flag.float()
-    |> flag.description("This is flag4"),
+      |> flag.description("This is flag4"),
   )
 
   let flag_5 = #(
     "flag5",
     flag.float_list()
-    |> flag.description("This is flag5"),
+      |> flag.description("This is flag5"),
   )
 
   let cli =
@@ -297,8 +297,8 @@ pub fn global_and_group_flags_test() {
       [],
       "f",
       flag.int()
-      |> flag.default(2)
-      |> flag.description("global flag example"),
+        |> flag.default(2)
+        |> flag.description("global flag example"),
     )
     |> glint.add(
       [],
@@ -311,8 +311,8 @@ pub fn global_and_group_flags_test() {
       use f <- glint.flag(
         "f",
         flag.bool()
-        |> flag.default(True)
-        |> flag.description("i decided to override the global flag"),
+          |> flag.default(True)
+          |> flag.description("i decided to override the global flag"),
       )
       use _, _, flags <- glint.command()
       f(flags)
@@ -322,14 +322,14 @@ pub fn global_and_group_flags_test() {
       ["sub"],
       "sub_group_flag",
       flag.int()
-      |> flag.default(1),
+        |> flag.default(1),
     )
     |> glint.add(["sub", "sub"], {
       use f <- glint.flag(
         "f",
         flag.bool()
-        |> flag.default(True)
-        |> flag.description("i decided to override the global flag"),
+          |> flag.default(True)
+          |> flag.description("i decided to override the global flag"),
       )
       use _, _, flags <- glint.command()
       f(flags)
