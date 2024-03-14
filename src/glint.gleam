@@ -251,7 +251,8 @@ pub fn unnamed_args(args: ArgsCount, f: fn() -> Command(b)) -> Command(b) {
 /// These named arguments will be matched with the first N arguments passed to the command
 /// All named arguments must match for a command to succeed
 /// This works in combination with CommandInput.named_args which will contain the matched args in a Dict(String,String)
-/// IMPORTANT: Matched named arguments will not be present in CommandInput.args
+///
+/// **IMPORTANT**: Matched named arguments will not be present in CommandInput.args
 ///
 pub fn named_arg(
   name: String,
