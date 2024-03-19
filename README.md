@@ -61,7 +61,7 @@ const caps = "caps"
 fn caps_flag() -> flag.FlagBuilder(Bool) {
   flag.bool()
   |> flag.default(False)
-  |> flag.description("Capitalize the provided name")
+  |> flag.description("Capitalize the hello message")
 }
 
 /// the command function that will be executed
