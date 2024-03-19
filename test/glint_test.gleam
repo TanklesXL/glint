@@ -206,7 +206,7 @@ pub fn help_test() {
       "This is the root command
 
 USAGE:
-\tgleam run -m test <arg1> <arg2> [ ARGS ] [ --flag1=<STRING> --global=<STRING> ]
+\tgleam run -m test ( cmd1 | cmd2 | cmd5 ) <arg1> <arg2> [ ARGS ] [ --flag1=<STRING> --global=<STRING> ]
 
 FLAGS:
 \t--flag1=<STRING>\t\tThis is flag1
@@ -228,7 +228,7 @@ SUBCOMMANDS:
 This is cmd1
 
 USAGE:
-\tgleam run -m test cmd1 [ ARGS ] [ --flag2=<INT> --flag5=<FLOAT_LIST> --global=<STRING> ]
+\tgleam run -m test cmd1 ( cmd3 | cmd4 ) [ ARGS ] [ --flag2=<INT> --flag5=<FLOAT_LIST> --global=<STRING> ]
 
 FLAGS:
 \t--flag2=<INT>\t\tThis is flag2

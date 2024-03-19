@@ -814,26 +814,6 @@ fn args_count_to_usage_string(count: ArgsCount) -> String {
   }
 }
 
-fn args_to_usage_string(
-  unnamed: Option(ArgsCount),
-  named: List(String),
-) -> String {
-  let named_args =
-    named
-    |> list.map(fn(s) { "<" <> s <> ">" })
-    |> string.join(" ")
-  let unnamed_args =
-    option.map(unnamed, args_count_to_usage_string)
-    |> option.unwrap("[ ARGS ]")
-
-  case named_args, unnamed_args {
-    "", "" -> ""
-    "", _ -> unnamed_args
-    _, "" -> named_args
-    _, _ -> named_args <> " " <> unnamed_args
-  }
-}
-
 /// convert a CommandHelp to a styled usage block
 ///
 fn command_help_to_usage_string(help: CommandHelp, config: Config) -> String {
@@ -844,8 +824,21 @@ fn command_help_to_usage_string(help: CommandHelp, config: Config) -> String {
   }
 
   let flags = flags_help_to_usage_string(help.flags)
+  let subcommands =
+    list.map(help.subcommands, fn(sc) { sc.name })
+    |> list.sort(string.compare)
+    |> string.join(" | ")
+    |> string_map(string.append("( ", _))
+    |> string_map(string.append(_, " )"))
 
-  let args = args_to_usage_string(help.unnamed_args, help.named_args)
+  let named_args =
+    help.named_args
+    |> list.map(fn(s) { "<" <> s <> ">" })
+    |> string.join(" ")
+
+  let unnamed_args =
+    option.map(help.unnamed_args, args_count_to_usage_string)
+    |> option.unwrap("[ ARGS ]")
 
   case config.pretty_help {
     None -> usage_heading
@@ -854,11 +847,10 @@ fn command_help_to_usage_string(help: CommandHelp, config: Config) -> String {
   <> "\n\t"
   <> app_name
   <> string_map(help.meta.name, string.append(" ", _))
-  <> case args {
-    "" -> " "
-    _ -> " " <> args <> " "
-  }
-  <> flags
+  <> string_map(subcommands, string.append(" ", _))
+  <> string_map(named_args, string.append(" ", _))
+  <> string_map(unnamed_args, string.append(" ", _))
+  <> string_map(flags, string.append(" ", _))
 }
 
 // -- HELP - FUNCTIONS - STRINGIFIERS - FLAGS --
