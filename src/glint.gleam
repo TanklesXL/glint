@@ -20,11 +20,7 @@ import gleam
 /// Config for glint
 ///
 pub type Config {
-  Config(
-    pretty_help: Option(PrettyHelp),
-    name: Option(String),
-    as_gleam_module: Bool,
-  )
+  Config(pretty_help: Option(PrettyHelp), name: Option(String), as_module: Bool)
 }
 
 /// PrettyHelp defines the header colours to be used when styling help text
@@ -40,44 +36,34 @@ pub type PrettyHelp {
 pub const default_config = Config(
   pretty_help: None,
   name: None,
-  as_gleam_module: False,
+  as_module: False,
 )
 
 // -- CONFIGURATION: FUNCTIONS --
 
 /// Add the provided config to the existing command tree
 ///
-pub fn with_config(glint: Glint(a), config: Config) -> Glint(a) {
+pub fn config(glint: Glint(a), config: Config) -> Glint(a) {
   Glint(..glint, config: config)
 }
 
 /// Enable custom colours for help text headers
 /// For a pre-made colouring use `default_pretty_help()`
 ///
-pub fn with_pretty_help(glint: Glint(a), pretty: PrettyHelp) -> Glint(a) {
-  Config(..glint.config, pretty_help: Some(pretty))
-  |> with_config(glint, _)
-}
-
-/// Disable custom colours for help text headers
-///
-pub fn without_pretty_help(glint: Glint(a)) -> Glint(a) {
-  Config(..glint.config, pretty_help: None)
-  |> with_config(glint, _)
+pub fn pretty_help(glint: Glint(a), pretty: PrettyHelp) -> Glint(a) {
+  config(glint, Config(..glint.config, pretty_help: Some(pretty)))
 }
 
 /// Give the current glint application a name
 ///
-pub fn with_name(glint: Glint(a), name: String) -> Glint(a) {
-  Config(..glint.config, name: Some(name))
-  |> with_config(glint, _)
+pub fn name(glint: Glint(a), name: String) -> Glint(a) {
+  config(glint, Config(..glint.config, name: Some(name)))
 }
 
 /// Adjust the generated help text to reflect that the current glint app should be run as a gleam module.
 /// Use in conjunction with `glint.with_name` to get usage text output like `gleam run -m <name>`
-pub fn as_gleam_module(glint: Glint(a)) -> Glint(a) {
-  Config(..glint.config, as_gleam_module: True)
-  |> with_config(glint, _)
+pub fn as_module(glint: Glint(a)) -> Glint(a) {
+  config(glint, Config(..glint.config, as_module: True))
 }
 
 // --- CORE ---
@@ -211,7 +197,7 @@ fn empty_command() -> CommandNode(a) {
   CommandNode(
     contents: None,
     subcommands: dict.new(),
-    group_flags: flag.build_flags([]),
+    group_flags: flag.flags(),
   )
 }
 
@@ -228,7 +214,7 @@ fn sanitize_path(path: List(String)) -> List(String) {
 pub fn command(do runner: Runner(a)) -> Command(a) {
   Command(
     do: runner,
-    flags: flag.build_flags([]),
+    flags: flag.flags(),
     description: "",
     unnamed_args: None,
     named_args: [],
@@ -260,20 +246,22 @@ pub fn named_arg(
 ) -> Command(a) {
   let cmd =
     f(fn(named_args) {
+      // we can let assert here because the command runner will only execute if the named args match
       let assert Ok(arg) = dict.get(named_args.internal, name)
       arg
     })
   Command(..cmd, named_args: [name, ..cmd.named_args])
 }
 
-/// Add a `flag.Flag` to a `Command`
+/// Add a `flag.Builder` to a `Command`
 ///
 pub fn flag(
   name: String,
   builder: flag.Builder(a),
   f: fn(fn(Flags) -> Result(a)) -> Command(b),
 ) -> Command(b) {
-  let #(flag, getter) = flag.build_access(builder)
+  let flag = flag.build(builder)
+  let getter = flag.getter(builder)
   let cmd = f(getter(_, name))
   Command(..cmd, flags: flag.insert(cmd.flags, name, flag.build(builder)))
 }
@@ -764,7 +752,7 @@ fn args_count_to_usage_string(count: ArgsCount) -> String {
 ///
 fn command_help_to_usage_string(help: CommandHelp, config: Config) -> String {
   let app_name = case config.name {
-    Some(name) if config.as_gleam_module -> "gleam run -m " <> name
+    Some(name) if config.as_module -> "gleam run -m " <> name
     Some(name) -> name
     None -> "gleam run"
   }

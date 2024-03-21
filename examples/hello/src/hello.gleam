@@ -65,20 +65,16 @@ pub fn caps_flag() -> flag.Builder(Bool) {
 pub const repeat = "repeat"
 
 /// an int flag with default 1 to control how many times to repeat the message.
-/// this flag has the `gtz` constraint applied to it.
+/// this flag is constrained to values greater than 0.
 ///
 pub fn repeat_flag() -> flag.Builder(Int) {
-  flag.int()
-  |> flag.default(1)
-  |> flag.constraint(gtz)
-  |> flag.description("Repeat the message n-times")
-}
-
-/// gtz is a Constraint(Int) and ensures that the provided value is greater than zero.
-///
-fn gtz(n: Int) -> snag.Result(Nil) {
+  use n <- flag.constraint(
+    flag.int()
+    |> flag.default(1)
+    |> flag.description("Repeat the message n-times"),
+  )
   case n {
-    _ if n > 0 -> Ok(Nil)
+    _ if n > 0 -> Ok(n)
     _ -> snag.error("Value must be greater than 0.")
   }
 }
@@ -116,7 +112,7 @@ pub fn app() {
   // with an app name of "hello", this is used when printing help text
   |> glint.with_name("hello")
   // show in usage text that the current app is run as a gleam module
-  |> glint.as_gleam_module
+  |> glint.as_module
   // with pretty help enabled, using the built-in colours
   |> glint.with_pretty_help(glint.default_pretty_help())
   // with group level flags

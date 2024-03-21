@@ -128,14 +128,14 @@ pub fn help_test() {
 
   let flag_5 = #(
     "flag5",
-    flag.float_list()
+    flag.floats()
       |> flag.description("This is flag5"),
   )
 
   let cli =
     glint.new()
-    |> glint.with_name("test")
-    |> glint.as_gleam_module
+    |> glint.name("test")
+    |> glint.as_module
     |> glint.group_flag([], global_flag.0, global_flag.1)
     |> glint.add(at: [], do: {
       use <- glint.description("This is the root command")

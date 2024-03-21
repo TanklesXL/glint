@@ -1,19 +1,20 @@
 import gleeunit/should
 import glint
 import glint/flag
+import gleam/list
 
 pub fn update_flag_test() {
   let flags =
     [
       #("bflag", flag.build(flag.bool())),
       #("sflag", flag.build(flag.string())),
-      #("lsflag", flag.build(flag.string_list())),
+      #("lsflag", flag.build(flag.strings())),
       #("iflag", flag.build(flag.int())),
-      #("liflag", flag.build(flag.int_list())),
+      #("liflag", flag.build(flag.ints())),
       #("fflag", flag.build(flag.float())),
-      #("lfflag", flag.build(flag.float_list())),
+      #("lfflag", flag.build(flag.floats())),
     ]
-    |> flag.build_flags()
+    |> list.fold(flag.flags(), fn(flags, t) { flag.insert(flags, t.0, t.1) })
 
   // update non-existent flag fails
   flags
@@ -192,7 +193,7 @@ pub fn bool_flag_test() {
 }
 
 pub fn strings_flag_test() {
-  let flags = #("flag", flag.string_list())
+  let flags = #("flag", flag.strings())
   let flag_input = "--flag=val3,val4"
   let expect_flag_value_list = fn(flag) {
     glint.command(fn(_, _, flags) {
@@ -207,7 +208,7 @@ pub fn strings_flag_test() {
 }
 
 pub fn ints_flag_test() {
-  let flag = #("flag", flag.int_list())
+  let flag = #("flag", flag.ints())
 
   // fails to parse input for flag as int list, returns error
   let flag_input = "--flag=val3,val4"
@@ -264,7 +265,7 @@ pub fn float_flag_test() {
 }
 
 pub fn floats_flag_test() {
-  let flag = #("flag", flag.float_list())
+  let flag = #("flag", flag.floats())
 
   // fails to parse input for flag as float list, returns error
   let flag_input = "--flag=val3,val4"
@@ -301,19 +302,19 @@ pub fn global_flag_test() {
 
   // set global flag, pass in  new value for flag
   glint.new()
-  |> glint.group_flag([], "flag", flag.float_list())
+  |> glint.group_flag([], "flag", flag.floats())
   |> glint.add(at: [], do: testcase([3.0, 4.0]))
   |> glint.execute(["--flag=3.0,4.0"])
   |> should.be_ok()
 
   // set global flag and local flag, local flag should take priority
   glint.new()
-  |> glint.group_flag([], "flag", flag.float_list())
+  |> glint.group_flag([], "flag", flag.floats())
   |> glint.add(
     at: [],
     do: glint.flag(
       "flag",
-      flag.float_list()
+      flag.floats()
         |> flag.default([1.0, 2.0]),
       fn(_) { testcase([1.0, 2.0]) },
     ),
@@ -326,13 +327,13 @@ pub fn global_flag_test() {
   |> glint.group_flag(
     [],
     "flag",
-    flag.float_list()
+    flag.floats()
       |> flag.default([3.0, 4.0]),
   )
   |> glint.add(at: [], do: {
     use _flag <- glint.flag(
       "flag",
-      flag.float_list()
+      flag.floats()
         |> flag.default([1.0, 2.0]),
     )
 
@@ -429,7 +430,7 @@ pub fn getters_test() {
       #(
         "lsflag",
         flag.build(
-          flag.string_list()
+          flag.strings()
           |> flag.default([]),
         ),
       ),
@@ -443,7 +444,7 @@ pub fn getters_test() {
       #(
         "liflag",
         flag.build(
-          flag.int_list()
+          flag.ints()
           |> flag.default([]),
         ),
       ),
@@ -457,12 +458,12 @@ pub fn getters_test() {
       #(
         "lfflag",
         flag.build(
-          flag.float_list()
+          flag.floats()
           |> flag.default([]),
         ),
       ),
     ]
-    |> flag.build_flags()
+    |> list.fold(flag.flags(), fn(flags, t) { flag.insert(flags, t.0, t.1) })
 
   flag.get_bool(flags, "bflag")
   |> should.equal(Ok(True))

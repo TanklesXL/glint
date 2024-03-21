@@ -6,7 +6,7 @@ import gleam/list
 pub fn one_of_test() {
   1
   |> one_of([1, 2, 3])
-  |> should.equal(Ok(Nil))
+  |> should.equal(Ok(1))
 
   1
   |> one_of([2, 3, 4])
@@ -18,7 +18,7 @@ pub fn one_of_test() {
     |> one_of
     |> each
   }
-  |> should.equal(Ok(Nil))
+  |> should.equal(Ok([1, 2, 3]))
 
   [1, 6, 3]
   |> {
@@ -36,7 +36,7 @@ pub fn none_of_test() {
 
   1
   |> constraint.none_of([2, 3, 4])
-  |> should.equal(Ok(Nil))
+  |> should.equal(Ok(1))
 
   [1, 2, 3]
   |> {
@@ -44,7 +44,7 @@ pub fn none_of_test() {
     |> none_of
     |> each
   }
-  |> should.equal(Ok(Nil))
+  |> should.equal(Ok([1, 2, 3]))
 
   [1, 6, 3]
   |> {
@@ -68,7 +68,7 @@ pub fn flag_one_of_none_of_test() {
     ),
     #(
       "li",
-      flag.int_list()
+      flag.ints()
         |> flag.constraint(
           [1, 2, 3]
           |> one_of
@@ -94,7 +94,7 @@ pub fn flag_one_of_none_of_test() {
     ),
     #(
       "lf",
-      flag.float_list()
+      flag.floats()
         |> flag.constraint(
           [1.0, 2.0, 3.0]
           |> one_of()
@@ -120,7 +120,7 @@ pub fn flag_one_of_none_of_test() {
     ),
     #(
       "ls",
-      flag.string_list()
+      flag.strings()
         |> flag.constraint(
           ["t1", "t2", "t3"]
           |> one_of
@@ -144,13 +144,13 @@ pub fn flag_one_of_none_of_test() {
 
   let input_flag = "--" <> test_flag_name <> "="
 
-  [#(test_flag_name, test_flag)]
-  |> flag.build_flags()
+  flag.flags()
+  |> flag.insert(test_flag_name, test_flag)
   |> flag.update_flags(input_flag <> success)
   |> should.be_ok
 
-  [#(test_flag_name, test_flag)]
-  |> flag.build_flags()
+  flag.flags()
+  |> flag.insert(test_flag_name, test_flag)
   |> flag.update_flags(input_flag <> failure)
   |> should.be_error
 }

@@ -84,7 +84,7 @@ pub fn int() -> Builder(Int) {
 
 /// initialise an int list flag builder
 ///
-pub fn int_list() -> Builder(List(Int)) {
+pub fn ints() -> Builder(List(Int)) {
   use input <- new(LI, get_ints)
   input
   |> string.split(",")
@@ -103,7 +103,7 @@ pub fn float() -> Builder(Float) {
 
 /// initialise a float list flag builder
 ///
-pub fn float_list() -> Builder(List(Float)) {
+pub fn floats() -> Builder(List(Float)) {
   use input <- new(LF, get_floats)
   input
   |> string.split(",")
@@ -119,7 +119,7 @@ pub fn string() -> Builder(String) {
 
 /// intitialise a string list flag builder
 ///
-pub fn string_list() -> Builder(List(String)) {
+pub fn strings() -> Builder(List(String)) {
   use input <- new(LS, get_strings)
   input
   |> string.split(",")
@@ -156,16 +156,10 @@ pub fn build(fb: Builder(a)) -> Flag {
   )
 }
 
-/// convert a Builder(a) into its corresponding Flag representation as well as retrieve it's accessor function
+/// get the accessor function for retrieving a flag value
 ///
-pub fn build_access(fb: Builder(a)) -> #(Flag, fn(Flags, String) -> Result(a)) {
-  #(
-    Flag(
-      value: fb.value(Internal(value: fb.default, parser: fb.parser)),
-      description: fb.desc,
-    ),
-    fb.getter,
-  )
+pub fn getter(fb: Builder(a)) -> fn(Flags, String) -> Result(a) {
+  fb.getter
 }
 
 /// attach a constraint to a `Flag`
@@ -237,8 +231,8 @@ pub fn fold(flags: Flags, acc: acc, f: fn(acc, String, Flag) -> acc) -> acc {
 
 /// Convert a list of flags to a Flags.
 ///
-pub fn build_flags(flags: List(#(String, Flag))) -> Flags {
-  Flags(dict.from_list(flags))
+pub fn flags() -> Flags {
+  Flags(dict.new())
 }
 
 /// Updates a flag value, ensuring that the new value can satisfy the required type.
@@ -347,7 +341,7 @@ fn cannot_parse(with value: String, is kind: String) -> Snag {
 
 /// Access the contents for the associated flag
 ///
-pub fn get(flags: Flags, name: String) -> Result(Flag) {
+fn get(flags: Flags, name: String) -> Result(Flag) {
   dict.get(flags.internal, name)
   |> result.replace_error(undefined_flag_err(name))
 }
@@ -364,7 +358,7 @@ fn get_value(
 
 /// Gets the current value for the provided int flag
 ///
-pub fn get_int_value(from flag: Flag) -> Result(Int) {
+fn get_int_value(from flag: Flag) -> Result(Int) {
   case flag.value {
     I(Internal(value: Some(val), ..)) -> Ok(val)
     I(Internal(value: None, ..)) -> flag_not_provided_error()
@@ -380,7 +374,7 @@ pub fn get_int(from flags: Flags, for name: String) -> Result(Int) {
 
 /// Gets the current value for the provided ints flag
 ///
-pub fn get_ints_value(from flag: Flag) -> Result(List(Int)) {
+fn get_ints_value(from flag: Flag) -> Result(List(Int)) {
   case flag.value {
     LI(Internal(value: Some(val), ..)) -> Ok(val)
     LI(Internal(value: None, ..)) -> flag_not_provided_error()
@@ -396,7 +390,7 @@ pub fn get_ints(from flags: Flags, for name: String) -> Result(List(Int)) {
 
 /// Gets the current value for the provided bool flag
 ///
-pub fn get_bool_value(from flag: Flag) -> Result(Bool) {
+fn get_bool_value(from flag: Flag) -> Result(Bool) {
   case flag.value {
     B(Internal(Some(val), ..)) -> Ok(val)
     B(Internal(None, ..)) -> flag_not_provided_error()
@@ -412,7 +406,7 @@ pub fn get_bool(from flags: Flags, for name: String) -> Result(Bool) {
 
 /// Gets the current value for the provided string flag
 ///
-pub fn get_string_value(from flag: Flag) -> Result(String) {
+fn get_string_value(from flag: Flag) -> Result(String) {
   case flag.value {
     S(Internal(value: Some(val), ..)) -> Ok(val)
     S(Internal(value: None, ..)) -> flag_not_provided_error()
@@ -428,7 +422,7 @@ pub fn get_string(from flags: Flags, for name: String) -> Result(String) {
 
 /// Gets the current value for the provided strings flag
 ///
-pub fn get_strings_value(from flag: Flag) -> Result(List(String)) {
+fn get_strings_value(from flag: Flag) -> Result(List(String)) {
   case flag.value {
     LS(Internal(value: Some(val), ..)) -> Ok(val)
     LS(Internal(value: None, ..)) -> flag_not_provided_error()
@@ -444,7 +438,7 @@ pub fn get_strings(from flags: Flags, for name: String) -> Result(List(String)) 
 
 /// Gets the current value for the provided float flag
 ///
-pub fn get_float_value(from flag: Flag) -> Result(Float) {
+fn get_float_value(from flag: Flag) -> Result(Float) {
   case flag.value {
     F(Internal(value: Some(val), ..)) -> Ok(val)
     F(Internal(value: None, ..)) -> flag_not_provided_error()
@@ -460,7 +454,7 @@ pub fn get_float(from flags: Flags, for name: String) -> Result(Float) {
 
 /// Gets the current value for the provided floats flag
 ///
-pub fn get_floats_value(from flag: Flag) -> Result(List(Float)) {
+fn get_floats_value(from flag: Flag) -> Result(List(Float)) {
   case flag.value {
     LF(Internal(value: Some(val), ..)) -> Ok(val)
     LF(Internal(value: None, ..)) -> flag_not_provided_error()
