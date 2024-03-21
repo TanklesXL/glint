@@ -6,7 +6,7 @@ import gleam/io
 import gleam/int
 import gleam/string
 import snag.{type Result}
-import glint/flag.{type Flag, type Map as FlagMap}
+import glint/flag.{type Flag, type Flags}
 import gleam/string_builder as sb
 import gleam_community/ansi
 import gleam_community/colour.{type Colour}
@@ -106,34 +106,28 @@ pub type ArgsCount {
 pub opaque type Command(a) {
   Command(
     do: Runner(a),
-    flags: FlagMap,
+    flags: Flags,
     description: String,
     unnamed_args: Option(ArgsCount),
     named_args: List(String),
   )
 }
 
-/// The input type for `Runner`.
+pub opaque type NamedArgs {
+  NamedArgs(internal: dict.Dict(String, String))
+}
+
+/// Functions that execute as part of glint commands.
 ///
-/// Arguments passed to `glint` are provided as the `args` field.
+/// Named Arguments that a command expects will be present in the first parameter and accessible by .
 ///
 /// Flags passed to `glint` are provided as the `flags` field.
 ///
-/// If named arguments are specified at command creation, they will be accessible via the `named_args` field.
-/// IMPORTANT: Arguments matched by `named_args` will not be present in the `args` field.
 ///
-pub type CommandInput {
-  CommandInput(
-    args: List(String),
-    flags: FlagMap,
-    named_args: dict.Dict(String, String),
-  )
-}
-
 /// Function type to be run by `glint`.
 ///
 pub type Runner(a) =
-  fn(CommandInput) -> a
+  fn(NamedArgs, List(String), Flags) -> a
 
 /// CommandNode tree representation.
 ///
@@ -141,7 +135,7 @@ type CommandNode(a) {
   CommandNode(
     contents: Option(Command(a)),
     subcommands: dict.Dict(String, CommandNode(a)),
-    group_flags: FlagMap,
+    group_flags: Flags,
   )
 }
 
@@ -214,7 +208,11 @@ fn do_add(
 /// Helper for initializing empty commands
 ///
 fn empty_command() -> CommandNode(a) {
-  CommandNode(contents: None, subcommands: dict.new(), group_flags: dict.new())
+  CommandNode(
+    contents: None,
+    subcommands: dict.new(),
+    group_flags: flag.build_flags([]),
+  )
 }
 
 /// Trim each path element and remove any resulting empty strings.
@@ -230,7 +228,7 @@ fn sanitize_path(path: List(String)) -> List(String) {
 pub fn command(do runner: Runner(a)) -> Command(a) {
   Command(
     do: runner,
-    flags: dict.new(),
+    flags: flag.build_flags([]),
     description: "",
     unnamed_args: None,
     named_args: [],
@@ -239,92 +237,55 @@ pub fn command(do runner: Runner(a)) -> Command(a) {
 
 /// Attach a description to a Command(a)
 ///
-pub fn description(cmd: Command(a), description: String) -> Command(a) {
-  Command(..cmd, description: description)
+pub fn description(desc: String, f: fn() -> Command(a)) -> Command(a) {
+  Command(..f(), description: desc)
 }
 
 /// Specify a specific number of unnamed args that a given command expects
 ///
-pub fn unnamed_args(cmd: Command(a), count: ArgsCount) -> Command(a) {
-  Command(..cmd, unnamed_args: Some(count))
+pub fn unnamed_args(args: ArgsCount, f: fn() -> Command(b)) -> Command(b) {
+  Command(..f(), unnamed_args: Some(args))
 }
 
 /// Add a list of named arguments to a Command
 /// These named arguments will be matched with the first N arguments passed to the command
 /// All named arguments must match for a command to succeed
 /// This works in combination with CommandInput.named_args which will contain the matched args in a Dict(String,String)
-/// IMPORTANT: Matched named arguments will not be present in CommandInput.args
 ///
-pub fn named_args(cmd: Command(a), args: List(String)) -> Command(a) {
-  Command(..cmd, named_args: args)
+/// **IMPORTANT**: Matched named arguments will not be present in CommandInput.args
+///
+pub fn named_arg(
+  name: String,
+  f: fn(fn(NamedArgs) -> String) -> Command(a),
+) -> Command(a) {
+  let cmd =
+    f(fn(named_args) {
+      let assert Ok(arg) = dict.get(named_args.internal, name)
+      arg
+    })
+  Command(..cmd, named_args: [name, ..cmd.named_args])
 }
 
 /// Add a `flag.Flag` to a `Command`
 ///
 pub fn flag(
-  cmd: Command(a),
-  at key: String,
-  of flag: flag.FlagBuilder(_),
-) -> Command(a) {
-  Command(..cmd, flags: dict.insert(cmd.flags, key, flag.build(flag)))
+  name: String,
+  builder: flag.Builder(a),
+  f: fn(fn(Flags) -> Result(a)) -> Command(b),
+) -> Command(b) {
+  let #(flag, getter) = flag.build_access(builder)
+  let cmd = f(getter(_, name))
+  Command(..cmd, flags: flag.insert(cmd.flags, name, flag.build(builder)))
 }
 
-/// Add a `flag.Flag to a `Command` when the flag name and builder are bundled as a #(String, flag.FlagBuilder(a)).
-///
-/// This is merely a convenience function and calls `glint.flag` under the hood.
-///
-pub fn flag_tuple(
-  cmd: Command(a),
-  with tup: #(String, flag.FlagBuilder(_)),
-) -> Command(a) {
-  flag(cmd, tup.0, tup.1)
-}
-
-/// Add multiple `Flag`s to a `Command`, note that this function uses `Flag` and not `FlagBuilder(_)`.
+/// Add multiple `Flag`s to a `Command`, note that this function uses `Flag` and not `Builder(_)`.
 /// The user will need to call `flag.build` before providing the flags here.
 ///
 /// It is recommended to call `glint.flag` instead.
 ///
 pub fn flags(cmd: Command(a), with flags: List(#(String, Flag))) -> Command(a) {
   use cmd, #(key, flag) <- list.fold(flags, cmd)
-  Command(..cmd, flags: dict.insert(cmd.flags, key, flag))
-}
-
-/// Add global flags to the existing command tree
-/// This is the equivalent to calling `glint.group_flag` with a path parameter of `[]`.
-///
-///
-@deprecated("use group_flag with a path parameter of [] instead")
-pub fn global_flag(
-  glint: Glint(a),
-  at key: String,
-  of flag: flag.FlagBuilder(_),
-) -> Glint(a) {
-  group_flag(in: glint, at: [], for: key, of: flag)
-}
-
-/// Add global flags to the existing command tree.
-/// This is the equivalent to calling `glint.group_flag_tuple` with a path parameter of `[]`.
-///
-@deprecated("use group_flag_tuple with a path parameter of [] instead")
-pub fn global_flag_tuple(
-  glint: Glint(a),
-  with tup: #(String, flag.FlagBuilder(_)),
-) -> Glint(a) {
-  group_flag(glint, [], tup.0, tup.1)
-}
-
-/// Add global flags to the existing command tree.
-///
-/// Like `glint.flags`, this function requires `Flag`s insead of `FlagBuilder(_)`.
-/// This is the equivalent to calling `glint.group_flags` with a path parameter of `[]`.
-///
-/// Note: use of this function requires calling `flag.build` yourself on any `flag.FlagBuilder`s you wish to convert to `flag.Flag`s
-/// It is recommended to use `glint.global_flag` instead.
-///
-@deprecated("use group_flags with a path parameter of [] instead")
-pub fn global_flags(glint: Glint(a), flags: List(#(String, Flag))) -> Glint(a) {
-  group_flags(in: glint, at: [], with: flags)
+  Command(..cmd, flags: flag.insert(cmd.flags, key, flag))
 }
 
 /// Add flags for groups of commands.
@@ -332,7 +293,7 @@ pub fn global_flags(glint: Glint(a), flags: List(#(String, Flag))) -> Glint(a) {
 ///
 /// The provided flags will be available to all commands at or beyond the provided path
 ///
-/// Note: use of this function requires calling `flag.build` yourself on any `flag.FlagBuilder`s you wish to convert to `flag.Flag`s
+/// Note: use of this function requires calling `flag.build` yourself on any `flag.Builder`s you wish to convert to `flag.Flag`s
 ///
 pub fn group_flags(
   in glint: Glint(a),
@@ -353,25 +314,12 @@ pub fn group_flag(
   in glint: Glint(a),
   at path: List(String),
   for name: String,
-  of flag: flag.FlagBuilder(_),
+  of flag: flag.Builder(_),
 ) -> Glint(a) {
   Glint(
     ..glint,
     cmd: do_group_flag(in: glint.cmd, at: path, for: name, of: flag.build(flag)),
   )
-}
-
-/// Add a flag for a group of commands.
-/// The provided flags will be available to all commands at or beyond the provided path
-///
-/// This is a convenience function and calls `glint.group_flag` under the hood.
-///
-pub fn group_flag_tuple(
-  in glint: Glint(a),
-  at path: List(String),
-  of flag: #(String, flag.FlagBuilder(_)),
-) -> Glint(a) {
-  group_flag(in: glint, at: path, for: flag.0, of: flag.1)
 }
 
 /// add a group flag to a command node
@@ -387,7 +335,7 @@ fn do_group_flag(
     [] ->
       CommandNode(
         ..node,
-        group_flags: dict.insert(node.group_flags, name, flag),
+        group_flags: flag.insert(node.group_flags, name, flag),
       )
 
     [head, ..tail] ->
@@ -464,7 +412,7 @@ fn do_execute(
           let sub_command =
             CommandNode(
               ..sub_command,
-              group_flags: dict.merge(cmd.group_flags, sub_command.group_flags),
+              group_flags: flag.merge(cmd.group_flags, sub_command.group_flags),
             )
           do_execute(sub_command, config, rest, flags, help, [
             arg,
@@ -513,7 +461,7 @@ fn execute_root(
       use contents <- option.map(cmd.contents)
       use new_flags <- result.try(list.try_fold(
         over: flag_inputs,
-        from: dict.merge(cmd.group_flags, contents.flags),
+        from: flag.merge(cmd.group_flags, contents.flags),
         with: flag.update_flags,
       ))
 
@@ -544,9 +492,7 @@ fn execute_root(
         None -> Ok(Nil)
       })
 
-      CommandInput(args, new_flags, named_args)
-      |> contents.do
-      |> Out
+      Out(contents.do(NamedArgs(named_args), args, new_flags))
     }
     |> option.unwrap(snag.error("command not found"))
     |> snag.context("failed to run command")
@@ -625,7 +571,7 @@ const help_flag_message = "--help\t\t\tPrint help information"
 /// Function to create the help flag string
 /// Exported for testing purposes only
 ///
-pub fn help_flag() -> String {
+fn help_flag() -> String {
   flag.prefix <> help_flag_name
 }
 
@@ -698,7 +644,7 @@ fn build_command_help_metadata(
     None -> #("", [], None, [])
     Some(cmd) -> #(
       cmd.description,
-      build_flags_help(dict.merge(node.group_flags, cmd.flags)),
+      build_flags_help(flag.merge(node.group_flags, cmd.flags)),
       cmd.unnamed_args,
       cmd.named_args,
     )
@@ -729,8 +675,8 @@ fn flag_type_info(flag: Flag) {
 
 /// build the help representation for a list of flags
 ///
-fn build_flags_help(flag: FlagMap) -> List(FlagHelp) {
-  use acc, name, flag <- dict.fold(flag, [])
+fn build_flags_help(flags: Flags) -> List(FlagHelp) {
+  use acc, name, flag <- flag.fold(flags, [])
   [
     FlagHelp(
       meta: Metadata(name: name, description: flag.description),

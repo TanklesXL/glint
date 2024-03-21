@@ -24,7 +24,7 @@ gleam add glint
 1. create a new glint instance with `glint.new`
 1. configure it with `glint.with_pretty_help` and other configuration functions
 1. add commands with `glint.add`
-   1. create a new command with `glint.cmd`
+   1. create a new command with `glint.command`
    1. assign that command any flags required
    1. assign the command a custom description
 1. run your cli with `glnt.run`, run with a function to handle command output with `glint.run_and_handle`
@@ -53,31 +53,26 @@ import argv
 import glint
 import glint/flag
 
-/// the key for the caps flag
-const caps = "caps"
 
-/// a boolean flag with default False to control message capitalization.
-///
-fn caps_flag() -> flag.FlagBuilder(Bool) {
+// this function returns the builder for the caps flag
+fn caps_flag() -> flag.Builder(Bool) {
   flag.bool()
   |> flag.default(False)
   |> flag.description("Capitalize the hello message")
 }
 
-/// the command function that will be executed
+/// the glint command that will be executed
 ///
-fn hello(input: glint.CommandInput) -> Nil {
-  let assert Ok(caps) = flag.get_bool(from: input.flags, for: caps)
-
-  let name =
-    case input.args {
+fn hello() -> glint.Command(Nil) {
+  use <- glint.description("Prints Hello, <NAME>!")
+  use caps <- glint.flag("caps",caps_flag())
+  use _, args, flags <- glint.command()
+  let assert Ok(caps) = caps(flags)
+  let name = case args {
         [] -> "Joe"
         [name,..] -> name
-    }
-
+  }
   let msg = "Hello, " <> name <> "!"
-
-
   case caps {
     True -> uppercase(msg)
     False -> msg
@@ -93,16 +88,8 @@ pub fn main() {
   // with pretty help enabled, using the built-in colours
   |> glint.with_pretty_help(glint.default_pretty_help())
   // with a root command that executes the `hello` function
-  |> glint.add(
-      // add the command to the root
-      at: [],
-      // create the command, add any flags
-      do: glint.command(hello)
-      // with flag `caps`
-      |> glint.flag(caps, caps_flag())
-      // with a short description
-      |> glint.description("Prints Hello, <NAME>!"),
-  )
+  |> glint.add(at: [], do: hello)
+  // execute given arguments from stdin
   |> glint.run(argv.load().arguments)
 }
 ```

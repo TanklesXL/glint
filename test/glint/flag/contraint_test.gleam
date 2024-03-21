@@ -145,12 +145,12 @@ pub fn flag_one_of_none_of_test() {
   let input_flag = "--" <> test_flag_name <> "="
 
   [#(test_flag_name, test_flag)]
-  |> flag.build_map()
+  |> flag.build_flags()
   |> flag.update_flags(input_flag <> success)
   |> should.be_ok
 
   [#(test_flag_name, test_flag)]
-  |> flag.build_map()
+  |> flag.build_flags()
   |> flag.update_flags(input_flag <> failure)
   |> should.be_error
 }

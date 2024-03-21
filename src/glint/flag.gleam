@@ -52,11 +52,12 @@ pub type Value {
 
 /// A type that facilitates the creation of `Flag`s
 ///
-pub opaque type FlagBuilder(a) {
-  FlagBuilder(
+pub opaque type Builder(a) {
+  Builder(
     desc: Description,
     parser: Parser(a, Snag),
     value: fn(Internal(a)) -> Value,
+    getter: fn(Flags, String) -> Result(a),
     default: Option(a),
   )
 }
@@ -74,8 +75,8 @@ type Parser(a, b) =
 
 /// initialise an int flag builder
 ///
-pub fn int() -> FlagBuilder(Int) {
-  use input <- new(I)
+pub fn int() -> Builder(Int) {
+  use input <- new(I, get_int)
   input
   |> int.parse
   |> result.replace_error(cannot_parse(input, "int"))
@@ -83,8 +84,8 @@ pub fn int() -> FlagBuilder(Int) {
 
 /// initialise an int list flag builder
 ///
-pub fn int_list() -> FlagBuilder(List(Int)) {
-  use input <- new(LI)
+pub fn int_list() -> Builder(List(Int)) {
+  use input <- new(LI, get_ints)
   input
   |> string.split(",")
   |> list.try_map(int.parse)
@@ -93,8 +94,8 @@ pub fn int_list() -> FlagBuilder(List(Int)) {
 
 /// initialise a float flag builder
 ///
-pub fn float() -> FlagBuilder(Float) {
-  use input <- new(F)
+pub fn float() -> Builder(Float) {
+  use input <- new(F, get_float)
   input
   |> float.parse
   |> result.replace_error(cannot_parse(input, "float"))
@@ -102,8 +103,8 @@ pub fn float() -> FlagBuilder(Float) {
 
 /// initialise a float list flag builder
 ///
-pub fn float_list() -> FlagBuilder(List(Float)) {
-  use input <- new(LF)
+pub fn float_list() -> Builder(List(Float)) {
+  use input <- new(LF, get_floats)
   input
   |> string.split(",")
   |> list.try_map(float.parse)
@@ -112,23 +113,23 @@ pub fn float_list() -> FlagBuilder(List(Float)) {
 
 /// initialise a string flag builder
 ///
-pub fn string() -> FlagBuilder(String) {
-  new(S, fn(s) { Ok(s) })
+pub fn string() -> Builder(String) {
+  new(S, get_string, fn(s) { Ok(s) })
 }
 
 /// intitialise a string list flag builder
-/// 
-pub fn string_list() -> FlagBuilder(List(String)) {
-  use input <- new(LS)
+///
+pub fn string_list() -> Builder(List(String)) {
+  use input <- new(LS, get_strings)
   input
   |> string.split(",")
   |> Ok
 }
 
 /// initialise a bool flag builder
-/// 
-pub fn bool() -> FlagBuilder(Bool) {
-  use input <- new(B)
+///
+pub fn bool() -> Builder(Bool) {
+  use input <- new(B, get_bool)
   case string.lowercase(input) {
     "true" | "t" -> Ok(True)
     "false" | "f" -> Ok(False)
@@ -137,34 +138,44 @@ pub fn bool() -> FlagBuilder(Bool) {
 }
 
 /// initialize custom builders using a Value constructor and a parsing function
-/// 
-fn new(valuer: fn(Internal(a)) -> Value, p: Parser(a, Snag)) -> FlagBuilder(a) {
-  FlagBuilder(desc: "", parser: p, value: valuer, default: None)
+///
+fn new(
+  valuer: fn(Internal(a)) -> Value,
+  getter: fn(Flags, String) -> Result(a),
+  p: Parser(a, Snag),
+) -> Builder(a) {
+  Builder(desc: "", parser: p, value: valuer, default: None, getter: getter)
 }
 
-/// convert a FlagBuilder(a) into its corresponding Flag representation
-/// 
-pub fn build(fb: FlagBuilder(a)) -> Flag {
+/// convert a Builder(a) into its corresponding Flag representation
+///
+pub fn build(fb: Builder(a)) -> Flag {
   Flag(
     value: fb.value(Internal(value: fb.default, parser: fb.parser)),
     description: fb.desc,
   )
 }
 
-/// attach a constraint to a `Flag`
+/// convert a Builder(a) into its corresponding Flag representation as well as retrieve it's accessor function
 ///
-pub fn constraint(
-  builder: FlagBuilder(a),
-  constraint: Constraint(a),
-) -> FlagBuilder(a) {
-  FlagBuilder(
-    ..builder,
-    parser: wrap_with_constraint(builder.parser, constraint),
+pub fn build_access(fb: Builder(a)) -> #(Flag, fn(Flags, String) -> Result(a)) {
+  #(
+    Flag(
+      value: fb.value(Internal(value: fb.default, parser: fb.parser)),
+      description: fb.desc,
+    ),
+    fb.getter,
   )
 }
 
+/// attach a constraint to a `Flag`
+///
+pub fn constraint(builder: Builder(a), constraint: Constraint(a)) -> Builder(a) {
+  Builder(..builder, parser: wrap_with_constraint(builder.parser, constraint))
+}
+
 /// attach a Constraint(a) to a Parser(a,Snag)
-/// this function should not be used directly unless 
+/// this function should not be used directly unless
 fn wrap_with_constraint(
   p: Parser(a, Snag),
   constraint: Constraint(a),
@@ -194,34 +205,47 @@ pub type Flag {
 /// attach a description to a `Flag`
 ///
 pub fn description(
-  for builder: FlagBuilder(a),
+  for builder: Builder(a),
   of description: Description,
-) -> FlagBuilder(a) {
-  FlagBuilder(..builder, desc: description)
+) -> Builder(a) {
+  Builder(..builder, desc: description)
 }
 
 /// Set the default value for a flag `Value`
 ///
-pub fn default(for builder: FlagBuilder(a), of default: a) -> FlagBuilder(a) {
-  FlagBuilder(..builder, default: Some(default))
+pub fn default(for builder: Builder(a), of default: a) -> Builder(a) {
+  Builder(..builder, default: Some(default))
 }
 
-/// Associate flag names to their current values.
+/// Flag names and their associated values
 ///
-pub type Map =
-  dict.Dict(String, Flag)
+pub opaque type Flags {
+  Flags(internal: dict.Dict(String, Flag))
+}
 
-/// Convert a list of flags to a Map.
+pub fn insert(flags: Flags, name: String, flag: Flag) -> Flags {
+  Flags(dict.insert(flags.internal, name, flag))
+}
+
+pub fn merge(into a: Flags, from b: Flags) -> Flags {
+  Flags(internal: dict.merge(a.internal, b.internal))
+}
+
+pub fn fold(flags: Flags, acc: acc, f: fn(acc, String, Flag) -> acc) -> acc {
+  dict.fold(flags.internal, acc, f)
+}
+
+/// Convert a list of flags to a Flags.
 ///
-pub fn build_map(flags: List(#(String, Flag))) -> Map {
-  dict.from_list(flags)
+pub fn build_flags(flags: List(#(String, Flag))) -> Flags {
+  Flags(dict.from_list(flags))
 }
 
 /// Updates a flag value, ensuring that the new value can satisfy the required type.
 /// Assumes that all flag inputs passed in start with --
 /// This function is only intended to be used from glint.execute_root
 ///
-pub fn update_flags(in flags: Map, with flag_input: String) -> Result(Map) {
+pub fn update_flags(in flags: Flags, with flag_input: String) -> Result(Flags) {
   let flag_input = string.drop_left(flag_input, string.length(prefix))
 
   case string.split_once(flag_input, delimiter) {
@@ -230,30 +254,35 @@ pub fn update_flags(in flags: Map, with flag_input: String) -> Result(Map) {
   }
 }
 
-fn update_flag_value(in flags: Map, with data: #(String, String)) -> Result(Map) {
+fn update_flag_value(
+  in flags: Flags,
+  with data: #(String, String),
+) -> Result(Flags) {
   let #(key, input) = data
-  use contents <- result.try(access(flags, key))
+  use contents <- result.try(get(flags, key))
   use value <- result.map(
     compute_flag(with: input, given: contents.value)
     |> result.map_error(layer_invalid_flag(_, key)),
   )
-  dict.insert(flags, key, Flag(..contents, value: value))
+  insert(flags, key, Flag(..contents, value: value))
 }
 
-fn attempt_toggle_flag(in flags: Map, at key: String) -> Result(Map) {
-  use contents <- result.try(access(flags, key))
+fn attempt_toggle_flag(in flags: Flags, at key: String) -> Result(Flags) {
+  use contents <- result.try(get(flags, key))
   case contents.value {
     B(Internal(None, ..) as internal) ->
       Internal(..internal, value: Some(True))
       |> B
       |> fn(val) { Flag(..contents, value: val) }
-      |> dict.insert(into: flags, for: key)
+      |> dict.insert(into: flags.internal, for: key)
+      |> Flags
       |> Ok
     B(Internal(Some(val), ..) as internal) ->
       Internal(..internal, value: Some(!val))
       |> B
       |> fn(val) { Flag(..contents, value: val) }
-      |> dict.insert(into: flags, for: key)
+      |> dict.insert(into: flags.internal, for: key)
+      |> Flags
       |> Ok
     _ -> Error(no_value_flag_err(key))
   }
@@ -276,7 +305,7 @@ fn construct_value(
   constructor(Internal(..internal, value: Some(val)))
 }
 
-/// Computes the new flag value given the input and the expected flag type 
+/// Computes the new flag value given the input and the expected flag type
 ///
 fn compute_flag(with input: String, given current: Value) -> Result(Value) {
   input
@@ -318,17 +347,17 @@ fn cannot_parse(with value: String, is kind: String) -> Snag {
 
 /// Access the contents for the associated flag
 ///
-fn access(flags: Map, name: String) -> Result(Flag) {
-  dict.get(flags, name)
+pub fn get(flags: Flags, name: String) -> Result(Flag) {
+  dict.get(flags.internal, name)
   |> result.replace_error(undefined_flag_err(name))
 }
 
 fn get_value(
-  from flags: Map,
+  from flags: Flags,
   at key: String,
   expecting kind: fn(Flag) -> Result(a),
 ) -> Result(a) {
-  access(flags, key)
+  get(flags, key)
   |> result.try(kind)
   |> snag.context("failed to retrieve value for flag '" <> key <> "'")
 }
@@ -345,7 +374,7 @@ pub fn get_int_value(from flag: Flag) -> Result(Int) {
 
 /// Gets the current value for the associated int flag
 ///
-pub fn get_int(from flags: Map, for name: String) -> Result(Int) {
+pub fn get_int(from flags: Flags, for name: String) -> Result(Int) {
   get_value(flags, name, get_int_value)
 }
 
@@ -361,7 +390,7 @@ pub fn get_ints_value(from flag: Flag) -> Result(List(Int)) {
 
 /// Gets the current value for the associated ints flag
 ///
-pub fn get_ints(from flags: Map, for name: String) -> Result(List(Int)) {
+pub fn get_ints(from flags: Flags, for name: String) -> Result(List(Int)) {
   get_value(flags, name, get_ints_value)
 }
 
@@ -377,7 +406,7 @@ pub fn get_bool_value(from flag: Flag) -> Result(Bool) {
 
 /// Gets the current value for the associated bool flag
 ///
-pub fn get_bool(from flags: Map, for name: String) -> Result(Bool) {
+pub fn get_bool(from flags: Flags, for name: String) -> Result(Bool) {
   get_value(flags, name, get_bool_value)
 }
 
@@ -393,7 +422,7 @@ pub fn get_string_value(from flag: Flag) -> Result(String) {
 
 /// Gets the current value for the associated string flag
 ///
-pub fn get_string(from flags: Map, for name: String) -> Result(String) {
+pub fn get_string(from flags: Flags, for name: String) -> Result(String) {
   get_value(flags, name, get_string_value)
 }
 
@@ -409,7 +438,7 @@ pub fn get_strings_value(from flag: Flag) -> Result(List(String)) {
 
 /// Gets the current value for the associated strings flag
 ///
-pub fn get_strings(from flags: Map, for name: String) -> Result(List(String)) {
+pub fn get_strings(from flags: Flags, for name: String) -> Result(List(String)) {
   get_value(flags, name, get_strings_value)
 }
 
@@ -425,7 +454,7 @@ pub fn get_float_value(from flag: Flag) -> Result(Float) {
 
 /// Gets the current value for the associated float flag
 ///
-pub fn get_float(from flags: Map, for name: String) -> Result(Float) {
+pub fn get_float(from flags: Flags, for name: String) -> Result(Float) {
   get_value(flags, name, get_float_value)
 }
 
@@ -441,6 +470,6 @@ pub fn get_floats_value(from flag: Flag) -> Result(List(Float)) {
 
 /// Gets the current value for the associated floats flag
 ///
-pub fn get_floats(from flags: Map, for name: String) -> Result(List(Float)) {
+pub fn get_floats(from flags: Flags, for name: String) -> Result(List(Float)) {
   get_value(flags, name, get_floats_value)
 }
