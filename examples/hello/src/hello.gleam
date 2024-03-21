@@ -110,11 +110,11 @@ pub fn app() {
   // create a new glint instance
   glint.new()
   // with an app name of "hello", this is used when printing help text
-  |> glint.with_name("hello")
+  |> glint.name("hello")
   // show in usage text that the current app is run as a gleam module
   |> glint.as_module
   // with pretty help enabled, using the built-in colours
-  |> glint.with_pretty_help(glint.default_pretty_help())
+  |> glint.pretty_help(glint.default_pretty_help())
   // with group level flags
   // with flag `caps` for all commands (equivalent of using glint.global_flag)
   |> glint.group_flag([], caps, caps_flag())
