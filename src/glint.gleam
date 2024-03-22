@@ -216,7 +216,7 @@ pub fn command(do runner: Runner(a)) -> Command(a) {
 
 /// Attach a helptext description to a Command(a)
 ///
-pub fn help(desc: String, f: fn() -> Command(a)) -> Command(a) {
+pub fn command_help(desc: String, f: fn() -> Command(a)) -> Command(a) {
   Command(..f(), description: desc)
 }
 
@@ -246,25 +246,15 @@ pub fn named_arg(
   Command(..cmd, named_args: [name, ..cmd.named_args])
 }
 
-/// Add a `FlagBuilder` to a `Command`
+/// Add a `Flag` to a `Command`
 ///
 pub fn flag(
   name: String,
-  builder: FlagBuilder(a),
+  builder: Flag(a),
   f: fn(fn(Flags) -> SnagResult(a)) -> Command(b),
 ) -> Command(b) {
   let cmd = f(builder.getter(_, name))
   Command(..cmd, flags: insert(cmd.flags, name, build_flag(builder)))
-}
-
-/// Add multiple `Flag`s to a `Command`, note that this function uses `Flag` and not `FlagBuilder(_)`.
-/// The user will need to call `build_flag` before providing the flags here.
-///
-/// It is recommended to call `glint.flag` instead.
-///
-pub fn flags(cmd: Command(a), with flags: List(#(String, Flag))) -> Command(a) {
-  use cmd, #(key, flag) <- list.fold(flags, cmd)
-  Command(..cmd, flags: insert(cmd.flags, key, flag))
 }
 
 /// Add a flag for a group of commands.
@@ -274,7 +264,7 @@ pub fn group_flag(
   in glint: Glint(a),
   at path: List(String),
   for name: String,
-  of flag: FlagBuilder(_),
+  of flag: Flag(_),
 ) -> Glint(a) {
   Glint(
     ..glint,
@@ -289,7 +279,7 @@ fn do_group_flag(
   in node: CommandNode(a),
   at path: List(String),
   for name: String,
-  of flag: Flag,
+  of flag: FlagEntry,
 ) -> CommandNode(a) {
   case path {
     [] -> CommandNode(..node, group_flags: insert(node.group_flags, name, flag))
@@ -617,7 +607,7 @@ fn build_command_help_metadata(
 
 /// generate the string representation for the type of a flag
 ///
-fn flag_type_info(flag: Flag) {
+fn flag_type_info(flag: FlagEntry) {
   case flag.value {
     I(_) -> "INT"
     B(_) -> "BOOL"
@@ -822,6 +812,8 @@ fn string_map(s: String, f: fn(String) -> String) -> String {
   }
 }
 
+// ----- FLAGS -----
+
 /// Constraint type for verifying flag values
 ///
 pub type Constraint(a) =
@@ -891,7 +883,7 @@ pub fn each(constraint: Constraint(a)) -> Constraint(List(a)) {
   }
 }
 
-/// Flag inputs must start with this prefix
+/// FlagEntry inputs must start with this prefix
 ///
 const prefix = "--"
 
@@ -900,7 +892,7 @@ const delimiter = "="
 
 /// Supported flag types.
 ///
-pub type Value {
+type Value {
   /// Boolean flags, to be passed in as `--flag=true` or `--flag=false`.
   /// Can be toggled by omitting the desired value like `--flag`.
   /// Toggling will negate the existing value.
@@ -932,10 +924,10 @@ pub type Value {
   LS(FlagInternals(List(String)))
 }
 
-/// A type that facilitates the creation of `Flag`s
+/// A type that facilitates the creation of `FlagEntry`s
 ///
-pub opaque type FlagBuilder(a) {
-  FlagBuilder(
+pub opaque type Flag(a) {
+  Flag(
     desc: String,
     parser: Parser(a, Snag),
     value: fn(FlagInternals(a)) -> Value,
@@ -946,18 +938,18 @@ pub opaque type FlagBuilder(a) {
 
 /// An internal representation of flag contents
 ///
-pub opaque type FlagInternals(a) {
+type FlagInternals(a) {
   FlagInternals(value: Option(a), parser: Parser(a, Snag))
 }
 
-// FlagBuilder initializers
+// Flag initializers
 
 type Parser(a, b) =
   fn(String) -> gleam.Result(a, b)
 
 /// initialise an int flag builder
 ///
-pub fn int() -> FlagBuilder(Int) {
+pub fn int() -> Flag(Int) {
   use input <- new_builder(I, get_int)
   input
   |> int.parse
@@ -966,7 +958,7 @@ pub fn int() -> FlagBuilder(Int) {
 
 /// initialise an int list flag builder
 ///
-pub fn ints() -> FlagBuilder(List(Int)) {
+pub fn ints() -> Flag(List(Int)) {
   use input <- new_builder(LI, get_ints)
   input
   |> string.split(",")
@@ -976,7 +968,7 @@ pub fn ints() -> FlagBuilder(List(Int)) {
 
 /// initialise a float flag builder
 ///
-pub fn float() -> FlagBuilder(Float) {
+pub fn float() -> Flag(Float) {
   use input <- new_builder(F, get_float)
   input
   |> float.parse
@@ -985,7 +977,7 @@ pub fn float() -> FlagBuilder(Float) {
 
 /// initialise a float list flag builder
 ///
-pub fn floats() -> FlagBuilder(List(Float)) {
+pub fn floats() -> Flag(List(Float)) {
   use input <- new_builder(LF, get_floats)
   input
   |> string.split(",")
@@ -995,13 +987,13 @@ pub fn floats() -> FlagBuilder(List(Float)) {
 
 /// initialise a string flag builder
 ///
-pub fn string() -> FlagBuilder(String) {
+pub fn string() -> Flag(String) {
   new_builder(S, get_string, fn(s) { Ok(s) })
 }
 
 /// intitialise a string list flag builder
 ///
-pub fn strings() -> FlagBuilder(List(String)) {
+pub fn strings() -> Flag(List(String)) {
   use input <- new_builder(LS, get_strings)
   input
   |> string.split(",")
@@ -1010,7 +1002,7 @@ pub fn strings() -> FlagBuilder(List(String)) {
 
 /// initialise a bool flag builder
 ///
-pub fn bool() -> FlagBuilder(Bool) {
+pub fn bool() -> Flag(Bool) {
   use input <- new_builder(B, get_bool)
   case string.lowercase(input) {
     "true" | "t" -> Ok(True)
@@ -1025,29 +1017,23 @@ fn new_builder(
   valuer: fn(FlagInternals(a)) -> Value,
   getter: fn(Flags, String) -> SnagResult(a),
   p: Parser(a, Snag),
-) -> FlagBuilder(a) {
-  FlagBuilder(desc: "", parser: p, value: valuer, default: None, getter: getter)
+) -> Flag(a) {
+  Flag(desc: "", parser: p, value: valuer, default: None, getter: getter)
 }
 
-/// convert a FlagBuilder(a) into its corresponding Flag representation
+/// convert a Flag(a) into its corresponding FlagEntry representation
 ///
-pub fn build_flag(fb: FlagBuilder(a)) -> Flag {
-  Flag(
+fn build_flag(fb: Flag(a)) -> FlagEntry {
+  FlagEntry(
     value: fb.value(FlagInternals(value: fb.default, parser: fb.parser)),
     description: fb.desc,
   )
 }
 
-/// attach a constraint to a `Flag`
+/// attach a constraint to a `FlagEntry`
 ///
-pub fn constraint(
-  builder: FlagBuilder(a),
-  constraint: Constraint(a),
-) -> FlagBuilder(a) {
-  FlagBuilder(
-    ..builder,
-    parser: wrap_with_constraint(builder.parser, constraint),
-  )
+pub fn constraint(builder: Flag(a), constraint: Constraint(a)) -> Flag(a) {
+  Flag(..builder, parser: wrap_with_constraint(builder.parser, constraint))
 }
 
 /// attach a Constraint(a) to a Parser(a,Snag)
@@ -1067,34 +1053,31 @@ fn attempt(
   result.replace(f(a), a)
 }
 
-/// Flag data and descriptions
+/// FlagEntry data and descriptions
 ///
-pub type Flag {
-  Flag(value: Value, description: String)
+type FlagEntry {
+  FlagEntry(value: Value, description: String)
 }
 
 /// attach a helptext description to a flag
 ///
-pub fn flag_help(
-  for builder: FlagBuilder(a),
-  of description: String,
-) -> FlagBuilder(a) {
-  FlagBuilder(..builder, desc: description)
+pub fn flag_help(for builder: Flag(a), of description: String) -> Flag(a) {
+  Flag(..builder, desc: description)
 }
 
 /// Set the default value for a flag `Value`
 ///
-pub fn default(for builder: FlagBuilder(a), of default: a) -> FlagBuilder(a) {
-  FlagBuilder(..builder, default: Some(default))
+pub fn default(for builder: Flag(a), of default: a) -> Flag(a) {
+  Flag(..builder, default: Some(default))
 }
 
-/// Flag names and their associated values
+/// FlagEntry names and their associated values
 ///
 pub opaque type Flags {
-  Flags(internal: dict.Dict(String, Flag))
+  Flags(internal: dict.Dict(String, FlagEntry))
 }
 
-fn insert(flags: Flags, name: String, flag: Flag) -> Flags {
+fn insert(flags: Flags, name: String, flag: FlagEntry) -> Flags {
   Flags(dict.insert(flags.internal, name, flag))
 }
 
@@ -1102,7 +1085,7 @@ fn merge(into a: Flags, from b: Flags) -> Flags {
   Flags(internal: dict.merge(a.internal, b.internal))
 }
 
-fn fold(flags: Flags, acc: acc, f: fn(acc, String, Flag) -> acc) -> acc {
+fn fold(flags: Flags, acc: acc, f: fn(acc, String, FlagEntry) -> acc) -> acc {
   dict.fold(flags.internal, acc, f)
 }
 
@@ -1138,7 +1121,7 @@ fn update_flag_value(
     compute_flag(with: input, given: contents.value)
     |> result.map_error(layer_invalid_flag(_, key)),
   )
-  insert(flags, key, Flag(..contents, value: value))
+  insert(flags, key, FlagEntry(..contents, value: value))
 }
 
 fn attempt_toggle_flag(in flags: Flags, at key: String) -> SnagResult(Flags) {
@@ -1147,14 +1130,14 @@ fn attempt_toggle_flag(in flags: Flags, at key: String) -> SnagResult(Flags) {
     B(FlagInternals(None, ..) as internal) ->
       FlagInternals(..internal, value: Some(True))
       |> B
-      |> fn(val) { Flag(..contents, value: val) }
+      |> fn(val) { FlagEntry(..contents, value: val) }
       |> dict.insert(into: flags.internal, for: key)
       |> Flags
       |> Ok
     B(FlagInternals(Some(val), ..) as internal) ->
       FlagInternals(..internal, value: Some(!val))
       |> B
-      |> fn(val) { Flag(..contents, value: val) }
+      |> fn(val) { FlagEntry(..contents, value: val) }
       |> dict.insert(into: flags.internal, for: key)
       |> Flags
       |> Ok
@@ -1221,7 +1204,7 @@ fn cannot_parse(with value: String, is kind: String) -> Snag {
 
 /// Access the contents for the associated flag
 ///
-fn get(flags: Flags, name: String) -> SnagResult(Flag) {
+fn get(flags: Flags, name: String) -> SnagResult(FlagEntry) {
   dict.get(flags.internal, name)
   |> result.replace_error(undefined_flag_err(name))
 }
@@ -1229,7 +1212,7 @@ fn get(flags: Flags, name: String) -> SnagResult(Flag) {
 fn get_value(
   from flags: Flags,
   at key: String,
-  expecting kind: fn(Flag) -> SnagResult(a),
+  expecting kind: fn(FlagEntry) -> SnagResult(a),
 ) -> SnagResult(a) {
   get(flags, key)
   |> result.try(kind)
@@ -1238,7 +1221,7 @@ fn get_value(
 
 /// Gets the current value for the provided int flag
 ///
-fn get_int_value(from flag: Flag) -> SnagResult(Int) {
+fn get_int_value(from flag: FlagEntry) -> SnagResult(Int) {
   case flag.value {
     I(FlagInternals(value: Some(val), ..)) -> Ok(val)
     I(FlagInternals(value: None, ..)) -> flag_not_provided_error()
@@ -1254,7 +1237,7 @@ pub fn get_int(from flags: Flags, for name: String) -> SnagResult(Int) {
 
 /// Gets the current value for the provided ints flag
 ///
-fn get_ints_value(from flag: Flag) -> SnagResult(List(Int)) {
+fn get_ints_value(from flag: FlagEntry) -> SnagResult(List(Int)) {
   case flag.value {
     LI(FlagInternals(value: Some(val), ..)) -> Ok(val)
     LI(FlagInternals(value: None, ..)) -> flag_not_provided_error()
@@ -1270,7 +1253,7 @@ pub fn get_ints(from flags: Flags, for name: String) -> SnagResult(List(Int)) {
 
 /// Gets the current value for the provided bool flag
 ///
-fn get_bool_value(from flag: Flag) -> SnagResult(Bool) {
+fn get_bool_value(from flag: FlagEntry) -> SnagResult(Bool) {
   case flag.value {
     B(FlagInternals(Some(val), ..)) -> Ok(val)
     B(FlagInternals(None, ..)) -> flag_not_provided_error()
@@ -1286,7 +1269,7 @@ pub fn get_bool(from flags: Flags, for name: String) -> SnagResult(Bool) {
 
 /// Gets the current value for the provided string flag
 ///
-fn get_string_value(from flag: Flag) -> SnagResult(String) {
+fn get_string_value(from flag: FlagEntry) -> SnagResult(String) {
   case flag.value {
     S(FlagInternals(value: Some(val), ..)) -> Ok(val)
     S(FlagInternals(value: None, ..)) -> flag_not_provided_error()
@@ -1302,7 +1285,7 @@ pub fn get_string(from flags: Flags, for name: String) -> SnagResult(String) {
 
 /// Gets the current value for the provided strings flag
 ///
-fn get_strings_value(from flag: Flag) -> SnagResult(List(String)) {
+fn get_strings_value(from flag: FlagEntry) -> SnagResult(List(String)) {
   case flag.value {
     LS(FlagInternals(value: Some(val), ..)) -> Ok(val)
     LS(FlagInternals(value: None, ..)) -> flag_not_provided_error()
@@ -1321,7 +1304,7 @@ pub fn get_strings(
 
 /// Gets the current value for the provided float flag
 ///
-fn get_float_value(from flag: Flag) -> SnagResult(Float) {
+fn get_float_value(from flag: FlagEntry) -> SnagResult(Float) {
   case flag.value {
     F(FlagInternals(value: Some(val), ..)) -> Ok(val)
     F(FlagInternals(value: None, ..)) -> flag_not_provided_error()
@@ -1337,7 +1320,7 @@ pub fn get_float(from flags: Flags, for name: String) -> SnagResult(Float) {
 
 /// Gets the current value for the provided floats flag
 ///
-fn get_floats_value(from flag: Flag) -> SnagResult(List(Float)) {
+fn get_floats_value(from flag: FlagEntry) -> SnagResult(List(Float)) {
   case flag.value {
     LF(FlagInternals(value: Some(val), ..)) -> Ok(val)
     LF(FlagInternals(value: None, ..)) -> flag_not_provided_error()

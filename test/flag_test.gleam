@@ -2,23 +2,18 @@ import gleeunit/should
 import glint
 
 pub fn update_flag_test() {
-  let flags = [
-    #("bflag", glint.build_flag(glint.bool())),
-    #("sflag", glint.build_flag(glint.string())),
-    #("lsflag", glint.build_flag(glint.strings())),
-    #("iflag", glint.build_flag(glint.int())),
-    #("liflag", glint.build_flag(glint.ints())),
-    #("fflag", glint.build_flag(glint.float())),
-    #("lfflag", glint.build_flag(glint.floats())),
-  ]
-
   let app =
     glint.new()
-    |> glint.add(
-      [],
+    |> glint.add([], {
+      use _bflag <- glint.flag("bflag", glint.bool())
+      use _sflag <- glint.flag("sflag", glint.string())
+      use _lsflag <- glint.flag("lsflag", glint.strings())
+      use _iflag <- glint.flag("iflag", glint.int())
+      use _liflag <- glint.flag("liflag", glint.ints())
+      use _fflag <- glint.flag("fflag", glint.float())
+      use _lfflag <- glint.flag("lfflag", glint.floats())
       glint.command(fn(_, _, _) { Nil })
-        |> glint.flags(flags),
-    )
+    })
 
   // update non-existent flag fails
   app
@@ -417,81 +412,65 @@ pub fn toggle_test() {
 }
 
 pub fn getters_test() {
-  let flags = [
-    #(
+  glint.new()
+  |> glint.add([], {
+    use bflag <- glint.flag(
       "bflag",
       glint.bool()
-        |> glint.default(True)
-        |> glint.build_flag,
-    ),
-    #(
+        |> glint.default(True),
+    )
+    use sflag <- glint.flag(
       "sflag",
       glint.string()
-        |> glint.default("")
-        |> glint.build_flag,
-    ),
-    #(
+        |> glint.default(""),
+    )
+    use lsflag <- glint.flag(
       "lsflag",
       glint.strings()
-        |> glint.default([])
-        |> glint.build_flag,
-    ),
-    #(
+        |> glint.default([]),
+    )
+    use iflag <- glint.flag(
       "iflag",
       glint.int()
-        |> glint.default(1)
-        |> glint.build_flag,
-    ),
-    #(
+        |> glint.default(1),
+    )
+    use liflag <- glint.flag(
       "liflag",
       glint.ints()
-        |> glint.default([])
-        |> glint.build_flag,
-    ),
-    #(
+        |> glint.default([]),
+    )
+    use fflag <- glint.flag(
       "fflag",
       glint.float()
-        |> glint.default(1.0)
-        |> glint.build_flag,
-    ),
-    #(
+        |> glint.default(1.0),
+    )
+    use lfflag <- glint.flag(
       "lfflag",
       glint.floats()
-        |> glint.default([])
-        |> glint.build_flag,
-    ),
-  ]
-
-  let app =
-    glint.new()
-    |> glint.add(
-      [],
-      glint.flags(
-        {
-          use _, _, flags <- glint.command()
-          glint.get_bool(flags, "bflag")
-          |> should.equal(Ok(True))
-
-          glint.get_string(flags, "sflag")
-          |> should.equal(Ok(""))
-
-          glint.get_strings(flags, "lsflag")
-          |> should.equal(Ok([]))
-
-          glint.get_int(flags, "iflag")
-          |> should.equal(Ok(1))
-
-          glint.get_ints(flags, "liflag")
-          |> should.equal(Ok([]))
-
-          glint.get_float(flags, "fflag")
-          |> should.equal(Ok(1.0))
-
-          glint.get_floats(flags, "lfflag")
-          |> should.equal(Ok([]))
-        },
-        flags,
-      ),
+        |> glint.default([]),
     )
-    |> glint.execute([])
+
+    use _, _, flags <- glint.command()
+    bflag(flags)
+    |> should.equal(Ok(True))
+
+    sflag(flags)
+    |> should.equal(Ok(""))
+
+    lsflag(flags)
+    |> should.equal(Ok([]))
+
+    iflag(flags)
+    |> should.equal(Ok(1))
+
+    liflag(flags)
+    |> should.equal(Ok([]))
+
+    fflag(flags)
+    |> should.equal(Ok(1.0))
+
+    lfflag(flags)
+    |> should.equal(Ok([]))
+  })
+  |> glint.execute([])
 }

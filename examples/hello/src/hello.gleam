@@ -82,7 +82,7 @@ pub fn repeat_flag() -> glint.FlagBuilder(Int) {
 ///
 pub fn hello_cmd() -> glint.Command(String) {
   // register
-  use <- glint.help("Prints Hello, <names>!")
+  use <- glint.command_help("Prints Hello, <names>!")
   use <- glint.unnamed_args(glint.MinArgs(1))
   use _, args, flags <- glint.command()
   let assert Ok(caps) = glint.get_bool(flags, caps)
@@ -94,7 +94,7 @@ pub fn hello_cmd() -> glint.Command(String) {
 /// the command function that will be executed as the "single" command
 ///
 pub fn hello_single_cmd() -> glint.Command(String) {
-  use <- glint.help("Prints Hello, <name>!")
+  use <- glint.command_help("Prints Hello, <name>!")
   use <- glint.unnamed_args(glint.EqArgs(0))
   use name <- glint.named_arg("name")
   use named_args, _, flags <- glint.command()

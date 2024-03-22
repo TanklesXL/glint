@@ -137,33 +137,33 @@ pub fn help_test() {
     |> glint.as_module
     |> glint.group_flag([], global_flag.0, global_flag.1)
     |> glint.add(at: [], do: {
-      use <- glint.help("This is the root command")
+      use <- glint.command_help("This is the root command")
       use _arg1 <- glint.named_arg("arg1")
       use _arg2 <- glint.named_arg("arg2")
       use _flag <- glint.flag(flag_1.0, flag_1.1)
       glint.command(nil)
     })
     |> glint.add(at: ["cmd1"], do: {
-      use <- glint.help("This is cmd1")
+      use <- glint.command_help("This is cmd1")
       use _flag2 <- glint.flag(flag_2.0, flag_2.1)
       use _flag5 <- glint.flag(flag_5.0, flag_5.1)
       glint.command(nil)
     })
     |> glint.add(at: ["cmd1", "cmd3"], do: {
-      use <- glint.help("This is cmd3")
+      use <- glint.command_help("This is cmd3")
       use _flag3 <- glint.flag(flag_3.0, flag_3.1)
       use <- glint.unnamed_args(glint.MinArgs(2))
       use _woo <- glint.named_arg("woo")
       glint.command(nil)
     })
     |> glint.add(at: ["cmd1", "cmd4"], do: {
-      use <- glint.help("This is cmd4")
+      use <- glint.command_help("This is cmd4")
       use _flag4 <- glint.flag(flag_4.0, flag_4.1)
       use <- glint.unnamed_args(glint.EqArgs(0))
       glint.command(nil)
     })
     |> glint.add(at: ["cmd2"], do: {
-      use <- glint.help("This is cmd2")
+      use <- glint.command_help("This is cmd2")
       use <- glint.unnamed_args(glint.EqArgs(0))
       use _arg1 <- glint.named_arg("arg1")
       use _arg2 <- glint.named_arg("arg2")
@@ -171,7 +171,7 @@ pub fn help_test() {
     })
     |> glint.add(
       at: ["cmd5", "cmd6"],
-      do: glint.help("This is cmd6", fn() { glint.command(nil) }),
+      do: glint.command_help("This is cmd6", fn() { glint.command(nil) }),
     )
 
   // execute root command
