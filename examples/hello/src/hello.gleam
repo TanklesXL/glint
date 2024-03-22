@@ -6,7 +6,6 @@ import gleam/string.{uppercase}
 import snag
 // glint imports
 import glint
-import glint/flag
 import argv
 
 // ----- APPLICATION LOGIC -----
@@ -55,10 +54,10 @@ pub const caps = "caps"
 
 /// a boolean flag with default False to control message capitalization.
 ///
-pub fn caps_flag() -> flag.Builder(Bool) {
-  flag.bool()
-  |> flag.default(False)
-  |> flag.description("Capitalize the hello message")
+pub fn caps_flag() -> glint.FlagBuilder(Bool) {
+  glint.bool()
+  |> glint.default(False)
+  |> glint.flag_help("Capitalize the hello message")
 }
 
 /// the key for the repeat flag
@@ -67,11 +66,11 @@ pub const repeat = "repeat"
 /// an int flag with default 1 to control how many times to repeat the message.
 /// this flag is constrained to values greater than 0.
 ///
-pub fn repeat_flag() -> flag.Builder(Int) {
-  use n <- flag.constraint(
-    flag.int()
-    |> flag.default(1)
-    |> flag.description("Repeat the message n-times"),
+pub fn repeat_flag() -> glint.FlagBuilder(Int) {
+  use n <- glint.constraint(
+    glint.int()
+    |> glint.default(1)
+    |> glint.flag_help("Repeat the message n-times"),
   )
   case n {
     _ if n > 0 -> Ok(n)
@@ -83,11 +82,11 @@ pub fn repeat_flag() -> flag.Builder(Int) {
 ///
 pub fn hello_cmd() -> glint.Command(String) {
   // register
-  use <- glint.description("Prints Hello, <names>!")
+  use <- glint.help("Prints Hello, <names>!")
   use <- glint.unnamed_args(glint.MinArgs(1))
   use _, args, flags <- glint.command()
-  let assert Ok(caps) = flag.get_bool(flags, caps)
-  let assert Ok(repeat) = flag.get_int(flags, repeat)
+  let assert Ok(caps) = glint.get_bool(flags, caps)
+  let assert Ok(repeat) = glint.get_int(flags, repeat)
   let assert [name, ..rest] = args
   hello(name, rest, caps, repeat)
 }
@@ -95,12 +94,12 @@ pub fn hello_cmd() -> glint.Command(String) {
 /// the command function that will be executed as the "single" command
 ///
 pub fn hello_single_cmd() -> glint.Command(String) {
-  use <- glint.description("Prints Hello, <name>!")
+  use <- glint.help("Prints Hello, <name>!")
   use <- glint.unnamed_args(glint.EqArgs(0))
   use name <- glint.named_arg("name")
   use named_args, _, flags <- glint.command()
-  let assert Ok(caps) = flag.get_bool(flags, caps)
-  let assert Ok(repeat) = flag.get_int(flags, repeat)
+  let assert Ok(caps) = glint.get_bool(flags, caps)
+  let assert Ok(repeat) = glint.get_int(flags, repeat)
   let name = name(named_args)
   hello(name, [], caps, repeat)
 }

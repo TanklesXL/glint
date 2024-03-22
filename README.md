@@ -55,7 +55,7 @@ import glint/flag
 
 
 // this function returns the builder for the caps flag
-fn caps_flag() -> flag.Builder(Bool) {
+fn caps_flag() -> flag.FlagBuilder(Bool) {
   flag.bool()
   |> flag.default(False)
   |> flag.description("Capitalize the hello message")
