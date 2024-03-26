@@ -1,5 +1,5 @@
-import glint.{each, none_of, one_of}
 import gleeunit/should
+import glint.{each, none_of, one_of}
 
 pub fn one_of_test() {
   1

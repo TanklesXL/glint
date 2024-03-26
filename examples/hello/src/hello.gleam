@@ -5,8 +5,8 @@ import gleam/string.{uppercase}
 // external dep imports
 import snag
 // glint imports
-import glint
 import argv
+import glint
 
 // ----- APPLICATION LOGIC -----
 
