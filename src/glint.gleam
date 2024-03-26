@@ -237,12 +237,13 @@ pub fn named_arg(
   name: String,
   f: fn(fn(NamedArgs) -> String) -> Command(a),
 ) -> Command(a) {
-  let cmd =
-    f(fn(named_args) {
-      // we can let assert here because the command runner will only execute if the named args match
-      let assert Ok(arg) = dict.get(named_args.internal, name)
-      arg
-    })
+  let cmd = {
+    use named_args <- f()
+    // we can assert here because the command runner will only execute if the named args match
+    let assert Ok(arg) = dict.get(named_args.internal, name)
+    arg
+  }
+
   Command(..cmd, named_args: [name, ..cmd.named_args])
 }
 
@@ -380,17 +381,15 @@ fn do_execute(
 }
 
 fn args_compare(expected: ArgsCount, actual: Int) -> snag.Result(Nil) {
-  case expected {
+  use err <- result.map_error(case expected {
     EqArgs(expected) if actual == expected -> Ok(Nil)
     MinArgs(expected) if actual >= expected -> Ok(Nil)
     EqArgs(expected) -> Error(int.to_string(expected))
     MinArgs(expected) -> Error("at least " <> int.to_string(expected))
-  }
-  |> result.map_error(fn(err) {
-    snag.new(
-      "expected: " <> err <> " argument(s), provided: " <> int.to_string(actual),
-    )
   })
+  snag.new(
+    "expected: " <> err <> " argument(s), provided: " <> int.to_string(actual),
+  )
 }
 
 /// Executes the current root command.
@@ -418,12 +417,12 @@ fn execute_root(
           False ->
             snag.error(
               "unmatched named arguments: "
-                <> {
-                  contents.named_args
-                  |> list.drop(list.length(named))
-                  |> list.map(fn(s) { "'" <> s <> "'" })
-                  |> string.join(", ")
-                },
+              <> {
+                contents.named_args
+                |> list.drop(list.length(named))
+                |> list.map(fn(s) { "'" <> s <> "'" })
+                |> string.join(", ")
+              },
             )
         }
       })
@@ -449,8 +448,8 @@ fn execute_root(
     Error(#(snag, help)) ->
       Error(
         snag.pretty_print(snag)
-          <> "\nSee the following help text, available via the '--help' flag.\n\n"
-          <> help,
+        <> "\nSee the following help text, available via the '--help' flag.\n\n"
+        <> help,
       )
   }
 }
@@ -642,8 +641,8 @@ fn build_subcommands_help(
     Metadata(
       name: name,
       description: cmd.contents
-      |> option.map(fn(command) { command.description })
-      |> option.unwrap(""),
+        |> option.map(fn(command) { command.description })
+        |> option.unwrap(""),
     ),
     ..acc
   ]
@@ -830,14 +829,14 @@ pub fn one_of(allowed: List(a)) -> Constraint(a) {
       False ->
         snag.error(
           "invalid value '"
-            <> string.inspect(val)
-            <> "', must be one of: ["
-            <> {
-              allowed
-              |> list.map(fn(a) { "'" <> string.inspect(a) <> "'" })
-              |> string.join(", ")
-            }
-            <> "]",
+          <> string.inspect(val)
+          <> "', must be one of: ["
+          <> {
+            allowed
+            |> list.map(fn(a) { "'" <> string.inspect(a) <> "'" })
+            |> string.join(", ")
+          }
+          <> "]",
         )
     }
   }
@@ -853,16 +852,16 @@ pub fn none_of(disallowed: List(a)) -> Constraint(a) {
       True ->
         snag.error(
           "invalid value '"
-            <> string.inspect(val)
-            <> "', must not be one of: ["
-            <> {
-              {
-                disallowed
-                |> list.map(fn(a) { "'" <> string.inspect(a) <> "'" })
-                |> string.join(", ")
-                <> "]"
-              }
-            },
+          <> string.inspect(val)
+          <> "', must not be one of: ["
+          <> {
+            {
+              disallowed
+              |> list.map(fn(a) { "'" <> string.inspect(a) <> "'" })
+              |> string.join(", ")
+              <> "]"
+            }
+          },
         )
     }
   }
@@ -1216,9 +1215,10 @@ fn get_value(
   |> snag.context("failed to retrieve value for flag '" <> key <> "'")
 }
 
-/// Gets the current value for the provided int flag
+/// Gets the current value for the associated int flag
 ///
-fn get_int_value(from flag: FlagEntry) -> snag.Result(Int) {
+pub fn get_int(from flags: Flags, for name: String) -> snag.Result(Int) {
+  use flag <- get_value(flags, name)
   case flag.value {
     I(FlagInternals(value: Some(val), ..)) -> Ok(val)
     I(FlagInternals(value: None, ..)) -> flag_not_provided_error()
@@ -1226,15 +1226,10 @@ fn get_int_value(from flag: FlagEntry) -> snag.Result(Int) {
   }
 }
 
-/// Gets the current value for the associated int flag
+/// Gets the current value for the associated ints flag
 ///
-pub fn get_int(from flags: Flags, for name: String) -> snag.Result(Int) {
-  get_value(flags, name, get_int_value)
-}
-
-/// Gets the current value for the provided ints flag
-///
-fn get_ints_value(from flag: FlagEntry) -> snag.Result(List(Int)) {
+pub fn get_ints(from flags: Flags, for name: String) -> snag.Result(List(Int)) {
+  use flag <- get_value(flags, name)
   case flag.value {
     LI(FlagInternals(value: Some(val), ..)) -> Ok(val)
     LI(FlagInternals(value: None, ..)) -> flag_not_provided_error()
@@ -1242,15 +1237,10 @@ fn get_ints_value(from flag: FlagEntry) -> snag.Result(List(Int)) {
   }
 }
 
-/// Gets the current value for the associated ints flag
+/// Gets the current value for the associated bool flag
 ///
-pub fn get_ints(from flags: Flags, for name: String) -> snag.Result(List(Int)) {
-  get_value(flags, name, get_ints_value)
-}
-
-/// Gets the current value for the provided bool flag
-///
-fn get_bool_value(from flag: FlagEntry) -> snag.Result(Bool) {
+pub fn get_bool(from flags: Flags, for name: String) -> snag.Result(Bool) {
+  use flag <- get_value(flags, name)
   case flag.value {
     B(FlagInternals(Some(val), ..)) -> Ok(val)
     B(FlagInternals(None, ..)) -> flag_not_provided_error()
@@ -1258,35 +1248,14 @@ fn get_bool_value(from flag: FlagEntry) -> snag.Result(Bool) {
   }
 }
 
-/// Gets the current value for the associated bool flag
+/// Gets the current value for the associated string flag
 ///
-pub fn get_bool(from flags: Flags, for name: String) -> snag.Result(Bool) {
-  get_value(flags, name, get_bool_value)
-}
-
-/// Gets the current value for the provided string flag
-///
-fn get_string_value(from flag: FlagEntry) -> snag.Result(String) {
+pub fn get_string(from flags: Flags, for name: String) -> snag.Result(String) {
+  use flag <- get_value(flags, name)
   case flag.value {
     S(FlagInternals(value: Some(val), ..)) -> Ok(val)
     S(FlagInternals(value: None, ..)) -> flag_not_provided_error()
     _ -> access_type_error("string")
-  }
-}
-
-/// Gets the current value for the associated string flag
-///
-pub fn get_string(from flags: Flags, for name: String) -> snag.Result(String) {
-  get_value(flags, name, get_string_value)
-}
-
-/// Gets the current value for the provided strings flag
-///
-fn get_strings_value(from flag: FlagEntry) -> snag.Result(List(String)) {
-  case flag.value {
-    LS(FlagInternals(value: Some(val), ..)) -> Ok(val)
-    LS(FlagInternals(value: None, ..)) -> flag_not_provided_error()
-    _ -> access_type_error("string list")
   }
 }
 
@@ -1296,32 +1265,22 @@ pub fn get_strings(
   from flags: Flags,
   for name: String,
 ) -> snag.Result(List(String)) {
-  get_value(flags, name, get_strings_value)
-}
-
-/// Gets the current value for the provided float flag
-///
-fn get_float_value(from flag: FlagEntry) -> snag.Result(Float) {
+  use flag <- get_value(flags, name)
   case flag.value {
-    F(FlagInternals(value: Some(val), ..)) -> Ok(val)
-    F(FlagInternals(value: None, ..)) -> flag_not_provided_error()
-    _ -> access_type_error("float")
+    LS(FlagInternals(value: Some(val), ..)) -> Ok(val)
+    LS(FlagInternals(value: None, ..)) -> flag_not_provided_error()
+    _ -> access_type_error("string list")
   }
 }
 
 /// Gets the current value for the associated float flag
 ///
 pub fn get_float(from flags: Flags, for name: String) -> snag.Result(Float) {
-  get_value(flags, name, get_float_value)
-}
-
-/// Gets the current value for the provided floats flag
-///
-fn get_floats_value(from flag: FlagEntry) -> snag.Result(List(Float)) {
+  use flag <- get_value(flags, name)
   case flag.value {
-    LF(FlagInternals(value: Some(val), ..)) -> Ok(val)
-    LF(FlagInternals(value: None, ..)) -> flag_not_provided_error()
-    _ -> access_type_error("float list")
+    F(FlagInternals(value: Some(val), ..)) -> Ok(val)
+    F(FlagInternals(value: None, ..)) -> flag_not_provided_error()
+    _ -> access_type_error("float")
   }
 }
 
@@ -1331,5 +1290,10 @@ pub fn get_floats(
   from flags: Flags,
   for name: String,
 ) -> snag.Result(List(Float)) {
-  get_value(flags, name, get_floats_value)
+  use flag <- get_value(flags, name)
+  case flag.value {
+    LF(FlagInternals(value: Some(val), ..)) -> Ok(val)
+    LF(FlagInternals(value: None, ..)) -> flag_not_provided_error()
+    _ -> access_type_error("float list")
+  }
 }
