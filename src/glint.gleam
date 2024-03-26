@@ -154,13 +154,13 @@ pub fn new() -> Glint(a) {
 pub fn add(
   to glint: Glint(a),
   at path: List(String),
-  do contents: Command(a),
+  do command: Command(a),
 ) -> Glint(a) {
   Glint(
     ..glint,
     cmd: path
     |> sanitize_path
-    |> do_add(to: glint.cmd, put: contents),
+    |> do_add(to: glint.cmd, put: command),
   )
 }
 
