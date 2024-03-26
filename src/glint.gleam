@@ -231,7 +231,7 @@ pub fn unnamed_args(args: ArgsCount, f: fn() -> Command(b)) -> Command(b) {
 /// All named arguments must match for a command to succeed
 /// This works in combination with CommandInput.named_args which will contain the matched args in a Dict(String,String)
 ///
-/// **IMPORTANT**: Matched named arguments will not be present in CommandInput.args
+/// **IMPORTANT**: Matched named arguments will not be present in the commmand's unnamed args list
 ///
 pub fn named_arg(
   name: String,
@@ -418,12 +418,12 @@ fn execute_root(
           False ->
             snag.error(
               "unmatched named arguments: "
-              <> {
-                contents.named_args
-                |> list.drop(list.length(named))
-                |> list.map(fn(s) { "'" <> s <> "'" })
-                |> string.join(", ")
-              },
+                <> {
+                  contents.named_args
+                  |> list.drop(list.length(named))
+                  |> list.map(fn(s) { "'" <> s <> "'" })
+                  |> string.join(", ")
+                },
             )
         }
       })
@@ -449,8 +449,8 @@ fn execute_root(
     Error(#(snag, help)) ->
       Error(
         snag.pretty_print(snag)
-        <> "\nSee the following help text, available via the '--help' flag.\n\n"
-        <> help,
+          <> "\nSee the following help text, available via the '--help' flag.\n\n"
+          <> help,
       )
   }
 }
@@ -642,8 +642,8 @@ fn build_subcommands_help(
     Metadata(
       name: name,
       description: cmd.contents
-        |> option.map(fn(command) { command.description })
-        |> option.unwrap(""),
+      |> option.map(fn(command) { command.description })
+      |> option.unwrap(""),
     ),
     ..acc
   ]
@@ -830,14 +830,14 @@ pub fn one_of(allowed: List(a)) -> Constraint(a) {
       False ->
         snag.error(
           "invalid value '"
-          <> string.inspect(val)
-          <> "', must be one of: ["
-          <> {
-            allowed
-            |> list.map(fn(a) { "'" <> string.inspect(a) <> "'" })
-            |> string.join(", ")
-          }
-          <> "]",
+            <> string.inspect(val)
+            <> "', must be one of: ["
+            <> {
+              allowed
+              |> list.map(fn(a) { "'" <> string.inspect(a) <> "'" })
+              |> string.join(", ")
+            }
+            <> "]",
         )
     }
   }
@@ -853,16 +853,16 @@ pub fn none_of(disallowed: List(a)) -> Constraint(a) {
       True ->
         snag.error(
           "invalid value '"
-          <> string.inspect(val)
-          <> "', must not be one of: ["
-          <> {
-            {
-              disallowed
-              |> list.map(fn(a) { "'" <> string.inspect(a) <> "'" })
-              |> string.join(", ")
-              <> "]"
-            }
-          },
+            <> string.inspect(val)
+            <> "', must not be one of: ["
+            <> {
+              {
+                disallowed
+                |> list.map(fn(a) { "'" <> string.inspect(a) <> "'" })
+                |> string.join(", ")
+                <> "]"
+              }
+            },
         )
     }
   }
