@@ -159,8 +159,8 @@ pub fn add(
   Glint(
     ..glint,
     cmd: path
-    |> sanitize_path
-    |> do_add(to: glint.cmd, put: command),
+      |> sanitize_path
+      |> do_add(to: glint.cmd, put: command),
   )
 }
 
@@ -253,12 +253,11 @@ pub fn named_arg(
 /// Add a `Flag` to a `Command`
 ///
 pub fn flag(
-  named name: String,
   of builder: Flag(a),
   with f: fn(fn(Flags) -> snag.Result(a)) -> Command(b),
 ) -> Command(b) {
-  let cmd = f(builder.getter(_, name))
-  Command(..cmd, flags: insert(cmd.flags, name, build_flag(builder)))
+  let cmd = f(builder.getter(_, builder.name))
+  Command(..cmd, flags: insert(cmd.flags, builder.name, build_flag(builder)))
 }
 
 /// Add a flag for a group of commands.
@@ -267,7 +266,6 @@ pub fn flag(
 pub fn group_flag(
   in glint: Glint(a),
   at path: List(String),
-  named name: String,
   of flag: Flag(_),
 ) -> Glint(a) {
   Glint(
@@ -275,7 +273,7 @@ pub fn group_flag(
     cmd: do_group_flag(
       in: glint.cmd,
       at: path,
-      named: name,
+      named: flag.name,
       of: build_flag(flag),
     ),
   )
@@ -935,6 +933,7 @@ type Value {
 ///
 pub opaque type Flag(a) {
   Flag(
+    name: String,
     desc: String,
     parser: Parser(a, Snag),
     value: fn(FlagInternals(a)) -> Value,
@@ -956,8 +955,8 @@ type Parser(a, b) =
 
 /// initialise an int flag builder
 ///
-pub fn int() -> Flag(Int) {
-  use input <- new_builder(I, get_int)
+pub fn int(named name: String) -> Flag(Int) {
+  use input <- new_builder(name, I, get_int)
   input
   |> int.parse
   |> result.replace_error(cannot_parse(input, "int"))
@@ -965,8 +964,8 @@ pub fn int() -> Flag(Int) {
 
 /// initialise an int list flag builder
 ///
-pub fn ints() -> Flag(List(Int)) {
-  use input <- new_builder(LI, get_ints)
+pub fn ints(named name: String) -> Flag(List(Int)) {
+  use input <- new_builder(name, LI, get_ints)
   input
   |> string.split(",")
   |> list.try_map(int.parse)
@@ -975,8 +974,8 @@ pub fn ints() -> Flag(List(Int)) {
 
 /// initialise a float flag builder
 ///
-pub fn float() -> Flag(Float) {
-  use input <- new_builder(F, get_float)
+pub fn float(named name: String) -> Flag(Float) {
+  use input <- new_builder(name, F, get_float)
   input
   |> float.parse
   |> result.replace_error(cannot_parse(input, "float"))
@@ -984,8 +983,8 @@ pub fn float() -> Flag(Float) {
 
 /// initialise a float list flag builder
 ///
-pub fn floats() -> Flag(List(Float)) {
-  use input <- new_builder(LF, get_floats)
+pub fn floats(named name: String) -> Flag(List(Float)) {
+  use input <- new_builder(name, LF, get_floats)
   input
   |> string.split(",")
   |> list.try_map(float.parse)
@@ -994,14 +993,14 @@ pub fn floats() -> Flag(List(Float)) {
 
 /// initialise a string flag builder
 ///
-pub fn string() -> Flag(String) {
-  new_builder(S, get_string, fn(s) { Ok(s) })
+pub fn string(named name: String) -> Flag(String) {
+  new_builder(name, S, get_string, fn(s) { Ok(s) })
 }
 
 /// intitialise a string list flag builder
 ///
-pub fn strings() -> Flag(List(String)) {
-  use input <- new_builder(LS, get_strings)
+pub fn strings(named name: String) -> Flag(List(String)) {
+  use input <- new_builder(name, LS, get_strings)
   input
   |> string.split(",")
   |> Ok
@@ -1009,8 +1008,8 @@ pub fn strings() -> Flag(List(String)) {
 
 /// initialise a bool flag builder
 ///
-pub fn bool() -> Flag(Bool) {
-  use input <- new_builder(B, get_bool)
+pub fn bool(named name: String) -> Flag(Bool) {
+  use input <- new_builder(name, B, get_bool)
   case string.lowercase(input) {
     "true" | "t" -> Ok(True)
     "false" | "f" -> Ok(False)
@@ -1021,11 +1020,19 @@ pub fn bool() -> Flag(Bool) {
 /// initialize custom builders using a Value constructor and a parsing function
 ///
 fn new_builder(
+  name: String,
   valuer: fn(FlagInternals(a)) -> Value,
   getter: fn(Flags, String) -> snag.Result(a),
   p: Parser(a, Snag),
 ) -> Flag(a) {
-  Flag(desc: "", parser: p, value: valuer, default: None, getter: getter)
+  Flag(
+    name: name,
+    desc: "",
+    parser: p,
+    value: valuer,
+    default: None,
+    getter: getter,
+  )
 }
 
 /// convert a Flag(a) into its corresponding FlagEntry representation

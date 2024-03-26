@@ -1,0 +1,55 @@
+// TEST HELPERS
+@internal
+pub opaque type TestCommand(a) {
+  TestCommand(
+    command: Command(a),
+    named_args: dict.Dict(String, String),
+    unnamed_args: List(String),
+  )
+}
+
+@internal
+pub fn test_init(command: Command(a)) -> TestCommand(a) {
+  TestCommand(command: command, named_args: dict.new(), unnamed_args: [])
+}
+
+@internal
+pub fn test_named_arg(command: TestCommand(a), key: String, value: String) {
+  TestCommand(
+    ..command,
+    named_args: dict.insert(command.named_args, key, value),
+  )
+}
+
+@internal
+pub fn test_unnamed_args(command: TestCommand(a), args: List(String)) -> TestCommand(
+  a,
+) {
+  TestCommand(..command, unnamed_args: args)
+}
+
+@internal
+pub fn test_flag(command: TestCommand(a), flag: Flag(b), value: b) -> TestCommand(
+  a,
+) {
+  TestCommand(
+    ..command,
+    command: Command(
+      ..command.command,
+      flags: insert(
+        command.command.flags,
+        flag.name,
+        build_flag(default(flag, value)),
+      ),
+    ),
+  )
+}
+
+@internal
+pub fn test_run(command: TestCommand(a)) -> a {
+  command.command.do(
+    NamedArgs(command.named_args),
+    command.unnamed_args,
+    command.command.flags,
+  )
+}

@@ -2,8 +2,10 @@
 import gleam/io
 import gleam/list
 import gleam/string.{uppercase}
+
 // external dep imports
 import snag
+
 // glint imports
 import argv
 import glint
@@ -54,8 +56,8 @@ pub const caps = "caps"
 
 /// a boolean flag with default False to control message capitalization.
 ///
-pub fn caps_flag() -> glint.FlagBuilder(Bool) {
-  glint.bool()
+pub fn caps_flag() -> glint.Flag(Bool) {
+  glint.bool(caps)
   |> glint.default(False)
   |> glint.flag_help("Capitalize the hello message")
 }
@@ -66,9 +68,9 @@ pub const repeat = "repeat"
 /// an int flag with default 1 to control how many times to repeat the message.
 /// this flag is constrained to values greater than 0.
 ///
-pub fn repeat_flag() -> glint.FlagBuilder(Int) {
+pub fn repeat_flag() -> glint.Flag(Int) {
   use n <- glint.constraint(
-    glint.int()
+    glint.int(repeat)
     |> glint.default(1)
     |> glint.flag_help("Repeat the message n-times"),
   )
@@ -116,9 +118,9 @@ pub fn app() {
   |> glint.pretty_help(glint.default_pretty_help())
   // with group level flags
   // with flag `caps` for all commands (equivalent of using glint.global_flag)
-  |> glint.group_flag([], caps, caps_flag())
+  |> glint.group_flag([], caps_flag())
   // // with flag `repeat` for all commands (equivalent of using glint.global_flag)
-  |> glint.group_flag([], repeat, repeat_flag())
+  |> glint.group_flag([], repeat_flag())
   // with a root command that executes the `hello` function
   |> glint.add(
     // add the hello command to the root

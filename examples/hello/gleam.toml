@@ -1,7 +1,7 @@
 name = "hello"
 version = "0.1.0"
 description = "A Gleam project"
-gleam = "~> 0.34 or ~> 1.0"
+gleam = ">= 1.1.0 and < 2.0.0"
 
 # Fill out these fields if you intend to generate HTML documentation or publish
 # your project to the Hex package manager.
