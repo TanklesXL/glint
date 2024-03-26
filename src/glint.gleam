@@ -216,13 +216,16 @@ pub fn command(do runner: Runner(a)) -> Command(a) {
 
 /// Attach a helptext description to a Command(a)
 ///
-pub fn command_help(desc: String, f: fn() -> Command(a)) -> Command(a) {
+pub fn command_help(of desc: String, with f: fn() -> Command(a)) -> Command(a) {
   Command(..f(), description: desc)
 }
 
 /// Specify a specific number of unnamed args that a given command expects
 ///
-pub fn unnamed_args(args: ArgsCount, f: fn() -> Command(b)) -> Command(b) {
+pub fn unnamed_args(
+  of args: ArgsCount,
+  with f: fn() -> Command(b),
+) -> Command(b) {
   Command(..f(), unnamed_args: Some(args))
 }
 
@@ -234,8 +237,8 @@ pub fn unnamed_args(args: ArgsCount, f: fn() -> Command(b)) -> Command(b) {
 /// **IMPORTANT**: Matched named arguments will not be present in the commmand's unnamed args list
 ///
 pub fn named_arg(
-  name: String,
-  f: fn(fn(NamedArgs) -> String) -> Command(a),
+  named name: String,
+  with f: fn(fn(NamedArgs) -> String) -> Command(a),
 ) -> Command(a) {
   let cmd = {
     use named_args <- f()
@@ -250,9 +253,9 @@ pub fn named_arg(
 /// Add a `Flag` to a `Command`
 ///
 pub fn flag(
-  called name: String,
-  with builder: Flag(a),
-  providing f: fn(fn(Flags) -> snag.Result(a)) -> Command(b),
+  named name: String,
+  of builder: Flag(a),
+  with f: fn(fn(Flags) -> snag.Result(a)) -> Command(b),
 ) -> Command(b) {
   let cmd = f(builder.getter(_, name))
   Command(..cmd, flags: insert(cmd.flags, name, build_flag(builder)))
@@ -264,12 +267,17 @@ pub fn flag(
 pub fn group_flag(
   in glint: Glint(a),
   at path: List(String),
-  for name: String,
+  named name: String,
   of flag: Flag(_),
 ) -> Glint(a) {
   Glint(
     ..glint,
-    cmd: do_group_flag(in: glint.cmd, at: path, for: name, of: build_flag(flag)),
+    cmd: do_group_flag(
+      in: glint.cmd,
+      at: path,
+      named: name,
+      of: build_flag(flag),
+    ),
   )
 }
 
@@ -279,7 +287,7 @@ pub fn group_flag(
 fn do_group_flag(
   in node: CommandNode(a),
   at path: List(String),
-  for name: String,
+  named name: String,
   of flag: FlagEntry,
 ) -> CommandNode(a) {
   case path {
@@ -293,7 +301,7 @@ fn do_group_flag(
 
           node
           |> option.unwrap(empty_command())
-          |> do_group_flag(at: tail, for: name, of: flag)
+          |> do_group_flag(at: tail, named: name, of: flag)
         },
       )
   }
