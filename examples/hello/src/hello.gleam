@@ -1,14 +1,14 @@
 // stdlib imports
+import gleam/dict
 import gleam/io
 import gleam/list
 import gleam/string.{uppercase}
-import gleam/dict
 // external dep imports
 import snag
 // glint imports
+import argv
 import glint
 import glint/flag
-import argv
 
 // ----- APPLICATION LOGIC -----
 

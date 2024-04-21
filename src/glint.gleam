@@ -1,17 +1,17 @@
+import gleam
 import gleam/bool
 import gleam/dict
-import gleam/option.{type Option, None, Some}
-import gleam/list
-import gleam/io
 import gleam/int
+import gleam/io
+import gleam/list
+import gleam/option.{type Option, None, Some}
+import gleam/result
 import gleam/string
-import snag.{type Result}
-import glint/flag.{type Flag, type Map as FlagMap}
 import gleam/string_builder as sb
 import gleam_community/ansi
 import gleam_community/colour.{type Colour}
-import gleam/result
-import gleam
+import glint/flag.{type Flag, type Map as FlagMap}
+import snag.{type Result}
 
 // --- CONFIGURATION ---
 

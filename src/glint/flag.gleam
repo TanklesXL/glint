@@ -1,13 +1,13 @@
+import gleam
 import gleam/dict
-import gleam/string
-import gleam/result
+import gleam/float
 import gleam/int
 import gleam/list
-import gleam/float
-import snag.{type Result, type Snag}
 import gleam/option.{type Option, None, Some}
+import gleam/result
+import gleam/string
 import glint/flag/constraint.{type Constraint}
-import gleam
+import snag.{type Result, type Snag}
 
 /// Flag inputs must start with this prefix
 ///

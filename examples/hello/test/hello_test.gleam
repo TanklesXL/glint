@@ -1,7 +1,7 @@
+import gleam/list
 import gleeunit
 import gleeunit/should
 import hello
-import gleam/list
 
 pub fn main() {
   gleeunit.main()

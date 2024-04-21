@@ -1,7 +1,7 @@
+import gleam/dict as map
 import gleeunit/should
 import glint.{type CommandInput}
 import glint/flag
-import gleam/dict as map
 
 pub fn update_flag_test() {
   let flags =

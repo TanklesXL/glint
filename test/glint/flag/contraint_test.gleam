@@ -1,7 +1,7 @@
-import glint/flag/constraint.{each, none_of, one_of}
+import gleam/list
 import gleeunit/should
 import glint/flag
-import gleam/list
+import glint/flag/constraint.{each, none_of, one_of}
 
 pub fn one_of_test() {
   1
