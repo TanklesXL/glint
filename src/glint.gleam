@@ -7,7 +7,6 @@ import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
-import gleam/set
 import gleam/string
 import gleam/string_builder as sb
 import gleam_community/ansi
