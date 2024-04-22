@@ -73,13 +73,13 @@ pub opaque type Glint(a) {
   Glint(config: Config, cmd: CommandNode(a))
 }
 
-/// Specify the expected number of arguments with this type and the `glint.unnamed_args` function
+/// Specify the expected number of unnamed arguments with this type and the `glint.unnamed_args` function
 ///
 pub type ArgsCount {
-  /// Specifies that a command must accept a specific number of arguments
+  /// Specifies that a command must accept a specific number of unnamed arguments
   ///
   EqArgs(Int)
-  /// Specifies that a command must accept a minimum number of arguments
+  /// Specifies that a command must accept a minimum number of unnamed arguments
   ///
   MinArgs(Int)
 }
