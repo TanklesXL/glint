@@ -101,14 +101,7 @@ pub opaque type NamedArgs {
   NamedArgs(internal: dict.Dict(String, String))
 }
 
-/// Functions that execute as part of glint commands.
-///
-/// Named Arguments that a command expects will be present in the first parameter and accessible by .
-///
-/// Flags passed to `glint` are provided as the `flags` field.
-///
-///
-/// Function type to be run by `glint`.
+/// Functions that execute when glint commands are run.
 ///
 pub type Runner(a) =
   fn(NamedArgs, List(String), Flags) -> a
