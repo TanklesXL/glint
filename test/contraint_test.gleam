@@ -1,54 +1,55 @@
 import gleeunit/should
-import glint.{each, none_of, one_of}
+import glint
+import glint/constraint
 
 pub fn one_of_test() {
   1
-  |> one_of([1, 2, 3])
+  |> constraint.one_of([1, 2, 3])
   |> should.equal(Ok(1))
 
   1
-  |> one_of([2, 3, 4])
+  |> constraint.one_of([2, 3, 4])
   |> should.be_error()
 
   [1, 2, 3]
   |> {
     [5, 4, 3, 2, 1]
-    |> one_of
-    |> each
+    |> constraint.one_of
+    |> constraint.each
   }
   |> should.equal(Ok([1, 2, 3]))
 
   [1, 6, 3]
   |> {
     [5, 4, 3, 2, 1]
-    |> one_of
-    |> each
+    |> constraint.one_of
+    |> constraint.each
   }
   |> should.be_error()
 }
 
 pub fn none_of_test() {
   1
-  |> none_of([1, 2, 3])
+  |> constraint.none_of([1, 2, 3])
   |> should.be_error
 
   1
-  |> glint.none_of([2, 3, 4])
+  |> constraint.none_of([2, 3, 4])
   |> should.equal(Ok(1))
 
   [1, 2, 3]
   |> {
     [4, 5, 6, 7, 8]
-    |> none_of
-    |> each
+    |> constraint.none_of
+    |> constraint.each
   }
   |> should.equal(Ok([1, 2, 3]))
 
   [1, 6, 3]
   |> {
     [4, 5, 6, 7, 8]
-    |> none_of
-    |> each
+    |> constraint.none_of
+    |> constraint.each
   }
   |> should.be_error()
 }
@@ -56,8 +57,8 @@ pub fn none_of_test() {
 pub fn flag_one_of_none_of_test() {
   let #(test_flag, success, failure) = #(
     glint.int("i")
-      |> glint.constraint(one_of([1, 2, 3]))
-      |> glint.constraint(none_of([4, 5, 6])),
+      |> glint.constraint(constraint.one_of([1, 2, 3]))
+      |> glint.constraint(constraint.none_of([4, 5, 6])),
     "1",
     "6",
   )
@@ -86,13 +87,13 @@ pub fn flag_one_of_none_of_test() {
     glint.ints("li")
       |> glint.constraint(
       [1, 2, 3]
-      |> one_of
-      |> each,
+      |> constraint.one_of
+      |> constraint.each,
     )
       |> glint.constraint(
       [4, 5, 6]
-      |> none_of
-      |> each,
+      |> constraint.none_of
+      |> constraint.each,
     ),
     "1,1,1",
     "2,2,6",
@@ -120,8 +121,8 @@ pub fn flag_one_of_none_of_test() {
 
   let #(test_flag, success, failure) = #(
     glint.float("f")
-      |> glint.constraint(one_of([1.0, 2.0, 3.0]))
-      |> glint.constraint(none_of([4.0, 5.0, 6.0])),
+      |> glint.constraint(constraint.one_of([1.0, 2.0, 3.0]))
+      |> glint.constraint(constraint.none_of([4.0, 5.0, 6.0])),
     "1.0",
     "6.0",
   )
@@ -149,13 +150,13 @@ pub fn flag_one_of_none_of_test() {
     glint.floats("lf")
       |> glint.constraint(
       [1.0, 2.0, 3.0]
-      |> one_of()
-      |> each,
+      |> constraint.one_of()
+      |> constraint.each,
     )
       |> glint.constraint(
       [4.0, 5.0, 6.0]
-      |> none_of()
-      |> each,
+      |> constraint.none_of()
+      |> constraint.each,
     ),
     "3.0,2.0,1.0",
     "2.0,3.0,6.0",
@@ -182,8 +183,8 @@ pub fn flag_one_of_none_of_test() {
 
   let #(test_flag, success, failure) = #(
     glint.string("s")
-      |> glint.constraint(one_of(["t1", "t2", "t3"]))
-      |> glint.constraint(none_of(["t4", "t5", "t6"])),
+      |> glint.constraint(constraint.one_of(["t1", "t2", "t3"]))
+      |> glint.constraint(constraint.none_of(["t4", "t5", "t6"])),
     "t3",
     "t4",
   )
@@ -212,13 +213,13 @@ pub fn flag_one_of_none_of_test() {
     glint.strings("ls")
       |> glint.constraint(
       ["t1", "t2", "t3"]
-      |> one_of
-      |> each,
+      |> constraint.one_of
+      |> constraint.each,
     )
       |> glint.constraint(
       ["t4", "t5", "t6"]
-      |> none_of
-      |> each,
+      |> constraint.none_of
+      |> constraint.each,
     ),
     "t3,t2,t1",
     "t2,t4,t1",

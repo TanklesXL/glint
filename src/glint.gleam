@@ -12,6 +12,7 @@ import gleam/string
 import gleam/string_builder as sb
 import gleam_community/ansi
 import gleam_community/colour.{type Colour}
+import glint/constraint
 import snag.{type Snag}
 
 // --- CONFIGURATION ---
@@ -819,75 +820,6 @@ fn string_map(s: String, f: fn(String) -> String) -> String {
 
 // ----- FLAGS -----
 
-/// Constraint type for verifying flag values
-///
-pub type Constraint(a) =
-  fn(a) -> snag.Result(a)
-
-/// one_of returns a Constraint that ensures the parsed flag value is
-/// one of the allowed values.
-///
-pub fn one_of(allowed: List(a)) -> Constraint(a) {
-  let allowed_set = set.from_list(allowed)
-  fn(val: a) -> snag.Result(a) {
-    case set.contains(allowed_set, val) {
-      True -> Ok(val)
-      False ->
-        snag.error(
-          "invalid value '"
-          <> string.inspect(val)
-          <> "', must be one of: ["
-          <> {
-            allowed
-            |> list.map(fn(a) { "'" <> string.inspect(a) <> "'" })
-            |> string.join(", ")
-          }
-          <> "]",
-        )
-    }
-  }
-}
-
-/// none_of returns a Constraint that ensures the parsed flag value is not one of the disallowed values.
-///
-pub fn none_of(disallowed: List(a)) -> Constraint(a) {
-  let disallowed_set = set.from_list(disallowed)
-  fn(val: a) -> snag.Result(a) {
-    case set.contains(disallowed_set, val) {
-      False -> Ok(val)
-      True ->
-        snag.error(
-          "invalid value '"
-          <> string.inspect(val)
-          <> "', must not be one of: ["
-          <> {
-            {
-              disallowed
-              |> list.map(fn(a) { "'" <> string.inspect(a) <> "'" })
-              |> string.join(", ")
-              <> "]"
-            }
-          },
-        )
-    }
-  }
-}
-
-/// each is a convenience function for applying a Constraint(a) to a List(a).
-/// This is useful because the default behaviour for constraints on lists is that they will apply to the list as a whole.
-///
-/// For example, to apply one_of to all items in a `List(Int)`:
-/// ```gleam
-/// [1, 2, 3, 4] |> one_of |> each
-/// ```
-pub fn each(constraint: Constraint(a)) -> Constraint(List(a)) {
-  fn(l: List(a)) -> snag.Result(List(a)) {
-    l
-    |> list.try_map(constraint)
-    |> result.replace(l)
-  }
-}
-
 /// FlagEntry inputs must start with this prefix
 ///
 const prefix = "--"
@@ -1046,7 +978,10 @@ fn build_flag(fb: Flag(a)) -> FlagEntry {
 
 /// attach a constraint to a flag
 ///
-pub fn constraint(builder: Flag(a), constraint: Constraint(a)) -> Flag(a) {
+pub fn constraint(
+  builder: Flag(a),
+  constraint: constraint.Constraint(a),
+) -> Flag(a) {
   Flag(..builder, parser: wrap_with_constraint(builder.parser, constraint))
 }
 
@@ -1054,7 +989,7 @@ pub fn constraint(builder: Flag(a), constraint: Constraint(a)) -> Flag(a) {
 /// this function should not be used directly unless
 fn wrap_with_constraint(
   p: Parser(a, Snag),
-  constraint: Constraint(a),
+  constraint: constraint.Constraint(a),
 ) -> Parser(a, Snag) {
   fn(input: String) -> snag.Result(a) { attempt(p(input), constraint) }
 }
