@@ -32,7 +32,7 @@ pub type PrettyHelp {
 
 // -- CONFIGURATION: CONSTANTS --
 
-/// Default config
+/// default config
 ///
 const default_config = Config(pretty_help: None, name: None, as_module: False)
 
@@ -53,7 +53,7 @@ pub fn pretty_help(glint: Glint(a), pretty: PrettyHelp) -> Glint(a) {
 
 /// Give the current glint application a name
 ///
-pub fn name(glint: Glint(a), name: String) -> Glint(a) {
+pub fn with_name(glint: Glint(a), name: String) -> Glint(a) {
   config(glint, Config(..glint.config, name: Some(name)))
 }
 
@@ -485,7 +485,7 @@ pub fn run_and_handle(
   }
 }
 
-/// Default pretty help heading colouring
+/// default pretty help heading colouring
 /// mint (r: 182, g: 255, b: 234) colour for usage
 /// pink (r: 255, g: 175, b: 243) colour for flags
 /// buttercup (r: 252, g: 226, b: 174) colour for subcommands
@@ -953,63 +953,63 @@ type FlagInternals(a) {
 type Parser(a, b) =
   fn(String) -> gleam.Result(a, b)
 
-/// initialise an int flag builder
+/// initialise an int flag
 ///
 pub fn int(named name: String) -> Flag(Int) {
-  use input <- new_builder(name, I, get_int)
+  use input <- new_builder(name, I, get_int_flag)
   input
   |> int.parse
   |> result.replace_error(cannot_parse(input, "int"))
 }
 
-/// initialise an int list flag builder
+/// initialise an int list flag
 ///
 pub fn ints(named name: String) -> Flag(List(Int)) {
-  use input <- new_builder(name, LI, get_ints)
+  use input <- new_builder(name, LI, get_ints_flag)
   input
   |> string.split(",")
   |> list.try_map(int.parse)
   |> result.replace_error(cannot_parse(input, "int list"))
 }
 
-/// initialise a float flag builder
+/// initialise a float flag
 ///
 pub fn float(named name: String) -> Flag(Float) {
-  use input <- new_builder(name, F, get_float)
+  use input <- new_builder(name, F, get_floats)
   input
   |> float.parse
   |> result.replace_error(cannot_parse(input, "float"))
 }
 
-/// initialise a float list flag builder
+/// initialise a float list flag
 ///
 pub fn floats(named name: String) -> Flag(List(Float)) {
-  use input <- new_builder(name, LF, get_floats)
+  use input <- new_builder(name, LF, get_floats_flag)
   input
   |> string.split(",")
   |> list.try_map(float.parse)
   |> result.replace_error(cannot_parse(input, "float list"))
 }
 
-/// initialise a string flag builder
+/// initialise a string flag
 ///
 pub fn string(named name: String) -> Flag(String) {
-  new_builder(name, S, get_string, fn(s) { Ok(s) })
+  new_builder(name, S, get_string_flag, fn(s) { Ok(s) })
 }
 
-/// intitialise a string list flag builder
+/// intitialise a string list flag
 ///
 pub fn strings(named name: String) -> Flag(List(String)) {
-  use input <- new_builder(name, LS, get_strings)
+  use input <- new_builder(name, LS, get_strings_flag)
   input
   |> string.split(",")
   |> Ok
 }
 
-/// initialise a bool flag builder
+/// initialise a bool flag
 ///
 pub fn bool(named name: String) -> Flag(Bool) {
-  use input <- new_builder(name, B, get_bool)
+  use input <- new_builder(name, B, get_bool_flag)
   case string.lowercase(input) {
     "true" | "t" -> Ok(True)
     "false" | "f" -> Ok(False)
@@ -1044,7 +1044,7 @@ fn build_flag(fb: Flag(a)) -> FlagEntry {
   )
 }
 
-/// attach a constraint to a `FlagEntry`
+/// attach a constraint to a flag
 ///
 pub fn constraint(builder: Flag(a), constraint: Constraint(a)) -> Flag(a) {
   Flag(..builder, parser: wrap_with_constraint(builder.parser, constraint))
@@ -1079,9 +1079,9 @@ pub fn flag_help(for builder: Flag(a), of description: String) -> Flag(a) {
   Flag(..builder, desc: description)
 }
 
-/// Set the default value for a flag `Value`
+/// Set the flag_default value for a flag `Value`
 ///
-pub fn default(for builder: Flag(a), of default: a) -> Flag(a) {
+pub fn flag_default(for builder: Flag(a), of default: a) -> Flag(a) {
   Flag(..builder, default: Some(default))
 }
 
@@ -1230,9 +1230,18 @@ fn get_value(
   |> snag.context("failed to retrieve value for flag '" <> key <> "'")
 }
 
+/// Gets the value for the associated flag.
+///
+/// This function should only ever be used when fetching flags set at the group level.
+/// For local flags please use the getter functions provided when calling `glint.flag`.
+///
+pub fn get_flag(from flags: Flags, for flag: Flag(a)) -> snag.Result(a) {
+  flag.getter(flags, flag.name)
+}
+
 /// Gets the current value for the associated int flag
 ///
-pub fn get_int(from flags: Flags, for name: String) -> snag.Result(Int) {
+fn get_int_flag(from flags: Flags, for name: String) -> snag.Result(Int) {
   use flag <- get_value(flags, name)
   case flag.value {
     I(FlagInternals(value: Some(val), ..)) -> Ok(val)
@@ -1243,7 +1252,7 @@ pub fn get_int(from flags: Flags, for name: String) -> snag.Result(Int) {
 
 /// Gets the current value for the associated ints flag
 ///
-pub fn get_ints(from flags: Flags, for name: String) -> snag.Result(List(Int)) {
+fn get_ints_flag(from flags: Flags, for name: String) -> snag.Result(List(Int)) {
   use flag <- get_value(flags, name)
   case flag.value {
     LI(FlagInternals(value: Some(val), ..)) -> Ok(val)
@@ -1254,7 +1263,7 @@ pub fn get_ints(from flags: Flags, for name: String) -> snag.Result(List(Int)) {
 
 /// Gets the current value for the associated bool flag
 ///
-pub fn get_bool(from flags: Flags, for name: String) -> snag.Result(Bool) {
+fn get_bool_flag(from flags: Flags, for name: String) -> snag.Result(Bool) {
   use flag <- get_value(flags, name)
   case flag.value {
     B(FlagInternals(Some(val), ..)) -> Ok(val)
@@ -1265,7 +1274,7 @@ pub fn get_bool(from flags: Flags, for name: String) -> snag.Result(Bool) {
 
 /// Gets the current value for the associated string flag
 ///
-pub fn get_string(from flags: Flags, for name: String) -> snag.Result(String) {
+fn get_string_flag(from flags: Flags, for name: String) -> snag.Result(String) {
   use flag <- get_value(flags, name)
   case flag.value {
     S(FlagInternals(value: Some(val), ..)) -> Ok(val)
@@ -1276,7 +1285,7 @@ pub fn get_string(from flags: Flags, for name: String) -> snag.Result(String) {
 
 /// Gets the current value for the associated strings flag
 ///
-pub fn get_strings(
+fn get_strings_flag(
   from flags: Flags,
   for name: String,
 ) -> snag.Result(List(String)) {
@@ -1290,7 +1299,7 @@ pub fn get_strings(
 
 /// Gets the current value for the associated float flag
 ///
-pub fn get_float(from flags: Flags, for name: String) -> snag.Result(Float) {
+fn get_floats(from flags: Flags, for name: String) -> snag.Result(Float) {
   use flag <- get_value(flags, name)
   case flag.value {
     F(FlagInternals(value: Some(val), ..)) -> Ok(val)
@@ -1299,9 +1308,9 @@ pub fn get_float(from flags: Flags, for name: String) -> snag.Result(Float) {
   }
 }
 
-/// Gets the current value for the associated floats flag
+/// Gets the current value for the associated float flag
 ///
-pub fn get_floats(
+fn get_floats_flag(
   from flags: Flags,
   for name: String,
 ) -> snag.Result(List(Float)) {

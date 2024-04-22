@@ -39,6 +39,8 @@ pub fn hello_test() {
 
 pub fn app_test() {
   hello.app()
-  |> glint.execute(["Joe", "Gleamlins"])
-  |> should.equal(Ok(glint.Out("Hello, Joe and Gleamlins!")))
+  |> glint.execute(["Joe", "Gleamlins", "--repeat=2", "--caps"])
+  |> should.equal(
+    Ok(glint.Out("HELLO, JOE AND GLEAMLINS!\nHELLO, JOE AND GLEAMLINS!")),
+  )
 }

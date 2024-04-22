@@ -127,7 +127,7 @@ pub fn help_test() {
 
   let cli =
     glint.new()
-    |> glint.name("test")
+    |> glint.with_name("test")
     |> glint.as_module
     |> glint.group_flag([], global_flag)
     |> glint.add(at: [], do: {
@@ -284,18 +284,23 @@ FLAGS:
 }
 
 pub fn global_and_group_flags_test() {
+  let flag_f =
+    glint.int("f")
+    |> glint.flag_default(2)
+    |> glint.flag_help("global flag example")
+
+  let sub_group_flag =
+    "sub_group_flag"
+    |> glint.int()
+    |> glint.flag_default(1)
+
   let cli =
     glint.new()
-    |> glint.group_flag(
-      [],
-      glint.int("f")
-        |> glint.default(2)
-        |> glint.flag_help("global flag example"),
-    )
+    |> glint.group_flag([], flag_f)
     |> glint.add(
       [],
       glint.command(fn(_, _, flags) {
-        glint.get_int(flags, "f")
+        glint.get_flag(flags, flag_f)
         |> should.equal(Ok(2))
       }),
     )
@@ -303,24 +308,19 @@ pub fn global_and_group_flags_test() {
       use f <- glint.flag(
         "f"
         |> glint.bool()
-        |> glint.default(True)
+        |> glint.flag_default(True)
         |> glint.flag_help("i decided to override the global flag"),
       )
       use _, _, flags <- glint.command()
       f(flags)
       |> should.equal(Ok(True))
     })
-    |> glint.group_flag(
-      ["sub"],
-      "sub_group_flag"
-        |> glint.int()
-        |> glint.default(1),
-    )
+    |> glint.group_flag(["sub"], sub_group_flag)
     |> glint.add(["sub", "sub"], {
       use f <- glint.flag(
         "f"
         |> glint.bool()
-        |> glint.default(True)
+        |> glint.flag_default(True)
         |> glint.flag_help("i decided to override the global flag"),
       )
       use _, _, flags <- glint.command()
@@ -328,7 +328,7 @@ pub fn global_and_group_flags_test() {
       |> should.equal(Ok(True))
 
       flags
-      |> glint.get_int("sub_group_flag")
+      |> glint.get_flag(sub_group_flag)
       |> should.equal(Ok(2))
     })
 

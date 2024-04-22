@@ -2,4 +2,5 @@
 *.ez
 build
 erl_crash.dump
+.ignore_me
 .ignore_me.*
