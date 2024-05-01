@@ -77,7 +77,6 @@ pub fn repeat_flag() -> glint.Flag(Int) {
 /// the command function that will be executed as the root command
 ///
 pub fn hello_cmd() -> glint.Command(String) {
-  // register
   use <- glint.command_help("Prints Hello, <names>!")
   use <- glint.unnamed_args(glint.MinArgs(1))
   use _, args, flags <- glint.command()
