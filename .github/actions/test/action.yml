@@ -22,7 +22,7 @@ runs:
       with:
         otp-version: ${{ inputs.erlang-version }}
         gleam-version: ${{ inputs.gleam-version }}
-        rebar3-versin: 3
+        rebar3-version: 3
     - uses: actions/setup-node@v2
       with:
         node-version: ${{ inputs.node-version }}
