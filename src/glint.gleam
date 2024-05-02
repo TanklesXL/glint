@@ -309,6 +309,7 @@ fn do_group_flag(
 /// This function does not print its output and is mainly intended for use within `glint` itself.
 /// If you would like to print or handle the output of a command please see the `run_and_handle` function.
 ///
+@internal
 pub fn execute(glint: Glint(a), args: List(String)) -> Result(a) {
   // create help flag to check for
   let help_flag = help_flag()

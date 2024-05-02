@@ -78,7 +78,7 @@ pub fn flag_one_of_none_of_test() {
   |> glint.add([], {
     use _access <- glint.flag(test_flag)
     use _, _, _flags <- glint.command()
-    panic
+    Nil
   })
   |> glint.execute(["--i=" <> failure])
   |> should.be_error

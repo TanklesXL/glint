@@ -38,9 +38,8 @@ pub fn hello_test() {
 }
 
 pub fn app_test() {
-  hello.app()
-  |> glint.execute(["Joe", "Gleamlins", "--repeat=2", "--caps"])
-  |> should.equal(
-    Ok(glint.Out("HELLO, JOE AND GLEAMLINS!\nHELLO, JOE AND GLEAMLINS!")),
-  )
+  use output <- glint.run_and_handle(hello.app(), [
+    "Joe", "Gleamlins", "--repeat=2", "--caps",
+  ])
+  should.equal(output, "HELLO, JOE AND GLEAMLINS!\nHELLO, JOE AND GLEAMLINS!")
 }
