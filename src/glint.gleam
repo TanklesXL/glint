@@ -96,6 +96,15 @@ pub opaque type Command(a) {
   )
 }
 
+type InternalCommand(a) {
+  InternalCommand(
+    do: Runner(a),
+    flags: Flags,
+    unnamed_args: Option(ArgsCount),
+    named_args: List(String),
+  )
+}
+
 pub opaque type NamedArgs {
   NamedArgs(internal: dict.Dict(String, String))
 }
@@ -109,9 +118,10 @@ pub type Runner(a) =
 ///
 type CommandNode(a) {
   CommandNode(
-    contents: Option(Command(a)),
+    contents: Option(InternalCommand(a)),
     subcommands: dict.Dict(String, CommandNode(a)),
     group_flags: Flags,
+    description: String,
   )
 }
 
@@ -149,42 +159,28 @@ pub fn add(
   at path: List(String),
   do command: Command(a),
 ) -> Glint(a) {
-  Glint(
-    ..glint,
-    cmd: path
-      |> sanitize_path
-      |> do_add(to: glint.cmd, put: command),
+  use node <- update_at(in: glint, at: path)
+  CommandNode(
+    ..node,
+    description: command.description,
+    contents: Some(InternalCommand(
+      do: command.do,
+      flags: command.flags,
+      named_args: command.named_args,
+      unnamed_args: command.unnamed_args,
+    )),
   )
-}
-
-/// Recursive traversal of the command tree to find where to puth the provided command
-///
-fn do_add(
-  to root: CommandNode(a),
-  at path: List(String),
-  put contents: Command(a),
-) -> CommandNode(a) {
-  case path {
-    // update current command with provided contents
-    [] -> CommandNode(..root, contents: Some(contents))
-    // continue down the path, creating empty command nodes along the way
-    [x, ..xs] ->
-      CommandNode(
-        ..root,
-        subcommands: {
-          use node <- dict.update(root.subcommands, x)
-          node
-          |> option.lazy_unwrap(empty_command)
-          |> do_add(xs, contents)
-        },
-      )
-  }
 }
 
 /// Helper for initializing empty commands
 ///
 fn empty_command() -> CommandNode(a) {
-  CommandNode(contents: None, subcommands: dict.new(), group_flags: new_flags())
+  CommandNode(
+    contents: None,
+    subcommands: dict.new(),
+    group_flags: new_flags(),
+    description: "",
+  )
 }
 
 /// Trim each path element and remove any resulting empty strings.
@@ -261,41 +257,11 @@ pub fn group_flag(
   at path: List(String),
   of flag: Flag(_),
 ) -> Glint(a) {
-  Glint(
-    ..glint,
-    cmd: do_group_flag(
-      in: glint.cmd,
-      at: path,
-      named: flag.name,
-      of: build_flag(flag),
-    ),
+  use node <- update_at(in: glint, at: path)
+  CommandNode(
+    ..node,
+    group_flags: insert(node.group_flags, flag.name, build_flag(flag)),
   )
-}
-
-/// add a group flag to a command node
-/// descend recursively down the command tree to find the node that the flag should be inserted at
-///
-fn do_group_flag(
-  in node: CommandNode(a),
-  at path: List(String),
-  named name: String,
-  of flag: FlagEntry,
-) -> CommandNode(a) {
-  case path {
-    [] -> CommandNode(..node, group_flags: insert(node.group_flags, name, flag))
-
-    [head, ..tail] ->
-      CommandNode(
-        ..node,
-        subcommands: {
-          use node <- dict.update(node.subcommands, head)
-
-          node
-          |> option.unwrap(empty_command())
-          |> do_group_flag(at: tail, named: name, of: flag)
-        },
-      )
-  }
 }
 
 // -- CORE: EXECUTION FUNCTIONS --
@@ -586,9 +552,9 @@ fn build_command_help_metadata(
   node: CommandNode(_),
 ) -> CommandHelp {
   let #(description, flags, unnamed_args, named_args) = case node.contents {
-    None -> #("", [], None, [])
+    None -> #(node.description, [], None, [])
     Some(cmd) -> #(
-      cmd.description,
+      node.description,
       build_flags_help(merge(node.group_flags, cmd.flags)),
       cmd.unnamed_args,
       cmd.named_args,
@@ -636,16 +602,8 @@ fn build_flags_help(flags: Flags) -> List(FlagHelp) {
 fn build_subcommands_help(
   subcommands: dict.Dict(String, CommandNode(_)),
 ) -> List(Metadata) {
-  use acc, name, cmd <- dict.fold(subcommands, [])
-  [
-    Metadata(
-      name: name,
-      description: cmd.contents
-        |> option.map(fn(command) { command.description })
-        |> option.unwrap(""),
-    ),
-    ..acc
-  ]
+  use acc, name, node <- dict.fold(subcommands, [])
+  [Metadata(name: name, description: node.description), ..acc]
 }
 
 // -- HELP - FUNCTIONS - STRINGIFIERS --
@@ -1248,4 +1206,52 @@ fn get_floats_flag(
     LF(FlagInternals(value: None, ..)) -> flag_not_provided_error()
     _ -> access_type_error("float list")
   }
+}
+
+// traverses a Glint(a) tree for the provided path
+// executes the provided function on the terminal node
+//
+fn update_at(
+  in glint: Glint(a),
+  at path: List(String),
+  do f: fn(CommandNode(a)) -> CommandNode(a),
+) -> Glint(a) {
+  Glint(
+    ..glint,
+    cmd: do_update_at(through: glint.cmd, at: sanitize_path(path), do: f),
+  )
+}
+
+fn do_update_at(
+  through node: CommandNode(a),
+  at path: List(String),
+  do f: fn(CommandNode(a)) -> CommandNode(a),
+) -> CommandNode(a) {
+  case path {
+    [] -> f(node)
+    [next, ..rest] -> {
+      CommandNode(
+        ..node,
+        subcommands: {
+          use found <- dict.update(node.subcommands, next)
+          found |> option.lazy_unwrap(empty_command) |> do_update_at(rest, f)
+        },
+      )
+    }
+  }
+}
+
+/// Set the help text for a specific command path.
+///
+/// This function is intended to allow users to set the help text of commands that might not be directly instantiated
+/// such as commands with no business logic associated to them but that have subcommands.
+///
+/// Using this function should almost never be necessary, in most cases you should use `glint.command_help` insstead.
+pub fn path_help(
+  in glint: Glint(a),
+  at path: List(String),
+  put description: String,
+) -> Glint(a) {
+  use node <- update_at(in: glint, at: path)
+  CommandNode(..node, description: description)
 }

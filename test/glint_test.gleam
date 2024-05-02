@@ -167,6 +167,7 @@ pub fn help_test() {
       at: ["cmd5", "cmd6"],
       do: glint.command_help("This is cmd6", fn() { glint.command(nil) }),
     )
+    |> glint.path_help(["cmd5", "cmd6", "cmd7"], "This is cmd7")
 
   // execute root command
   glint.execute(cli, ["a", "b"])
@@ -279,6 +280,38 @@ FLAGS:
 \t--flag3=<BOOL>\t\tThis is flag3
 \t--global=<STRING>\t\tThis is a global flag
 \t--help\t\t\tPrint help information",
+    )),
+  )
+
+  // help message for command a subcommand whose help was set with glint.path_help
+  glint.execute(cli, ["cmd5", "cmd6", "--help"])
+  |> should.equal(
+    Ok(Help(
+      "cmd5 cmd6
+This is cmd6
+
+USAGE:
+\tgleam run -m test cmd5 cmd6 ( cmd7 ) [ ARGS ] [ --global=<STRING> ]
+
+FLAGS:
+\t--global=<STRING>\t\tThis is a global flag
+\t--help\t\t\tPrint help information
+
+SUBCOMMANDS:
+\tcmd7\t\tThis is cmd7",
+    )),
+  )
+
+  // help message for command that had help_text set with glint.glint.path_help
+  // has no children or command runner set so no other details are available
+  glint.execute(cli, ["cmd5", "cmd6", "cmd7", "--help"])
+  |> should.equal(
+    Ok(Help(
+      "cmd5 cmd6 cmd7
+This is cmd7
+
+USAGE:
+\tgleam run -m test cmd5 cmd6 cmd7 [ ARGS ]",
     )),
   )
 }
