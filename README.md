@@ -56,7 +56,7 @@ import glint/flag
 
 // this function returns the builder for the caps flag
 fn caps_flag() -> flag.FlagBuilder(Bool) {
-  flag.bool()
+  flag.bool("caps")
   |> flag.default(False)
   |> flag.description("Capitalize the hello message")
 }
@@ -64,8 +64,8 @@ fn caps_flag() -> flag.FlagBuilder(Bool) {
 /// the glint command that will be executed
 ///
 fn hello() -> glint.Command(Nil) {
-  use <- glint.description("Prints Hello, <NAME>!")
-  use caps <- glint.flag("caps",caps_flag())
+  use <- glint.command_help("Prints Hello, <NAME>!")
+  use caps <- glint.flag(caps_flag())
   use _, args, flags <- glint.command()
   let assert Ok(caps) = caps(flags)
   let name = case args {
