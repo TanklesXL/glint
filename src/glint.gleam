@@ -871,7 +871,7 @@ type Parser(a, b) =
 
 /// initialise an int flag
 ///
-pub fn int(named name: String) -> Flag(Int) {
+pub fn flag_int(named name: String) -> Flag(Int) {
   use input <- new_builder(name, I, get_int_flag)
   input
   |> int.parse
@@ -880,7 +880,7 @@ pub fn int(named name: String) -> Flag(Int) {
 
 /// initialise an int list flag
 ///
-pub fn ints(named name: String) -> Flag(List(Int)) {
+pub fn flag_ints(named name: String) -> Flag(List(Int)) {
   use input <- new_builder(name, LI, get_ints_flag)
   input
   |> string.split(",")
@@ -890,7 +890,7 @@ pub fn ints(named name: String) -> Flag(List(Int)) {
 
 /// initialise a float flag
 ///
-pub fn float(named name: String) -> Flag(Float) {
+pub fn flag_float(named name: String) -> Flag(Float) {
   use input <- new_builder(name, F, get_floats)
   input
   |> float.parse
@@ -899,7 +899,7 @@ pub fn float(named name: String) -> Flag(Float) {
 
 /// initialise a float list flag
 ///
-pub fn floats(named name: String) -> Flag(List(Float)) {
+pub fn flag_floats(named name: String) -> Flag(List(Float)) {
   use input <- new_builder(name, LF, get_floats_flag)
   input
   |> string.split(",")
@@ -909,13 +909,13 @@ pub fn floats(named name: String) -> Flag(List(Float)) {
 
 /// initialise a string flag
 ///
-pub fn string(named name: String) -> Flag(String) {
+pub fn flag_string(named name: String) -> Flag(String) {
   new_builder(name, S, get_string_flag, fn(s) { Ok(s) })
 }
 
 /// intitialise a string list flag
 ///
-pub fn strings(named name: String) -> Flag(List(String)) {
+pub fn flag_strings(named name: String) -> Flag(List(String)) {
   use input <- new_builder(name, LS, get_strings_flag)
   input
   |> string.split(",")
@@ -924,7 +924,7 @@ pub fn strings(named name: String) -> Flag(List(String)) {
 
 /// initialise a bool flag
 ///
-pub fn bool(named name: String) -> Flag(Bool) {
+pub fn flag_bool(named name: String) -> Flag(Bool) {
   use input <- new_builder(name, B, get_bool_flag)
   case string.lowercase(input) {
     "true" | "t" -> Ok(True)
