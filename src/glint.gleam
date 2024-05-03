@@ -157,6 +157,30 @@ pub fn new() -> Glint(a) {
   Glint(config: default_config, cmd: empty_command())
 }
 
+/// Set the help text for a specific command path.
+///
+/// This function is intended to allow users to set the help text of commands that might not be directly instantiated
+/// such as commands with no business logic associated to them but that have subcommands.
+///
+/// Using this function should almost never be necessary, in most cases you should use `glint.command_help` insstead.
+pub fn path_help(
+  in glint: Glint(a),
+  at path: List(String),
+  put description: String,
+) -> Glint(a) {
+  use node <- update_at(in: glint, at: path)
+  CommandNode(..node, description: description)
+}
+
+/// Set help text for the application as a whole.
+///
+/// Help text set with this function wil be printed at the top of the help text for every command.
+/// To set help text specifically for the root command please use `glint.command_help` or `glint.path_help([],...)`
+///
+pub fn global_help(in glint: Glint(a), of description: String) -> Glint(a) {
+  Glint(..glint, config: Config(..glint.config, description: Some(description)))
+}
+
 /// Adds a new command to be run at the specified path.
 ///
 /// If the path is `[]`, the root command is set with the provided function and
@@ -1250,28 +1274,4 @@ fn do_update_at(
       )
     }
   }
-}
-
-/// Set the help text for a specific command path.
-///
-/// This function is intended to allow users to set the help text of commands that might not be directly instantiated
-/// such as commands with no business logic associated to them but that have subcommands.
-///
-/// Using this function should almost never be necessary, in most cases you should use `glint.command_help` insstead.
-pub fn path_help(
-  in glint: Glint(a),
-  at path: List(String),
-  put description: String,
-) -> Glint(a) {
-  use node <- update_at(in: glint, at: path)
-  CommandNode(..node, description: description)
-}
-
-/// Set help text for the application as a whole.
-///
-/// Help text set with this function wil be printed at the top of the help text for every command.
-/// To set help text specifically for the root command please use `glint.command_help` or `glint.path_help([],...)`
-///
-pub fn global_help(in glint: Glint(a), of description: String) -> Glint(a) {
-  Glint(..glint, config: Config(..glint.config, description: Some(description)))
 }
