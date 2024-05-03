@@ -3,7 +3,11 @@ name: Run Tests
 env:
   GLEAM_VERSION: "1.1.0"
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
   format:
@@ -67,7 +71,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        node: ["20", "18"]
+        node: ["22", "20", "18"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache/restore@v4
