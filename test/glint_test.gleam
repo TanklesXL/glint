@@ -128,6 +128,7 @@ pub fn help_test() {
   let cli =
     glint.new()
     |> glint.with_name("test")
+    |> glint.global_help("Some awesome global help text!")
     |> glint.as_module
     |> glint.group_flag([], global_flag)
     |> glint.add(at: [], do: {
@@ -195,7 +196,9 @@ pub fn help_test() {
   glint.execute(cli, ["--help"])
   |> should.equal(
     Ok(Help(
-      "This is the root command
+      "Some awesome global help text!
+
+This is the root command
 
 USAGE:
 \tgleam run -m test ( cmd1 | cmd2 | cmd5 ) <arg1> <arg2> [ ARGS ] [ --flag1=<STRING> --global=<STRING> ]
@@ -216,7 +219,10 @@ SUBCOMMANDS:
   glint.execute(cli, ["cmd1", "--help"])
   |> should.equal(
     Ok(Help(
-      "cmd1
+      "Some awesome global help text!
+
+Command: cmd1
+
 This is cmd1
 
 USAGE:
@@ -238,7 +244,10 @@ SUBCOMMANDS:
   glint.execute(cli, ["cmd1", "cmd4", "--help"])
   |> should.equal(
     Ok(Help(
-      "cmd1 cmd4
+      "Some awesome global help text!
+
+Command: cmd1 cmd4
+
 This is cmd4
 
 USAGE:
@@ -254,7 +263,10 @@ FLAGS:
   glint.execute(cli, ["cmd2", "--help"])
   |> should.equal(
     Ok(Help(
-      "cmd2
+      "Some awesome global help text!
+
+Command: cmd2
+
 This is cmd2
 
 USAGE:
@@ -270,7 +282,10 @@ FLAGS:
   glint.execute(cli, ["cmd1", "cmd3", "--help"])
   |> should.equal(
     Ok(Help(
-      "cmd1 cmd3
+      "Some awesome global help text!
+
+Command: cmd1 cmd3
+
 This is cmd3
 
 USAGE:
@@ -287,7 +302,10 @@ FLAGS:
   glint.execute(cli, ["cmd5", "cmd6", "--help"])
   |> should.equal(
     Ok(Help(
-      "cmd5 cmd6
+      "Some awesome global help text!
+
+Command: cmd5 cmd6
+
 This is cmd6
 
 USAGE:
@@ -307,7 +325,10 @@ SUBCOMMANDS:
   glint.execute(cli, ["cmd5", "cmd6", "cmd7", "--help"])
   |> should.equal(
     Ok(Help(
-      "cmd5 cmd6 cmd7
+      "Some awesome global help text!
+
+Command: cmd5 cmd6 cmd7
+
 This is cmd7
 
 USAGE:

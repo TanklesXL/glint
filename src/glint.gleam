@@ -21,7 +21,12 @@ import snag.{type Snag}
 /// Config for glint
 ///
 type Config {
-  Config(pretty_help: Option(PrettyHelp), name: Option(String), as_module: Bool)
+  Config(
+    pretty_help: Option(PrettyHelp),
+    name: Option(String),
+    as_module: Bool,
+    description: Option(String),
+  )
 }
 
 /// PrettyHelp defines the header colours to be used when styling help text
@@ -34,7 +39,12 @@ pub type PrettyHelp {
 
 /// default config
 ///
-const default_config = Config(pretty_help: None, name: None, as_module: False)
+const default_config = Config(
+  pretty_help: None,
+  name: None,
+  as_module: False,
+  description: None,
+)
 
 // -- CONFIGURATION: FUNCTIONS --
 
@@ -495,8 +505,8 @@ fn cmd_help(path: List(String), cmd: CommandNode(a), config: Config) -> String {
   path
   |> list.reverse
   |> string.join(" ")
-  |> build_command_help_metadata(cmd)
-  |> command_help_to_string(config)
+  |> build_app_help(config, _, cmd)
+  |> app_help_to_string
 }
 
 /// Style heading text with the provided rgb colouring
@@ -514,6 +524,11 @@ fn heading_style(heading: String, colour: Colour) -> String {
 // ----- HELP -----
 
 // --- HELP: TYPES ---
+//
+
+type AppHelp {
+  AppHelp(config: Config, command: CommandHelp)
+}
 
 /// Common metadata for commands and flags
 ///
@@ -544,13 +559,13 @@ type CommandHelp {
 }
 
 // -- HELP - FUNCTIONS - BUILDERS --
+fn build_app_help(config: Config, command_name: String, node: CommandNode(_)) {
+  AppHelp(config: config, command: build_command_help(command_name, node))
+}
 
 /// build the help representation for a subtree of commands
 ///
-fn build_command_help_metadata(
-  name: String,
-  node: CommandNode(_),
-) -> CommandHelp {
+fn build_command_help(name: String, node: CommandNode(_)) -> CommandHelp {
   let #(description, flags, unnamed_args, named_args) = case node.contents {
     None -> #(node.description, [], None, [])
     Some(cmd) -> #(
@@ -607,22 +622,16 @@ fn build_subcommands_help(
 }
 
 // -- HELP - FUNCTIONS - STRINGIFIERS --
-
-/// convert a CommandHelp to a styled string
-///
-fn command_help_to_string(help: CommandHelp, config: Config) -> String {
-  // create the header block from the name and description
-  let header_items =
-    [help.meta.name, help.meta.description]
-    |> list.filter(is_not_empty)
-    |> string.join("\n")
-
-  // join the resulting help blocks into the final help message
+fn app_help_to_string(help: AppHelp) -> String {
   [
-    header_items,
-    command_help_to_usage_string(help, config),
-    flags_help_to_string(help.flags, config),
-    subcommands_help_to_string(help.subcommands, config),
+    help.config.description
+      |> option.unwrap(""),
+    help.command.meta.name
+      |> string_map(string.append("Command: ", _)),
+    help.command.meta.description,
+    command_help_to_usage_string(help.command, help.config),
+    flags_help_to_string(help.command.flags, help.config),
+    subcommands_help_to_string(help.command.subcommands, help.config),
   ]
   |> list.filter(is_not_empty)
   |> string.join("\n\n")
@@ -1234,7 +1243,9 @@ fn do_update_at(
         ..node,
         subcommands: {
           use found <- dict.update(node.subcommands, next)
-          found |> option.lazy_unwrap(empty_command) |> do_update_at(rest, f)
+          found
+          |> option.lazy_unwrap(empty_command)
+          |> do_update_at(rest, f)
         },
       )
     }
@@ -1254,4 +1265,13 @@ pub fn path_help(
 ) -> Glint(a) {
   use node <- update_at(in: glint, at: path)
   CommandNode(..node, description: description)
+}
+
+/// Set help text for the application as a whole.
+///
+/// Help text set with this function wil be printed at the top of the help text for every command.
+/// To set help text specifically for the root command please use `glint.command_help` or `glint.path_help([],...)`
+///
+pub fn global_help(in glint: Glint(a), of description: String) -> Glint(a) {
+  Glint(..glint, config: Config(..glint.config, description: Some(description)))
 }

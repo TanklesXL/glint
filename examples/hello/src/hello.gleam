@@ -105,6 +105,8 @@ pub fn app() {
   glint.new()
   // with an app name of "hello", this is used when printing help text
   |> glint.with_name("hello")
+  // apply global help text to all commands
+  |> glint.global_help("It's time to say hello!")
   // show in usage text that the current app is run as a gleam module
   |> glint.as_module
   // with pretty help enabled, using the built-in colours
