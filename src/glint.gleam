@@ -994,14 +994,14 @@ type FlagEntry {
 
 /// attach a helptext description to a flag
 ///
-pub fn flag_help(for builder: Flag(a), of description: String) -> Flag(a) {
-  Flag(..builder, desc: description)
+pub fn flag_help(for flag: Flag(a), of description: String) -> Flag(a) {
+  Flag(..flag, desc: description)
 }
 
 /// Set the flag_default value for a flag `Value`
 ///
-pub fn flag_default(for builder: Flag(a), of default: a) -> Flag(a) {
-  Flag(..builder, default: Some(default))
+pub fn flag_default(for flag: Flag(a), of default: a) -> Flag(a) {
+  Flag(..flag, default: Some(default))
 }
 
 /// FlagEntry names and their associated values
