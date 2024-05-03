@@ -144,11 +144,6 @@ pub type Out(a) {
   Help(String)
 }
 
-/// snag.Result type for command execution
-///
-pub type Result(a) =
-  gleam.Result(Out(a), String)
-
 // -- CORE: BUILDER FUNCTIONS --
 
 /// Creates a new command tree.
@@ -310,7 +305,7 @@ pub fn group_flag(
 /// If you would like to print or handle the output of a command please see the `run_and_handle` function.
 ///
 @internal
-pub fn execute(glint: Glint(a), args: List(String)) -> Result(a) {
+pub fn execute(glint: Glint(a), args: List(String)) -> Result(Out(a), String) {
   // create help flag to check for
   let help_flag = help_flag()
 
@@ -336,7 +331,7 @@ fn do_execute(
   flags: List(String),
   help: Bool,
   command_path: List(String),
-) -> Result(a) {
+) -> Result(Out(a), String) {
   case args {
     // when there are no more available arguments
     // and help flag has been passed, generate help message
@@ -400,7 +395,7 @@ fn execute_root(
   cmd: CommandNode(a),
   args: List(String),
   flag_inputs: List(String),
-) -> Result(a) {
+) -> Result(Out(a), String) {
   let res =
     {
       use contents <- option.map(cmd.contents)
