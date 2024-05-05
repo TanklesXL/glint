@@ -1035,9 +1035,35 @@ fn build_flag(fb: Flag(a)) -> FlagEntry {
   )
 }
 
-/// attach a constraint to a flag
+/// Attach a constraint to a flag.
 ///
-pub fn constraint(
+/// As constraints are just functions, this works well as both part of a pipeline or with `use`.
+///
+///
+/// Pipe:
+/// ```gleam
+/// glint.flag_int("my_flag")
+/// |> glint.flag_help("An awesome flag")
+/// |> glint.flag_constraint(fn(i) {
+///   case i < 0 {
+///     True -> snag.error("must be greater than 0")
+///     False -> Ok(i)
+///   }})
+/// ```
+///
+/// Use:
+/// ```gleam
+/// use i <- glint.flag_constraint(
+///   glint.flag_int("my_flag")
+///   |> glint.flag_help("An awesome flag")
+/// )
+/// case i < 0 {
+///   True -> snag.error("must be greater than 0")
+///   False -> Ok(i)
+/// }
+/// ```
+///
+pub fn flag_constraint(
   builder: Flag(a),
   constraint: constraint.Constraint(a),
 ) -> Flag(a) {

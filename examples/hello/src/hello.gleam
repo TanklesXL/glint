@@ -63,7 +63,7 @@ pub fn caps_flag() -> glint.Flag(Bool) {
 /// this flag is constrained to values greater than 0.
 ///
 pub fn repeat_flag() -> glint.Flag(Int) {
-  use n <- glint.constraint(
+  use n <- glint.flag_constraint(
     glint.flag_int("repeat")
     |> glint.flag_default(1)
     |> glint.flag_help("Repeat the message n-times"),
