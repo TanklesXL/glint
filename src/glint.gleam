@@ -26,6 +26,7 @@ type Config {
     name: Option(String),
     as_module: Bool,
     description: Option(String),
+    exit: Bool,
   )
 }
 
@@ -44,6 +45,7 @@ const default_config = Config(
   name: None,
   as_module: False,
   description: None,
+  exit: True,
 )
 
 // -- CONFIGURATION: FUNCTIONS --
@@ -54,21 +56,34 @@ fn config(glint: Glint(a), config: Config) -> Glint(a) {
   Glint(..glint, config: config)
 }
 
-/// Enable custom colours for help text headers
-/// For a pre-made colouring use `default_pretty_help()`
+/// Enable custom colours for help text headers.
+///
+/// For a pre-made style, pass in `glint.default_pretty_help()`
 ///
 pub fn pretty_help(glint: Glint(a), pretty: PrettyHelp) -> Glint(a) {
   config(glint, Config(..glint.config, pretty_help: Some(pretty)))
 }
 
-/// Give the current glint application a name
+/// Give the current glint application a name.
+///
+/// The name specified here is used when generating help text for the current glint instance.
 ///
 pub fn with_name(glint: Glint(a), name: String) -> Glint(a) {
   config(glint, Config(..glint.config, name: Some(name)))
 }
 
+/// By default, Glint exits with error status 1 when an error is encountered (eg. invalid flag or command not found)
+///
+/// Calling this function disables that feature.
+///
+pub fn without_exit(glint: Glint(a)) -> Glint(a) {
+  Glint(..glint, config: Config(..glint.config, exit: False))
+}
+
 /// Adjust the generated help text to reflect that the current glint app should be run as a gleam module.
+///
 /// Use in conjunction with `glint.with_name` to get usage text output like `gleam run -m <name>`
+///
 pub fn as_module(glint: Glint(a)) -> Glint(a) {
   config(glint, Config(..glint.config, as_module: True))
 }
@@ -137,6 +152,7 @@ type CommandNode(a) {
 
 /// Ok type for command execution
 ///
+@internal
 pub type Out(a) {
   /// Container for the command return value
   Out(a)
@@ -146,7 +162,7 @@ pub type Out(a) {
 
 // -- CORE: BUILDER FUNCTIONS --
 
-/// Creates a new command tree.
+/// Create a new glint instance.
 ///
 pub fn new() -> Glint(a) {
   Glint(config: default_config, cmd: empty_command())
@@ -154,7 +170,7 @@ pub fn new() -> Glint(a) {
 
 /// Set the help text for a specific command path.
 ///
-/// This function is intended to allow users to set the help text of commands that might not be directly instantiated
+/// This function is intended to allow users to set the help text of commands that might not be directly instantiated,
 /// such as commands with no business logic associated to them but that have subcommands.
 ///
 /// Using this function should almost never be necessary, in most cases you should use `glint.command_help` insstead.
@@ -182,6 +198,13 @@ pub fn global_help(in glint: Glint(a), of description: String) -> Glint(a) {
 /// flags.
 ///
 /// Note: all command paths are sanitized by stripping whitespace and removing any empty string elements.
+///
+/// ```gleam
+/// glint.new()
+/// |> glint.add(at: [], root_command())
+/// |> glint.add(at: ["subcommand"], subcommand())
+/// ...
+/// ```
 ///
 pub fn add(
   to glint: Glint(a),
@@ -238,21 +261,43 @@ pub fn command_help(of desc: String, with f: fn() -> Command(a)) -> Command(a) {
   Command(..f(), description: desc)
 }
 
-/// Specify a specific number of unnamed args that a given command expects
+/// Specify a specific number of unnamed args that a given command expects.
+///
+/// Use in conjunction with `glint.ArgsCount` to specify either a minimum or a specific number of args.
+///
+/// ```gleam
+/// ...
+/// // for a command that accets only 1 unnamed argument:
+/// use <- glint.unnamed_args(glint.EqArgs(1))
+/// ...
+/// named, unnamed, flags <- glint.command()
+/// let assert Ok([arg]) = unnamed
+/// ```
 ///
 pub fn unnamed_args(
-  of args: ArgsCount,
+  of count: ArgsCount,
   with f: fn() -> Command(b),
 ) -> Command(b) {
-  Command(..f(), unnamed_args: Some(args))
+  Command(..f(), unnamed_args: Some(count))
 }
 
-/// Add a list of named arguments to a Command
-/// These named arguments will be matched with the first N arguments passed to the command
-/// All named arguments must match for a command to succeed
-/// This works in combination with CommandInput.named_args which will contain the matched args in a Dict(String,String)
+/// Add a list of named arguments to a Command.
+/// These named arguments will be matched with the first N arguments passed to the command.
 ///
-/// **IMPORTANT**: Matched named arguments will not be present in the commmand's unnamed args list
+///
+/// **IMPORTANT**:
+///
+/// - Matched named arguments will **not** be present in the commmand's unnamed args list
+///
+/// - All named arguments must match for a command to succeed.
+///
+/// ```gleam
+/// ...
+/// use first_name <- glint.named_arg("first name")
+/// ...
+/// use named, unnamed, flags <- glint.command()
+/// let first = first_name(named)
+/// ```
 ///
 pub fn named_arg(
   named name: String,
@@ -270,12 +315,28 @@ pub fn named_arg(
 
 /// Add a `Flag` to a `Command`
 ///
+/// The provided callback is provided a function to fetch the current flag value from the command input.
+///
+/// This functions is most ergonomic as part of a `use` chain when building commands.
+///
+/// ```gleam
+/// ...
+/// use repeat <- glint.flag(
+///   glint.flag_int("repeat")
+///   |> glint.flag_default(1)
+///   |> glint.flag_help("Repeat the message n-times")
+/// )
+/// ...
+/// use named, unnamed, flags <- glint.command()
+/// let repeat_value = repeat(flags)
+/// ```
+///
 pub fn flag(
-  of builder: Flag(a),
+  of flag: Flag(a),
   with f: fn(fn(Flags) -> snag.Result(a)) -> Command(b),
 ) -> Command(b) {
-  let cmd = f(builder.getter(_, builder.name))
-  Command(..cmd, flags: insert(cmd.flags, builder.name, build_flag(builder)))
+  let cmd = f(flag.getter(_, flag.name))
+  Command(..cmd, flags: insert(cmd.flags, flag.name, build_flag(flag)))
 }
 
 /// Add a flag for a group of commands.
@@ -449,16 +510,22 @@ fn execute_root(
   }
 }
 
-/// A wrapper for `execute` that prints any errors enountered or the help text if requested.
+/// Run a glint app and print any errors enountered, or the help text if requested.
 /// This function ignores any value returned by the command that was run.
-/// If you would like to do something with the command output please see the run_and_handle function.
+/// If you would like to do handle the command output please see the run_and_handle function.
+///
+/// IMPORTANT: This function exits with code 1 if an error was encountered.
+/// If this behaviour is not desired please disable it with `glint.without_exit`
 ///
 pub fn run(from glint: Glint(a), for args: List(String)) -> Nil {
   run_and_handle(from: glint, for: args, with: fn(_) { Nil })
 }
 
-/// A wrapper for `execute` that prints any errors enountered or the help text if requested.
-/// This function calls the provided handler with the value returned by the command that was run.
+/// Run a glint app with a custom handler for command output.
+/// This function prints any errors enountered or the help text if requested.
+///
+/// IMPORTANT: This function exits with code 1 if an error was encountered.
+/// If this behaviour is not desired please disable it with `glint.without_exit`
 ///
 pub fn run_and_handle(
   from glint: Glint(a),
@@ -466,7 +533,14 @@ pub fn run_and_handle(
   with handle: fn(a) -> _,
 ) -> Nil {
   case execute(glint, args) {
-    Error(s) | Ok(Help(s)) -> io.println(s)
+    Error(s) -> {
+      io.println(s)
+      case glint.config.exit {
+        True -> exit(1)
+        False -> Nil
+      }
+    }
+    Ok(Help(s)) -> io.println(s)
     Ok(Out(out)) -> {
       handle(out)
       Nil
@@ -474,9 +548,12 @@ pub fn run_and_handle(
   }
 }
 
-/// default pretty help heading colouring
+/// Default colouring for help text.
+///
 /// mint (r: 182, g: 255, b: 234) colour for usage
+///
 /// pink (r: 255, g: 175, b: 243) colour for flags
+///
 /// buttercup (r: 252, g: 226, b: 174) colour for subcommands
 ///
 pub fn default_pretty_help() -> PrettyHelp {
@@ -491,7 +568,8 @@ pub fn default_pretty_help() -> PrettyHelp {
   )
 }
 
-// constants for setting up sections of the help message
+// --- constants for setting up sections of the help message ---
+
 const flags_heading = "FLAGS:"
 
 const subcommands_heading = "SUBCOMMANDS:"
@@ -840,7 +918,9 @@ type Value {
   LS(FlagInternals(List(String)))
 }
 
-/// A type that facilitates the creation of `FlagEntry`s
+/// Glint's typed flags.
+///
+/// Flags can be created using any of `glint.flag_(int | ints | float | floats | string | strings | bool)
 ///
 pub opaque type Flag(a) {
   Flag(
@@ -864,7 +944,7 @@ type FlagInternals(a) {
 type Parser(a, b) =
   fn(String) -> gleam.Result(a, b)
 
-/// initialise an int flag
+/// Initialise an int flag.
 ///
 pub fn flag_int(named name: String) -> Flag(Int) {
   use input <- new_builder(name, I, get_int_flag)
@@ -873,7 +953,7 @@ pub fn flag_int(named name: String) -> Flag(Int) {
   |> result.replace_error(cannot_parse(input, "int"))
 }
 
-/// initialise an int list flag
+/// Initialise an int list flag.
 ///
 pub fn flag_ints(named name: String) -> Flag(List(Int)) {
   use input <- new_builder(name, LI, get_ints_flag)
@@ -883,7 +963,7 @@ pub fn flag_ints(named name: String) -> Flag(List(Int)) {
   |> result.replace_error(cannot_parse(input, "int list"))
 }
 
-/// initialise a float flag
+///Initialise a float flag.
 ///
 pub fn flag_float(named name: String) -> Flag(Float) {
   use input <- new_builder(name, F, get_floats)
@@ -892,7 +972,7 @@ pub fn flag_float(named name: String) -> Flag(Float) {
   |> result.replace_error(cannot_parse(input, "float"))
 }
 
-/// initialise a float list flag
+/// Initialise a float list flag.
 ///
 pub fn flag_floats(named name: String) -> Flag(List(Float)) {
   use input <- new_builder(name, LF, get_floats_flag)
@@ -902,13 +982,13 @@ pub fn flag_floats(named name: String) -> Flag(List(Float)) {
   |> result.replace_error(cannot_parse(input, "float list"))
 }
 
-/// initialise a string flag
+/// Initialise a string flag.
 ///
 pub fn flag_string(named name: String) -> Flag(String) {
   new_builder(name, S, get_string_flag, fn(s) { Ok(s) })
 }
 
-/// intitialise a string list flag
+/// Intitialise a string list flag.
 ///
 pub fn flag_strings(named name: String) -> Flag(List(String)) {
   use input <- new_builder(name, LS, get_strings_flag)
@@ -917,7 +997,7 @@ pub fn flag_strings(named name: String) -> Flag(List(String)) {
   |> Ok
 }
 
-/// initialise a bool flag
+/// Initialise a boolean flag.
 ///
 pub fn flag_bool(named name: String) -> Flag(Bool) {
   use input <- new_builder(name, B, get_bool_flag)
@@ -981,25 +1061,35 @@ fn attempt(
   result.replace(f(a), a)
 }
 
-/// FlagEntry data and descriptions
+/// FlagEntry data and descriptions.
 ///
 type FlagEntry {
   FlagEntry(value: Value, description: String)
 }
 
-/// attach a helptext description to a flag
+/// Attach a help text description to a flag.
+///
+/// ```gleam
+/// glint.flag_int("awesome_flag")
+/// |> glint.flag_help("Some great text!")
+/// ```
 ///
 pub fn flag_help(for flag: Flag(a), of description: String) -> Flag(a) {
   Flag(..flag, desc: description)
 }
 
-/// Set the flag_default value for a flag `Value`
+/// Set the default value for a flag.
+///
+/// ```gleam
+/// glint.flag_int("awesome_flag")
+/// |> glint.flag_default(1)
+/// ```
 ///
 pub fn flag_default(for flag: Flag(a), of default: a) -> Flag(a) {
   Flag(..flag, default: Some(default))
 }
 
-/// FlagEntry names and their associated values
+/// Flags passed as input to a command.
 ///
 pub opaque type Flags {
   Flags(internal: dict.Dict(String, FlagEntry))
@@ -1270,3 +1360,7 @@ fn do_update_at(
     }
   }
 }
+
+@external(erlang, "erlang", "halt")
+@external(javascript, "node:process", "exit")
+fn exit(status: Int) -> Nil
