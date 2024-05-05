@@ -5,13 +5,13 @@ pub fn update_flag_test() {
   let app =
     glint.new()
     |> glint.add([], {
-      use _bflag <- glint.flag("bflag", glint.bool())
-      use _sflag <- glint.flag("sflag", glint.string())
-      use _lsflag <- glint.flag("lsflag", glint.strings())
-      use _iflag <- glint.flag("iflag", glint.int())
-      use _liflag <- glint.flag("liflag", glint.ints())
-      use _fflag <- glint.flag("fflag", glint.float())
-      use _lfflag <- glint.flag("lfflag", glint.floats())
+      use _bflag <- glint.flag(glint.flag_bool("bflag"))
+      use _sflag <- glint.flag(glint.flag_string("sflag"))
+      use _lsflag <- glint.flag(glint.flag_strings("lsflag"))
+      use _iflag <- glint.flag(glint.flag_ints("iflag"))
+      use _liflag <- glint.flag(glint.flag_ints("liflag"))
+      use _fflag <- glint.flag(glint.flag_float("fflag"))
+      use _lfflag <- glint.flag(glint.flag_floats("lfflag"))
       glint.command(fn(_, _, _) { Nil })
     })
 
@@ -95,15 +95,13 @@ pub fn unsupported_flag_test() {
 
 pub fn flag_default_test() {
   let args = ["arg1", "arg2"]
-  let flag = #(
-    "flag",
-    glint.string()
-      |> glint.default("default"),
-  )
+  let flag =
+    glint.flag_string("flag")
+    |> glint.flag_default("default")
 
   glint.new()
   |> glint.add(["cmd"], {
-    use flag_ <- glint.flag(flag.0, flag.1)
+    use flag_ <- glint.flag(flag)
     use _, unnamed, flags <- glint.command()
     should.equal(args, unnamed)
 
@@ -116,10 +114,10 @@ pub fn flag_default_test() {
 
 pub fn flag_value_test() {
   let args = ["arg1", "arg2"]
-  let flag = #("flag", glint.string())
+  let flag = glint.flag_string("flag")
   let flag_input = "--flag=flag_value"
   let flag_value_should_be_set = {
-    use flag_ <- glint.flag(flag.0, flag.1)
+    use flag_ <- glint.flag(flag)
     use _, in_args, flags <- glint.command()
     should.equal(in_args, args)
 
@@ -134,16 +132,13 @@ pub fn flag_value_test() {
 }
 
 pub fn int_flag_test() {
-  let flags = #("flag", glint.int())
-
+  let flags = glint.flag_int("flag")
   // fails to parse input for flag as int, returns error
   let flag_input = "--flag=X"
   glint.new()
   |> glint.add(
     [],
-    glint.flag(flags.0, flags.1, fn(_flag) {
-      glint.command(fn(_, _, _) { Nil })
-    }),
+    glint.flag(flags, fn(_flag) { glint.command(fn(_, _, _) { Nil }) }),
   )
   |> glint.execute([flag_input])
   |> should.be_error()
@@ -151,7 +146,7 @@ pub fn int_flag_test() {
   // parses flag input as int, sets value
   let flag_input = "--flag=10"
   let expect_flag_value_of_10 = {
-    use flag_ <- glint.flag(flags.0, flags.1)
+    use flag_ <- glint.flag(flags)
     use _, _, flags <- glint.command()
     flag_(flags)
     |> should.equal(Ok(10))
@@ -164,14 +159,14 @@ pub fn int_flag_test() {
 }
 
 pub fn bool_flag_test() {
-  let flag = #("flag", glint.bool())
+  let flag = glint.flag_bool("flag")
 
   // fails to parse input for flag as bool, returns error
   let flag_input = "--flag=X"
   glint.new()
   |> glint.add(
     [],
-    glint.flag(flag.0, flag.1, fn(_flag) { glint.command(fn(_, _, _) { Nil }) }),
+    glint.flag(flag, fn(_flag) { glint.command(fn(_, _, _) { Nil }) }),
   )
   |> glint.execute([flag_input])
   |> should.be_error()
@@ -186,13 +181,13 @@ pub fn bool_flag_test() {
   }
 
   glint.new()
-  |> glint.add([], glint.flag(flag.0, flag.1, expect_flag_value_of_false))
+  |> glint.add([], glint.flag(flag, expect_flag_value_of_false))
   |> glint.execute([flag_input])
   |> should.be_ok()
 }
 
 pub fn strings_flag_test() {
-  let flags = #("flag", glint.strings())
+  let flags = glint.flag_strings("flag")
   let flag_input = "--flag=val3,val4"
   let expect_flag_value_list = fn(flag) {
     glint.command(fn(_, _, flags) {
@@ -200,21 +195,22 @@ pub fn strings_flag_test() {
       |> should.equal(Ok(["val3", "val4"]))
     })
   }
+
   glint.new()
-  |> glint.add([], glint.flag(flags.0, flags.1, expect_flag_value_list))
+  |> glint.add([], glint.flag(flags, expect_flag_value_list))
   |> glint.execute([flag_input])
   |> should.be_ok()
 }
 
 pub fn ints_flag_test() {
-  let flag = #("flag", glint.ints())
+  let flag = glint.flag_ints("flag")
 
   // fails to parse input for flag as int list, returns error
   let flag_input = "--flag=val3,val4"
   glint.new()
   |> glint.add(
     [],
-    glint.flag(flag.0, flag.1, fn(_) { glint.command(fn(_, _, _) { Nil }) }),
+    glint.flag(flag, fn(_) { glint.command(fn(_, _, _) { Nil }) }),
   )
   |> glint.execute([flag_input])
   |> should.be_error()
@@ -229,19 +225,19 @@ pub fn ints_flag_test() {
   }
 
   glint.new()
-  |> glint.add([], glint.flag(flag.0, flag.1, expect_flag_value_list))
+  |> glint.add([], glint.flag(flag, expect_flag_value_list))
   |> glint.execute([flag_input])
   |> should.be_ok()
 }
 
 pub fn float_flag_test() {
-  let flag = #("flag", glint.float())
+  let flag = glint.flag_float("flag")
 
   // fails to parse input for flag as float, returns error
   let flag_input = "--flag=X"
   glint.new()
   |> glint.add([], {
-    use _flag <- glint.flag(flag.0, flag.1)
+    use _flag <- glint.flag(flag)
     use _, _, _ <- glint.command()
     Nil
   })
@@ -251,7 +247,7 @@ pub fn float_flag_test() {
   // parses flag input as float, sets value
   let flag_input = "--flag=10.0"
   let expect_flag_value_of_10 = {
-    use flag <- glint.flag(flag.0, flag.1)
+    use flag <- glint.flag(flag)
     use _, _, flags <- glint.command()
     flag(flags)
     |> should.equal(Ok(10.0))
@@ -264,13 +260,13 @@ pub fn float_flag_test() {
 }
 
 pub fn floats_flag_test() {
-  let flag = #("flag", glint.floats())
+  let flag = glint.flag_floats("flag")
 
   // fails to parse input for flag as float list, returns error
   let flag_input = "--flag=val3,val4"
   glint.new()
   |> glint.add([], {
-    use _flag <- glint.flag(flag.0, flag.1)
+    use _flag <- glint.flag(flag)
     use _, _, _ <- glint.command()
     Nil
   })
@@ -280,7 +276,7 @@ pub fn floats_flag_test() {
   // parses flag input as float list, sets value
   let flag_input = "--flag=3.0,4.0"
   let expect_flag_value_list = {
-    use flag <- glint.flag(flag.0, flag.1)
+    use flag <- glint.flag(flag)
     use _, _, flags <- glint.command
     flag(flags)
     |> should.equal(Ok([3.0, 4.0]))
@@ -292,29 +288,29 @@ pub fn floats_flag_test() {
 }
 
 pub fn global_flag_test() {
+  let flag = glint.flag_floats("flag")
   let testcase = fn(vals: List(Float)) {
     use _, _, flags <- glint.command()
     flags
-    |> glint.get_floats("flag")
+    |> glint.get_flag(flag)
     |> should.equal(Ok(vals))
   }
 
   // set global flag, pass in  new value for flag
   glint.new()
-  |> glint.group_flag([], "flag", glint.floats())
+  |> glint.group_flag([], flag)
   |> glint.add(at: [], do: testcase([3.0, 4.0]))
   |> glint.execute(["--flag=3.0,4.0"])
   |> should.be_ok()
 
   // set global flag and local flag, local flag should take priority
   glint.new()
-  |> glint.group_flag([], "flag", glint.floats())
+  |> glint.group_flag([], glint.flag_floats("flag"))
   |> glint.add(
     at: [],
     do: glint.flag(
-      "flag",
-      glint.floats()
-        |> glint.default([1.0, 2.0]),
+      glint.flag_floats("flag")
+        |> glint.flag_default([1.0, 2.0]),
       fn(_) { testcase([1.0, 2.0]) },
     ),
   )
@@ -325,15 +321,13 @@ pub fn global_flag_test() {
   glint.new()
   |> glint.group_flag(
     [],
-    "flag",
-    glint.floats()
-      |> glint.default([3.0, 4.0]),
+    glint.flag_floats("flag")
+      |> glint.flag_default([3.0, 4.0]),
   )
   |> glint.add(at: [], do: {
     use _flag <- glint.flag(
-      "flag",
-      glint.floats()
-        |> glint.default([1.0, 2.0]),
+      glint.flag_floats("flag")
+      |> glint.flag_default([1.0, 2.0]),
     )
 
     testcase([5.0, 6.0])
@@ -348,7 +342,7 @@ pub fn toggle_test() {
   glint.new()
   |> glint.add(
     [],
-    glint.flag("flag", glint.bool(), fn(_) {
+    glint.flag(glint.flag_bool("flag"), fn(_) {
       glint.command(fn(_, _, _) { Nil })
     }),
   )
@@ -360,7 +354,7 @@ pub fn toggle_test() {
 
   glint.new()
   |> glint.add([], {
-    use flag <- glint.flag("flag", glint.bool())
+    use flag <- glint.flag(glint.flag_bool("flag"))
     use _, _, flags <- glint.command()
     flag(flags)
     |> should.equal(Ok(True))
@@ -374,9 +368,8 @@ pub fn toggle_test() {
   glint.new()
   |> glint.add([], {
     use flag <- glint.flag(
-      "flag",
-      glint.bool()
-        |> glint.default(True),
+      glint.flag_bool("flag")
+      |> glint.flag_default(True),
     )
     use _, _, flags <- glint.command()
     flag(flags)
@@ -388,7 +381,7 @@ pub fn toggle_test() {
   // boolean flag without default toggled, sets value to True
   glint.new()
   |> glint.add([], {
-    use flag <- glint.flag("flag", glint.bool())
+    use flag <- glint.flag(glint.flag_bool("flag"))
     use _, _, flags <- glint.command()
     flag(flags)
     |> should.equal(Ok(True))
@@ -400,9 +393,8 @@ pub fn toggle_test() {
   glint.new()
   |> glint.add([], {
     use _flag <- glint.flag(
-      "flag",
-      glint.int()
-        |> glint.default(1),
+      glint.flag_int("flag")
+      |> glint.flag_default(1),
     )
     use _, _, _ <- glint.command()
     Nil
@@ -415,39 +407,32 @@ pub fn getters_test() {
   glint.new()
   |> glint.add([], {
     use bflag <- glint.flag(
-      "bflag",
-      glint.bool()
-        |> glint.default(True),
+      glint.flag_bool("bflag")
+      |> glint.flag_default(True),
     )
     use sflag <- glint.flag(
-      "sflag",
-      glint.string()
-        |> glint.default(""),
+      glint.flag_string("sflag")
+      |> glint.flag_default(""),
     )
     use lsflag <- glint.flag(
-      "lsflag",
-      glint.strings()
-        |> glint.default([]),
+      glint.flag_strings("lsflag")
+      |> glint.flag_default([]),
     )
     use iflag <- glint.flag(
-      "iflag",
-      glint.int()
-        |> glint.default(1),
+      glint.flag_int("iflag")
+      |> glint.flag_default(1),
     )
     use liflag <- glint.flag(
-      "liflag",
-      glint.ints()
-        |> glint.default([]),
+      glint.flag_ints("liflag")
+      |> glint.flag_default([]),
     )
     use fflag <- glint.flag(
-      "fflag",
-      glint.float()
-        |> glint.default(1.0),
+      glint.flag_float("fflag")
+      |> glint.flag_default(1.0),
     )
     use lfflag <- glint.flag(
-      "lfflag",
-      glint.floats()
-        |> glint.default([]),
+      glint.flag_floats("lfflag")
+      |> glint.flag_default([]),
     )
 
     use _, _, flags <- glint.command()

@@ -28,14 +28,39 @@ The root command accepts two flags:
 
 Generated help output for the root command is as follows
 
+### Root command
+
 ```txt
-Prints Hello, <NAME>!
+It's time to say hello!
+
+Prints Hello, <names>!
 
 USAGE:
-        hello [ ARGS ] [ --caps=<BOOL> --repeat=<INT> ]
+	gleam run -m hello ( single ) [ 1 or more arguments ] [ --caps=<BOOL> --repeat=<INT> ]
 
 FLAGS:
-        --caps=<BOOL>           Capitalize the provided name
-        --help                  Print help information
-        --repeat=<INT>          Repeat the message n-times
+	--caps=<BOOL>		Capitalize the hello message
+	--help			Print help information
+	--repeat=<INT>		Repeat the message n-times
+
+SUBCOMMANDS:
+	single		Prints Hello, <name>!
+```
+
+### `single` command
+
+```txt
+It's time to say hello!
+
+Command: single
+
+Prints Hello, <name>!
+
+USAGE:
+	gleam run -m hello single <name> [ --caps=<BOOL> --repeat=<INT> ]
+
+FLAGS:
+	--caps=<BOOL>		Capitalize the hello message
+	--help			Print help information
+	--repeat=<INT>		Repeat the message n-times
 ```

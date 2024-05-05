@@ -2,8 +2,10 @@
 import gleam/io
 import gleam/list
 import gleam/string.{uppercase}
+
 // external dep imports
 import snag
+
 // glint imports
 import argv
 import glint
@@ -49,27 +51,21 @@ pub fn hello(
 
 // ----- CLI SETUP -----
 
-/// the key for the caps flag
-pub const caps = "caps"
-
 /// a boolean flag with default False to control message capitalization.
 ///
-pub fn caps_flag() -> glint.FlagBuilder(Bool) {
-  glint.bool()
-  |> glint.default(False)
+pub fn caps_flag() -> glint.Flag(Bool) {
+  glint.flag_bool("caps")
+  |> glint.flag_default(False)
   |> glint.flag_help("Capitalize the hello message")
 }
-
-/// the key for the repeat flag
-pub const repeat = "repeat"
 
 /// an int flag with default 1 to control how many times to repeat the message.
 /// this flag is constrained to values greater than 0.
 ///
-pub fn repeat_flag() -> glint.FlagBuilder(Int) {
-  use n <- glint.constraint(
-    glint.int()
-    |> glint.default(1)
+pub fn repeat_flag() -> glint.Flag(Int) {
+  use n <- glint.flag_constraint(
+    glint.flag_int("repeat")
+    |> glint.flag_default(1)
     |> glint.flag_help("Repeat the message n-times"),
   )
   case n {
@@ -81,12 +77,11 @@ pub fn repeat_flag() -> glint.FlagBuilder(Int) {
 /// the command function that will be executed as the root command
 ///
 pub fn hello_cmd() -> glint.Command(String) {
-  // register
   use <- glint.command_help("Prints Hello, <names>!")
   use <- glint.unnamed_args(glint.MinArgs(1))
   use _, args, flags <- glint.command()
-  let assert Ok(caps) = glint.get_bool(flags, caps)
-  let assert Ok(repeat) = glint.get_int(flags, repeat)
+  let assert Ok(caps) = glint.get_flag(flags, caps_flag())
+  let assert Ok(repeat) = glint.get_flag(flags, repeat_flag())
   let assert [name, ..rest] = args
   hello(name, rest, caps, repeat)
 }
@@ -98,8 +93,8 @@ pub fn hello_single_cmd() -> glint.Command(String) {
   use <- glint.unnamed_args(glint.EqArgs(0))
   use name <- glint.named_arg("name")
   use named_args, _, flags <- glint.command()
-  let assert Ok(caps) = glint.get_bool(flags, caps)
-  let assert Ok(repeat) = glint.get_int(flags, repeat)
+  let assert Ok(caps) = glint.get_flag(flags, caps_flag())
+  let assert Ok(repeat) = glint.get_flag(flags, repeat_flag())
   let name = name(named_args)
   hello(name, [], caps, repeat)
 }
@@ -109,16 +104,18 @@ pub fn app() {
   // create a new glint instance
   glint.new()
   // with an app name of "hello", this is used when printing help text
-  |> glint.name("hello")
+  |> glint.with_name("hello")
+  // apply global help text to all commands
+  |> glint.global_help("It's time to say hello!")
   // show in usage text that the current app is run as a gleam module
   |> glint.as_module
   // with pretty help enabled, using the built-in colours
   |> glint.pretty_help(glint.default_pretty_help())
   // with group level flags
   // with flag `caps` for all commands (equivalent of using glint.global_flag)
-  |> glint.group_flag([], caps, caps_flag())
+  |> glint.group_flag([], caps_flag())
   // // with flag `repeat` for all commands (equivalent of using glint.global_flag)
-  |> glint.group_flag([], repeat, repeat_flag())
+  |> glint.group_flag([], repeat_flag())
   // with a root command that executes the `hello` function
   |> glint.add(
     // add the hello command to the root

@@ -97,68 +97,63 @@ pub fn runner_test() {
 
 pub fn help_test() {
   let nil = fn(_, _, _) { Nil }
-  let global_flag = #(
-    "global",
-    glint.string()
-      |> glint.flag_help("This is a global flag"),
-  )
+  let global_flag =
+    glint.flag_string("global")
+    |> glint.flag_help("This is a global flag")
 
-  let flag_1 = #(
-    "flag1",
-    glint.string()
-      |> glint.flag_help("This is flag1"),
-  )
+  let flag_1 =
+    "flag1"
+    |> glint.flag_string()
+    |> glint.flag_help("This is flag1")
 
-  let flag_2 = #(
-    "flag2",
-    glint.int()
-      |> glint.flag_help("This is flag2"),
-  )
-  let flag_3 = #(
-    "flag3",
-    glint.bool()
-      |> glint.flag_help("This is flag3"),
-  )
-  let flag_4 = #(
-    "flag4",
-    glint.float()
-      |> glint.flag_help("This is flag4"),
-  )
+  let flag_2 =
+    "flag2"
+    |> glint.flag_int()
+    |> glint.flag_help("This is flag2")
+  let flag_3 =
+    "flag3"
+    |> glint.flag_bool()
+    |> glint.flag_help("This is flag3")
 
-  let flag_5 = #(
-    "flag5",
-    glint.floats()
-      |> glint.flag_help("This is flag5"),
-  )
+  let flag_4 =
+    "flag4"
+    |> glint.flag_float()
+    |> glint.flag_help("This is flag4")
+
+  let flag_5 =
+    "flag5"
+    |> glint.flag_floats()
+    |> glint.flag_help("This is flag5")
 
   let cli =
     glint.new()
-    |> glint.name("test")
+    |> glint.with_name("test")
+    |> glint.global_help("Some awesome global help text!")
     |> glint.as_module
-    |> glint.group_flag([], global_flag.0, global_flag.1)
+    |> glint.group_flag([], global_flag)
     |> glint.add(at: [], do: {
       use <- glint.command_help("This is the root command")
       use _arg1 <- glint.named_arg("arg1")
       use _arg2 <- glint.named_arg("arg2")
-      use _flag <- glint.flag(flag_1.0, flag_1.1)
+      use _flag <- glint.flag(flag_1)
       glint.command(nil)
     })
     |> glint.add(at: ["cmd1"], do: {
       use <- glint.command_help("This is cmd1")
-      use _flag2 <- glint.flag(flag_2.0, flag_2.1)
-      use _flag5 <- glint.flag(flag_5.0, flag_5.1)
+      use _flag2 <- glint.flag(flag_2)
+      use _flag5 <- glint.flag(flag_5)
       glint.command(nil)
     })
     |> glint.add(at: ["cmd1", "cmd3"], do: {
       use <- glint.command_help("This is cmd3")
-      use _flag3 <- glint.flag(flag_3.0, flag_3.1)
+      use _flag3 <- glint.flag(flag_3)
       use <- glint.unnamed_args(glint.MinArgs(2))
       use _woo <- glint.named_arg("woo")
       glint.command(nil)
     })
     |> glint.add(at: ["cmd1", "cmd4"], do: {
       use <- glint.command_help("This is cmd4")
-      use _flag4 <- glint.flag(flag_4.0, flag_4.1)
+      use _flag4 <- glint.flag(flag_4)
       use <- glint.unnamed_args(glint.EqArgs(0))
       glint.command(nil)
     })
@@ -173,6 +168,7 @@ pub fn help_test() {
       at: ["cmd5", "cmd6"],
       do: glint.command_help("This is cmd6", fn() { glint.command(nil) }),
     )
+    |> glint.path_help(["cmd5", "cmd6", "cmd7"], "This is cmd7")
 
   // execute root command
   glint.execute(cli, ["a", "b"])
@@ -200,7 +196,9 @@ pub fn help_test() {
   glint.execute(cli, ["--help"])
   |> should.equal(
     Ok(Help(
-      "This is the root command
+      "Some awesome global help text!
+
+This is the root command
 
 USAGE:
 \tgleam run -m test ( cmd1 | cmd2 | cmd5 ) <arg1> <arg2> [ ARGS ] [ --flag1=<STRING> --global=<STRING> ]
@@ -221,7 +219,10 @@ SUBCOMMANDS:
   glint.execute(cli, ["cmd1", "--help"])
   |> should.equal(
     Ok(Help(
-      "cmd1
+      "Some awesome global help text!
+
+Command: cmd1
+
 This is cmd1
 
 USAGE:
@@ -243,7 +244,10 @@ SUBCOMMANDS:
   glint.execute(cli, ["cmd1", "cmd4", "--help"])
   |> should.equal(
     Ok(Help(
-      "cmd1 cmd4
+      "Some awesome global help text!
+
+Command: cmd1 cmd4
+
 This is cmd4
 
 USAGE:
@@ -259,7 +263,10 @@ FLAGS:
   glint.execute(cli, ["cmd2", "--help"])
   |> should.equal(
     Ok(Help(
-      "cmd2
+      "Some awesome global help text!
+
+Command: cmd2
+
 This is cmd2
 
 USAGE:
@@ -275,7 +282,10 @@ FLAGS:
   glint.execute(cli, ["cmd1", "cmd3", "--help"])
   |> should.equal(
     Ok(Help(
-      "cmd1 cmd3
+      "Some awesome global help text!
+
+Command: cmd1 cmd3
+
 This is cmd3
 
 USAGE:
@@ -287,55 +297,92 @@ FLAGS:
 \t--help\t\t\tPrint help information",
     )),
   )
+
+  // help message for command a subcommand whose help was set with glint.path_help
+  glint.execute(cli, ["cmd5", "cmd6", "--help"])
+  |> should.equal(
+    Ok(Help(
+      "Some awesome global help text!
+
+Command: cmd5 cmd6
+
+This is cmd6
+
+USAGE:
+\tgleam run -m test cmd5 cmd6 ( cmd7 ) [ ARGS ] [ --global=<STRING> ]
+
+FLAGS:
+\t--global=<STRING>\t\tThis is a global flag
+\t--help\t\t\tPrint help information
+
+SUBCOMMANDS:
+\tcmd7\t\tThis is cmd7",
+    )),
+  )
+
+  // help message for command that had help_text set with glint.glint.path_help
+  // has no children or command runner set so no other details are available
+  glint.execute(cli, ["cmd5", "cmd6", "cmd7", "--help"])
+  |> should.equal(
+    Ok(Help(
+      "Some awesome global help text!
+
+Command: cmd5 cmd6 cmd7
+
+This is cmd7
+
+USAGE:
+\tgleam run -m test cmd5 cmd6 cmd7 [ ARGS ]",
+    )),
+  )
 }
 
 pub fn global_and_group_flags_test() {
+  let flag_f =
+    glint.flag_int("f")
+    |> glint.flag_default(2)
+    |> glint.flag_help("global flag example")
+
+  let sub_group_flag =
+    "sub_group_flag"
+    |> glint.flag_int()
+    |> glint.flag_default(1)
+
   let cli =
     glint.new()
-    |> glint.group_flag(
-      [],
-      "f",
-      glint.int()
-        |> glint.default(2)
-        |> glint.flag_help("global flag example"),
-    )
+    |> glint.group_flag([], flag_f)
     |> glint.add(
       [],
       glint.command(fn(_, _, flags) {
-        glint.get_int(flags, "f")
+        glint.get_flag(flags, flag_f)
         |> should.equal(Ok(2))
       }),
     )
     |> glint.add(["sub"], {
       use f <- glint.flag(
-        "f",
-        glint.bool()
-          |> glint.default(True)
-          |> glint.flag_help("i decided to override the global flag"),
+        "f"
+        |> glint.flag_bool()
+        |> glint.flag_default(True)
+        |> glint.flag_help("i decided to override the global flag"),
       )
       use _, _, flags <- glint.command()
       f(flags)
       |> should.equal(Ok(True))
     })
-    |> glint.group_flag(
-      ["sub"],
-      "sub_group_flag",
-      glint.int()
-        |> glint.default(1),
-    )
+    |> glint.group_flag(["sub"], sub_group_flag)
     |> glint.add(["sub", "sub"], {
       use f <- glint.flag(
-        "f",
-        glint.bool()
-          |> glint.default(True)
-          |> glint.flag_help("i decided to override the global flag"),
+        "f"
+        |> glint.flag_bool()
+        |> glint.flag_default(True)
+        |> glint.flag_help("i decided to override the global flag"),
       )
       use _, _, flags <- glint.command()
       f(flags)
       |> should.equal(Ok(True))
 
       flags
-      |> glint.get_int("sub_group_flag")
+      |> glint.get_flag(sub_group_flag)
       |> should.equal(Ok(2))
     })
 

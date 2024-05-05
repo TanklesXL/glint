@@ -1,6 +1,7 @@
 import gleam/list
 import gleeunit
 import gleeunit/should
+import glint
 import hello
 
 pub fn main() {
@@ -34,4 +35,11 @@ pub fn hello_test() {
   let assert [head, ..rest] = tc.input
   hello.hello(head, rest, tc.caps, tc.repeat)
   |> should.equal(tc.expected)
+}
+
+pub fn app_test() {
+  use output <- glint.run_and_handle(hello.app(), [
+    "Joe", "Gleamlins", "--repeat=2", "--caps",
+  ])
+  should.equal(output, "HELLO, JOE AND GLEAMLINS!\nHELLO, JOE AND GLEAMLINS!")
 }

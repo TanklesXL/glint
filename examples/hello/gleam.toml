@@ -1,7 +1,7 @@
 name = "hello"
 version = "0.1.0"
 description = "A Gleam project"
-gleam = "~> 0.34 or ~> 1.0"
+gleam = ">= 1.1.0 and < 2.0.0"
 
 # Fill out these fields if you intend to generate HTML documentation or publish
 # your project to the Hex package manager.
@@ -15,7 +15,6 @@ gleam_stdlib = "~> 0.34 or ~> 1.0"
 glint = { path = "../.." }
 snag = "~> 0.2"
 argv = "~> 1.0"
-sheen = "~> 0.0"
 
 [dev-dependencies]
 gleeunit = "~> 1.0"
