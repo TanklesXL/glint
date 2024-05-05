@@ -38,7 +38,7 @@ Glint works amazingly with these other packages:
 
 ## Mini Example
 
-You can import `glint` as a dependency and use it to build simple command-line applications like the following simplified version of the [the hello world example](https://github.com/TanklesXL/glint/tree/main/examples/hello/README.md)
+You can import `glint` as a dependency and use it to build simple command-line applications like the following simplified version of the [the hello world example](https://github.com/TanklesXL/glint/tree/main/test/examples/hello.gleam)
 
 ```gleam
 // stdlib imports
@@ -56,8 +56,8 @@ import glint
 // this function returns the builder for the caps flag
 fn caps_flag() -> flag.FlagBuilder(Bool) {
   glint.flag_bool("caps")
-  |> flag.default(False)
-  |> flag.description("Capitalize the hello message")
+  |> flag.flag_default(False)
+  |> flag.flag_help("Capitalize the hello message")
 }
 
 /// the glint command that will be executed

@@ -1,12 +1,7 @@
+import examples/hello
 import gleam/list
-import gleeunit
 import gleeunit/should
 import glint
-import hello
-
-pub fn main() {
-  gleeunit.main()
-}
 
 type TestCase {
   TestCase(input: List(String), caps: Bool, repeat: Int, expected: String)

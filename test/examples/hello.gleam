@@ -1,3 +1,62 @@
+//// This module demonstratest a simple glint app with 2 commands
+////
+//// ## Usage
+////
+//// ### Running the application
+////
+//// You can run this example with `gleam run -m examples/hello -- <NAMES>` from the root of the repo
+////
+//// The application prints: `Hello, <NAMES>!`
+//// The `hello` application accepts at least one argument, being the names of people to say hello to.
+//// - No input: `gleam run` -> prints "Hello, Joe!"
+//// - One input: `gleam run Joe` -> prints "Hello, Joe!"
+//// - Two inputs: `gleam run Rob Louis` -> prints "Hello, Rob and Louis!"
+//// - \>2 inputs: `gleam run Rob Louis Hayleigh` -> prints "Hello, Rob, Louis and Hayleigh!"
+////
+//// ### Flags
+////
+//// All commands accepts two flags:
+//// - `--caps`: capitalizes the output, so if output would be "Hello, Joe!" it prints "HELLO, JOE!"
+//// - `--repeat=N`: repeats the output N times separated , so with N=2 if output would be "Hello, Joe!" it prints "Hello, Joe!\nHello, Joe!"
+////
+//// ### Help Text
+////
+//// Here is the help text for the root command:
+////
+//// ```txt
+//// It's time to say hello!
+////
+//// Prints Hello, <names>!
+////
+//// USAGE:
+//// 	gleam run -m hello ( single ) [ 1 or more arguments ] [ --caps=<BOOL> --repeat=<INT> ]
+////
+//// FLAGS:
+//// 	--caps=<BOOL>		Capitalize the hello message
+//// 	--help			Print help information
+//// 	--repeat=<INT>		Repeat the message n-times
+////
+//// SUBCOMMANDS:
+//// 	single		Prints Hello, <name>!
+//// ```
+////
+//// Here is the help text for the `single` command:
+////
+//// ```
+//// It's time to say hello!
+////
+//// Command: single
+////
+//// Prints Hello, <name>!
+////
+//// USAGE:
+//// 	gleam run -m hello single <name> [ --caps=<BOOL> --repeat=<INT> ]
+////
+//// FLAGS:
+//// 	--caps=<BOOL>		Capitalize the hello message
+//// 	--help			Print help information
+//// 	--repeat=<INT>		Repeat the message n-times
+
 // stdlib imports
 import gleam/io
 import gleam/list
@@ -104,7 +163,7 @@ pub fn app() {
   // create a new glint instance
   glint.new()
   // with an app name of "hello", this is used when printing help text
-  |> glint.with_name("hello")
+  |> glint.with_name("examples/hello")
   // apply global help text to all commands
   |> glint.global_help("It's time to say hello!")
   // show in usage text that the current app is run as a gleam module
