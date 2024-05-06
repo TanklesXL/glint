@@ -56,7 +56,7 @@ pub fn none_of_test() {
 
 pub fn flag_one_of_none_of_test() {
   let #(test_flag, success, failure) = #(
-    glint.flag_int("i")
+    glint.int_flag("i")
       |> glint.flag_constraint(constraint.one_of([1, 2, 3]))
       |> glint.flag_constraint(constraint.none_of([4, 5, 6])),
     "1",
@@ -84,7 +84,7 @@ pub fn flag_one_of_none_of_test() {
   |> should.be_error
 
   let #(test_flag, success, failure) = #(
-    glint.flag_ints("li")
+    glint.ints_flag("li")
       |> glint.flag_constraint(
       [1, 2, 3]
       |> constraint.one_of
@@ -120,7 +120,7 @@ pub fn flag_one_of_none_of_test() {
   |> should.be_error
 
   let #(test_flag, success, failure) = #(
-    glint.flag_float("f")
+    glint.float_flag("f")
       |> glint.flag_constraint(constraint.one_of([1.0, 2.0, 3.0]))
       |> glint.flag_constraint(constraint.none_of([4.0, 5.0, 6.0])),
     "1.0",
@@ -147,7 +147,7 @@ pub fn flag_one_of_none_of_test() {
   |> should.be_error
 
   let #(test_flag, success, failure) = #(
-    glint.flag_floats("lf")
+    glint.floats_flag("lf")
       |> glint.flag_constraint(
       [1.0, 2.0, 3.0]
       |> constraint.one_of()
@@ -182,7 +182,7 @@ pub fn flag_one_of_none_of_test() {
   |> should.be_error
 
   let #(test_flag, success, failure) = #(
-    glint.flag_string("s")
+    glint.string_flag("s")
       |> glint.flag_constraint(constraint.one_of(["t1", "t2", "t3"]))
       |> glint.flag_constraint(constraint.none_of(["t4", "t5", "t6"])),
     "t3",
@@ -210,7 +210,7 @@ pub fn flag_one_of_none_of_test() {
   |> should.be_error
 
   let #(test_flag, success, failure) = #(
-    glint.flag_strings("ls")
+    glint.strings_flag("ls")
       |> glint.flag_constraint(
       ["t1", "t2", "t3"]
       |> constraint.one_of

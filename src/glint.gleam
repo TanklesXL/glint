@@ -322,7 +322,7 @@ pub fn named_arg(
 /// ```gleam
 /// ...
 /// use repeat <- glint.flag(
-///   glint.flag_int("repeat")
+///   glint.int_flag("repeat")
 ///   |> glint.flag_default(1)
 ///   |> glint.flag_help("Repeat the message n-times")
 /// )
@@ -946,7 +946,7 @@ type Parser(a, b) =
 
 /// Initialise an int flag.
 ///
-pub fn flag_int(named name: String) -> Flag(Int) {
+pub fn int_flag(named name: String) -> Flag(Int) {
   use input <- new_builder(name, I, get_int_flag)
   input
   |> int.parse
@@ -955,7 +955,7 @@ pub fn flag_int(named name: String) -> Flag(Int) {
 
 /// Initialise an int list flag.
 ///
-pub fn flag_ints(named name: String) -> Flag(List(Int)) {
+pub fn ints_flag(named name: String) -> Flag(List(Int)) {
   use input <- new_builder(name, LI, get_ints_flag)
   input
   |> string.split(",")
@@ -965,7 +965,7 @@ pub fn flag_ints(named name: String) -> Flag(List(Int)) {
 
 ///Initialise a float flag.
 ///
-pub fn flag_float(named name: String) -> Flag(Float) {
+pub fn float_flag(named name: String) -> Flag(Float) {
   use input <- new_builder(name, F, get_floats)
   input
   |> float.parse
@@ -974,7 +974,7 @@ pub fn flag_float(named name: String) -> Flag(Float) {
 
 /// Initialise a float list flag.
 ///
-pub fn flag_floats(named name: String) -> Flag(List(Float)) {
+pub fn floats_flag(named name: String) -> Flag(List(Float)) {
   use input <- new_builder(name, LF, get_floats_flag)
   input
   |> string.split(",")
@@ -984,13 +984,13 @@ pub fn flag_floats(named name: String) -> Flag(List(Float)) {
 
 /// Initialise a string flag.
 ///
-pub fn flag_string(named name: String) -> Flag(String) {
+pub fn string_flag(named name: String) -> Flag(String) {
   new_builder(name, S, get_string_flag, fn(s) { Ok(s) })
 }
 
 /// Intitialise a string list flag.
 ///
-pub fn flag_strings(named name: String) -> Flag(List(String)) {
+pub fn strings_flag(named name: String) -> Flag(List(String)) {
   use input <- new_builder(name, LS, get_strings_flag)
   input
   |> string.split(",")
@@ -999,7 +999,7 @@ pub fn flag_strings(named name: String) -> Flag(List(String)) {
 
 /// Initialise a boolean flag.
 ///
-pub fn flag_bool(named name: String) -> Flag(Bool) {
+pub fn bool_flag(named name: String) -> Flag(Bool) {
   use input <- new_builder(name, B, get_bool_flag)
   case string.lowercase(input) {
     "true" | "t" -> Ok(True)
@@ -1042,7 +1042,7 @@ fn build_flag(fb: Flag(a)) -> FlagEntry {
 ///
 /// Pipe:
 /// ```gleam
-/// glint.flag_int("my_flag")
+/// glint.int_flag("my_flag")
 /// |> glint.flag_help("An awesome flag")
 /// |> glint.flag_constraint(fn(i) {
 ///   case i < 0 {
@@ -1054,7 +1054,7 @@ fn build_flag(fb: Flag(a)) -> FlagEntry {
 /// Use:
 /// ```gleam
 /// use i <- glint.flag_constraint(
-///   glint.flag_int("my_flag")
+///   glint.int_flag("my_flag")
 ///   |> glint.flag_help("An awesome flag")
 /// )
 /// case i < 0 {
@@ -1096,7 +1096,7 @@ type FlagEntry {
 /// Attach a help text description to a flag.
 ///
 /// ```gleam
-/// glint.flag_int("awesome_flag")
+/// glint.int_flag("awesome_flag")
 /// |> glint.flag_help("Some great text!")
 /// ```
 ///
@@ -1107,7 +1107,7 @@ pub fn flag_help(for flag: Flag(a), of description: String) -> Flag(a) {
 /// Set the default value for a flag.
 ///
 /// ```gleam
-/// glint.flag_int("awesome_flag")
+/// glint.int_flag("awesome_flag")
 /// |> glint.flag_default(1)
 /// ```
 ///
