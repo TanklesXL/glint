@@ -3,7 +3,6 @@ name: Test
 env:
   GLEAM_VERSION: "1.1.0"
   ERLANG_VERSION: 26
-  REBAR3_VERSION: 3
 
 on:
   push:
@@ -17,36 +16,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: erlef/setup-beam@v1
+      - uses: TanklesXL/gleam_actions/actions/format@main
         with:
-          otp-version: ${{ env.ERLANG_VERSION }}
-          rebar3-version: ${{ env.REBAR3_VERSION }}
-          gleam-version: ${{ env.GLEAM_VERSION }}
-      - run: gleam format --check src test
+          gleam_version: ${{ env.GLEAM_VERSION }}
 
   deps:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check cache
-        uses: actions/cache/restore@v4
-        id: restore
+      - uses: TanklesXL/gleam_actions/actions/deps_cache@main
         with:
-          path: ./build/packages
-          key: deps-${{ hashFiles('manifest.toml') }}
-      - if: ${{ steps.restore.outputs.cache-hit != 'true' }}
-        uses: erlef/setup-beam@v1
-        with:
-          otp-version: ${{ env.ERLANG_VERSION }}
-          rebar3-version: ${{ env.REBAR3_VERSION }}
-          gleam-version: ${{ env.GLEAM_VERSION }}
-      - if: ${{ steps.restore.outputs.cache-hit != 'true' }}
-        run: gleam deps download
-      - if: ${{ steps.restore.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@v4
-        with:
-          path: ./build/packages
-          key: deps-${{ hashFiles('manifest.toml') }}
+          gleam_version: ${{ env.GLEAM_VERSION }}
 
   test_erlang:
     runs-on: ubuntu-latest
@@ -57,16 +37,11 @@ jobs:
         erlang: ["26", "25", "27.0-rc3"]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache/restore@v4
+      - uses: TanklesXL/gleam_actions/actions/deps_restore@main
+      - uses: TanklesXL/gleam_actions/actions/test_erlang@main
         with:
-          path: ./build/packages
-          key: deps-${{ hashFiles('manifest.toml') }}
-      - uses: erlef/setup-beam@v1
-        with:
-          otp-version: ${{matrix.erlang}}
-          rebar3-version: ${{ env.REBAR3_VERSION }}
-          gleam-version: ${{env.GLEAM_VERSION}}
-      - run: gleam test --target erlang
+          erlang_version: ${{ matrix.erlang }}
+          gleam_version: ${{ env.GLEAM_VERSION }}
 
   test_node:
     runs-on: ubuntu-latest
@@ -77,15 +52,8 @@ jobs:
         node: ["22", "20", "18"]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache/restore@v4
+      - uses: TanklesXL/gleam_actions/actions/deps_restore@main
+      - uses: TanklesXL/gleam_actions/actions/test_node@main
         with:
-          path: ./build/packages
-          key: deps-${{ hashFiles('manifest.toml') }}
-      - uses: erlef/setup-beam@v1
-        with:
-          otp-version: ${{ env.ERLANG_VERSION }}
-          gleam-version: ${{env.GLEAM_VERSION}}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{matrix.node}}
-      - run: gleam test --target javascript
+          node_version: ${{ matrix.node }}
+          gleam_version: ${{ env.GLEAM_VERSION }}
