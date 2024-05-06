@@ -3,30 +3,35 @@ name: Release
 on:
   push:
     tags:
-      - "v*.*.*"
-
-env:
-  GLEAM_VERSION: "1.1.0"
-  ERLANG_VERSION: 26
+      - v*.*.*
 
 jobs:
-  gh-release:
+  test:
+    uses: TanklesXL/glint/.github/workflows/test.yml@main
+
+  release-gh:
     runs-on: ubuntu-latest
+    needs: [test]
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Release
         uses: softprops/action-gh-release@v1
 
-  hexpm-publish:
+  release-hex:
     runs-on: ubuntu-latest
     environment: publish
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/cache/restore@v4
+        with:
+          path: ./build/packages
+          key: deps-${{ hashFiles('manifest.toml') }}
       - uses: erlef/setup-beam@v1
         with:
-          otp-version: ${{env.ERLANG_VERSION}}
-          gleam-version: ${{env.GLEAM_VERSION}}
+          otp-version: 26
+          rebar3-version: 3
+          gleam-version: "1.1.0"
       - name: publish to hex
         env:
           HEXPM_USER: ${{ secrets.HEXPM_USER }}
