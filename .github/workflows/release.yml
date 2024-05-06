@@ -9,9 +9,21 @@ jobs:
   test:
     uses: TanklesXL/glint/.github/workflows/test.yml@main
 
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          version="v$(cat gleam.toml | grep -m 1 "version" | sed -r "s/version *= *\"([[:digit:].]+)\"/\1/")"
+          if [ "$version" != "${{ github.ref_name }}" ]; then
+            echo "tag '${{ github.ref_name }}' does not match the version in gleam.toml"
+            echo "expected a tag name 'v$version'"
+            exit 1
+          fi
+
   release-gh:
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: [test, version]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,7 +32,7 @@ jobs:
 
   release-hex:
     runs-on: ubuntu-latest
-    environment: publish
+    needs: [test, version]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache/restore@v4
