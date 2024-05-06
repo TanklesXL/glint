@@ -4,10 +4,9 @@ on:
   push:
     tags:
       - v*.*.*
-
 jobs:
   test:
-    uses: TanklesXL/glint/.github/workflows/test.yml@main
+    uses: ./.github/workflows/test.yml
 
   version:
     runs-on: ubuntu-latest
