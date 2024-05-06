@@ -317,7 +317,7 @@ pub fn named_arg(
 ///
 /// The provided callback is provided a function to fetch the current flag value from the command input.
 ///
-/// This functions is most ergonomic as part of a `use` chain when building commands.
+/// This function is most ergonomic as part of a `use` chain when building commands.
 ///
 /// ```gleam
 /// ...
