@@ -92,7 +92,10 @@ pub fn as_module(glint: Glint(a)) -> Glint(a) {
 
 // -- CORE: TYPES --
 
-/// Glint container type for config and commands
+/// A container type for config and commands.
+///
+/// This will be the main interaction point when setting up glint.
+/// To create a new one use `glint.new()`.
 ///
 pub opaque type Glint(a) {
   Glint(config: Config, cmd: CommandNode(a))
@@ -109,7 +112,9 @@ pub type ArgsCount {
   MinArgs(Int)
 }
 
-/// A glint command
+/// The type representing a glint command.
+///
+/// To create a new command, use the `glint.command()` funcion.
 ///
 pub opaque type Command(a) {
   Command(
@@ -130,6 +135,8 @@ type InternalCommand(a) {
   )
 }
 
+/// A container for named arguments available to commands at runtime.
+///
 pub opaque type NamedArgs {
   NamedArgs(internal: dict.Dict(String, String))
 }
@@ -201,8 +208,8 @@ pub fn global_help(in glint: Glint(a), of description: String) -> Glint(a) {
 ///
 /// ```gleam
 /// glint.new()
-/// |> glint.add(at: [], root_command())
-/// |> glint.add(at: ["subcommand"], subcommand())
+/// |> glint.add(at: [], do: root_command())
+/// |> glint.add(at: ["subcommand"], do: subcommand())
 /// ...
 /// ```
 ///
@@ -243,8 +250,19 @@ fn sanitize_path(path: List(String)) -> List(String) {
   |> list.filter(is_not_empty)
 }
 
-/// Create a Command(a) from a Runner(a)
+/// Create a Command(a) from a Runner(a).
 ///
+/// ### Example:
+///
+/// ```gleam
+/// use <- glint.command_help("Some awesome help text")
+/// use named_arg <- glint.named_arg("some_arg")
+/// use <- glint.unnamed_args(glint.EqArgs(0))
+/// ...
+/// use named, unnamed, flags <- glint.command()
+/// let my_arg = named_arg(named)
+/// ...
+/// ```
 pub fn command(do runner: Runner(a)) -> Command(a) {
   Command(
     do: runner,
@@ -264,6 +282,8 @@ pub fn command_help(of desc: String, with f: fn() -> Command(a)) -> Command(a) {
 /// Specify a specific number of unnamed args that a given command expects.
 ///
 /// Use in conjunction with `glint.ArgsCount` to specify either a minimum or a specific number of args.
+///
+/// ### Example:
 ///
 /// ```gleam
 /// ...
@@ -290,6 +310,8 @@ pub fn unnamed_args(
 /// - Matched named arguments will **not** be present in the commmand's unnamed args list
 ///
 /// - All named arguments must match for a command to succeed.
+///
+/// ### Example:
 ///
 /// ```gleam
 /// ...
@@ -318,6 +340,8 @@ pub fn named_arg(
 /// The provided callback is provided a function to fetch the current flag value from the command input.
 ///
 /// This function is most ergonomic as part of a `use` chain when building commands.
+///
+/// ### Example:
 ///
 /// ```gleam
 /// ...
@@ -1040,7 +1064,8 @@ fn build_flag(fb: Flag(a)) -> FlagEntry {
 /// As constraints are just functions, this works well as both part of a pipeline or with `use`.
 ///
 ///
-/// Pipe:
+/// ### Pipe:
+///
 /// ```gleam
 /// glint.int_flag("my_flag")
 /// |> glint.flag_help("An awesome flag")
@@ -1051,7 +1076,8 @@ fn build_flag(fb: Flag(a)) -> FlagEntry {
 ///   }})
 /// ```
 ///
-/// Use:
+/// ### Use:
+///
 /// ```gleam
 /// use i <- glint.flag_constraint(
 ///   glint.int_flag("my_flag")
@@ -1095,6 +1121,8 @@ type FlagEntry {
 
 /// Attach a help text description to a flag.
 ///
+/// ### Example:
+///
 /// ```gleam
 /// glint.int_flag("awesome_flag")
 /// |> glint.flag_help("Some great text!")
@@ -1105,6 +1133,8 @@ pub fn flag_help(for flag: Flag(a), of description: String) -> Flag(a) {
 }
 
 /// Set the default value for a flag.
+///
+/// ### Example:
 ///
 /// ```gleam
 /// glint.int_flag("awesome_flag")
