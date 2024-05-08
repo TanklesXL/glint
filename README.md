@@ -1,5 +1,8 @@
 # glint
 
+> [!WARNING]
+> This README is being updated in preperation for glint `v1.0.0`. For documentation on the latest released glint versions please use the hexdocs link found below.
+
 [![Hex Package](https://img.shields.io/hexpm/v/glint?color=ffaff3&label=%F0%9F%93%A6)](https://hex.pm/packages/glint)
 [![Hex.pm](https://img.shields.io/hexpm/dt/glint?color=ffaff3)](https://hex.pm/packages/glint)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3?label=%F0%9F%93%9A)](https://hexdocs.pm/glint/)
@@ -54,10 +57,10 @@ import glint
 
 
 // this function returns the builder for the caps flag
-fn caps_flag() -> flag.FlagBuilder(Bool) {
+fn caps_flag() -> glint.Flag(Bool) {
   glint.bool_flag("caps")
-  |> flag.flag_default(False)
-  |> flag.flag_help("Capitalize the hello message")
+  |> glint.flag_default(False)
+  |> glint.flag_help("Capitalize the hello message")
 }
 
 /// the glint command that will be executed
