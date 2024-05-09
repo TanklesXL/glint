@@ -8,7 +8,7 @@
 [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3?label=%F0%9F%93%9A)](https://hexdocs.pm/glint/)
 [![GitHub Workflow Status](https://img.shields.io/github/workflow/status/tanklesxl/glint/main)](https://github.com/tanklesxl/glint/actions)
 
-Gleam command line argument parsing with basic flag support.
+Gleam command-line argument parsing with flags and automatic help text.
 
 ## Installation
 
@@ -20,9 +20,33 @@ gleam add glint
 
 ## Usage
 
+Glint has 3 main concepts (see below for more details): glint itself, commands and flags.
+
+The general workflow involves
+
+1. creating a new glint instance with `glint.new`
+1. configuring it
+1. creating commands with `glint.command`
+   - attach flags with `glint.flag`
+   - set named args with `glint.named_arg`
+   - set unnamed args with `glint.unnamed_args`
+1. attach the commands to glint with `glint.add`
+1. run your glint app with `glint.run` or `glint.run_and_handle`
+
+### Help text
+
+_**Note**_:Help text is generated and printed whenever a glint command is called with the built-in flag `--help`. It is also printed after the error text when any errors are encountered due to invalid flags or arguments.
+
+Help text descriptions can be attached to all of glint's components:
+
+- attach global help text with `glint.global_help`
+- attach comand help text with `glint.command_help`
+- attach flag help text with `glint.flag_help`
+- attach help text to a non-initialized command with `glint.path_help`
+
 ### Mini Example
 
-You can import `glint` as a dependency and use it to build simple command-line applications like the following simplified version of the [the hello world example](https://github.com/TanklesXL/glint/tree/main/test/examples/hello.gleam)
+You can import `glint` as a dependency and use it to build command-line applications like the following simplified version of the [the hello world example](https://github.com/TanklesXL/glint/tree/main/test/examples/hello.gleam).
 
 ```gleam
 // stdlib imports
@@ -35,7 +59,6 @@ import snag
 import argv
 // glint imports
 import glint
-
 
 // this function returns the builder for the caps flag
 fn caps_flag() -> glint.Flag(Bool) {
