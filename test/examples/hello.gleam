@@ -1,4 +1,4 @@
-//// This module demonstratest a simple glint app with 2 commands
+//// This module demonstrates a simple glint app with 2 commands
 ////
 //// ## Usage
 ////

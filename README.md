@@ -46,7 +46,7 @@ Help text descriptions can be attached to all of glint's components:
 
 ### Mini Example
 
-You can import `glint` as a dependency and use it to build command-line applications like the following simplified version of the [the hello world example](https://github.com/TanklesXL/glint/tree/main/test/examples/hello.gleam).
+You can import `glint` as a dependency and use it to build command-line applications like the following simplified version of the [the hello world example](./test/examples/hello.gleam).
 
 ```gleam
 // stdlib imports
