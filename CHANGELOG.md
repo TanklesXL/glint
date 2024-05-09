@@ -1,9 +1,12 @@
 # Changelog
 
-## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.18.0...HEAD)
+## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.18.1...HEAD)
 
 - oh boy
-- add subcommands to usage text
+
+## [0.18.1](https://github.com/TanklesXL/glint/compare/v0.18.0...v0.18.1)
+
+- relax gleam stdlib version constraint
 
 ## [0.18.0](https://github.com/TanklesXL/glint/compare/v0.17.1...v0.18.0)
 
