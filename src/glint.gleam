@@ -58,7 +58,7 @@ fn config(glint: Glint(a), config: Config) -> Glint(a) {
 
 /// Enable custom colours for help text headers.
 ///
-/// For a pre-made style, pass in `glint.default_pretty_help()`
+/// For a pre-made style, pass in [`glint.default_pretty_help`](#default_pretty_help)
 ///
 pub fn pretty_help(glint: Glint(a), pretty: PrettyHelp) -> Glint(a) {
   config(glint, Config(..glint.config, pretty_help: Some(pretty)))
@@ -82,7 +82,7 @@ pub fn without_exit(glint: Glint(a)) -> Glint(a) {
 
 /// Adjust the generated help text to reflect that the current glint app should be run as a gleam module.
 ///
-/// Use in conjunction with `glint.with_name` to get usage text output like `gleam run -m <name>`
+/// Use in conjunction with [`glint.with_name`](#with_name) to get usage text output like `gleam run -m <name>`
 ///
 pub fn as_module(glint: Glint(a)) -> Glint(a) {
   config(glint, Config(..glint.config, as_module: True))
@@ -95,13 +95,13 @@ pub fn as_module(glint: Glint(a)) -> Glint(a) {
 /// A container type for config and commands.
 ///
 /// This will be the main interaction point when setting up glint.
-/// To create a new one use `glint.new()`.
+/// To create a new one use [`glint.new`](#new).
 ///
 pub opaque type Glint(a) {
   Glint(config: Config, cmd: CommandNode(a))
 }
 
-/// Specify the expected number of unnamed arguments with this type and the `glint.unnamed_args` function
+/// Specify the expected number of unnamed arguments with this type and the [`glint.unnamed_args`](#unnamed_args) function
 ///
 pub type ArgsCount {
   /// Specifies that a command must accept a specific number of unnamed arguments
@@ -114,7 +114,7 @@ pub type ArgsCount {
 
 /// The type representing a glint command.
 ///
-/// To create a new command, use the `glint.command()` funcion.
+/// To create a new command, use the [`glint.command`](#command) funcion.
 ///
 pub opaque type Command(a) {
   Command(
@@ -180,7 +180,7 @@ pub fn new() -> Glint(a) {
 /// This function is intended to allow users to set the help text of commands that might not be directly instantiated,
 /// such as commands with no business logic associated to them but that have subcommands.
 ///
-/// Using this function should almost never be necessary, in most cases you should use `glint.command_help` insstead.
+/// Using this function should almost never be necessary, in most cases you should use [`glint.command_help`](#command_help) insstead.
 pub fn path_help(
   in glint: Glint(a),
   at path: List(String),
@@ -193,7 +193,7 @@ pub fn path_help(
 /// Set help text for the application as a whole.
 ///
 /// Help text set with this function wil be printed at the top of the help text for every command.
-/// To set help text specifically for the root command please use `glint.command_help` or `glint.path_help([],...)`
+/// To set help text specifically for the root command please use [`glint.command_help`](#command_help) or [`glint.path_help([],...)`](#path_help)
 ///
 pub fn global_help(in glint: Glint(a), of description: String) -> Glint(a) {
   Glint(..glint, config: Config(..glint.config, description: Some(description)))
@@ -250,7 +250,7 @@ fn sanitize_path(path: List(String)) -> List(String) {
   |> list.filter(is_not_empty)
 }
 
-/// Create a Command(a) from a Runner(a).
+/// Create a [Command(a)](#Command) from a [Runner(a)](#Runner).
 ///
 /// ### Example:
 ///
@@ -273,7 +273,7 @@ pub fn command(do runner: Runner(a)) -> Command(a) {
   )
 }
 
-/// Attach a helptext description to a Command(a)
+/// Attach a helptext description to a [`Command(a)`](#Command)
 ///
 pub fn command_help(of desc: String, with f: fn() -> Command(a)) -> Command(a) {
   Command(..f(), description: desc)
@@ -281,7 +281,7 @@ pub fn command_help(of desc: String, with f: fn() -> Command(a)) -> Command(a) {
 
 /// Specify a specific number of unnamed args that a given command expects.
 ///
-/// Use in conjunction with `glint.ArgsCount` to specify either a minimum or a specific number of args.
+/// Use in conjunction with [`glint.ArgsCount`](#ArgsCount) to specify either a minimum or a specific number of args.
 ///
 /// ### Example:
 ///
@@ -301,7 +301,8 @@ pub fn unnamed_args(
   Command(..f(), unnamed_args: Some(count))
 }
 
-/// Add a list of named arguments to a Command.
+/// Add a list of named arguments to a [`Command(a)`](#Command). The value can be retrieved from the command's [`NamedArgs`](#NamedArgs)
+///
 /// These named arguments will be matched with the first N arguments passed to the command.
 ///
 ///
@@ -335,9 +336,9 @@ pub fn named_arg(
   Command(..cmd, named_args: [name, ..cmd.named_args])
 }
 
-/// Add a `Flag` to a `Command`
+/// Add a [`Flag(a)`](#Flag) to a [`Command(a)`](#Command)
 ///
-/// The provided callback is provided a function to fetch the current flag value from the command input.
+/// The provided callback is provided a function to fetch the current flag fvalue from the command input [`Flags`](#Flags).
 ///
 /// This function is most ergonomic as part of a `use` chain when building commands.
 ///
@@ -536,10 +537,10 @@ fn execute_root(
 
 /// Run a glint app and print any errors enountered, or the help text if requested.
 /// This function ignores any value returned by the command that was run.
-/// If you would like to do handle the command output please see the run_and_handle function.
+/// If you would like to do handle the command output please see the [`glint.run_and_handle`](#run_and_handle) function.
 ///
 /// IMPORTANT: This function exits with code 1 if an error was encountered.
-/// If this behaviour is not desired please disable it with `glint.without_exit`
+/// If this behaviour is not desired please disable it with [`glint.without_exit`](#without_exit)
 ///
 pub fn run(from glint: Glint(a), for args: List(String)) -> Nil {
   run_and_handle(from: glint, for: args, with: fn(_) { Nil })
@@ -549,7 +550,7 @@ pub fn run(from glint: Glint(a), for args: List(String)) -> Nil {
 /// This function prints any errors enountered or the help text if requested.
 ///
 /// IMPORTANT: This function exits with code 1 if an error was encountered.
-/// If this behaviour is not desired please disable it with `glint.without_exit`
+/// If this behaviour is not desired please disable it with [`glint.without_exit`](#without_exit)
 ///
 pub fn run_and_handle(
   from glint: Glint(a),
@@ -944,7 +945,14 @@ type Value {
 
 /// Glint's typed flags.
 ///
-/// Flags can be created using any of `glint.flag_(int | ints | float | floats | string | strings | bool)
+/// Flags can be created using any of:
+/// - [`glint.int_flag`](#int_flag)
+/// - [`glint.ints_flag`](#ints_flag)
+/// - [`glint.float_flag`](#float_flag)
+/// - [`glint.floats_flag`](#floats_flag)
+/// - [`glint.string_flag`](#string_flag)
+/// - [`glint.strings_flag`](#strings_flag)
+/// - [`glint.bool_flag`](#bool_flag)
 ///
 pub opaque type Flag(a) {
   Flag(
@@ -1050,7 +1058,7 @@ fn new_builder(
   )
 }
 
-/// convert a Flag(a) into its corresponding FlagEntry representation
+/// convert a (Flag(a) into its corresponding FlagEntry representation
 ///
 fn build_flag(fb: Flag(a)) -> FlagEntry {
   FlagEntry(
@@ -1163,8 +1171,6 @@ fn fold(flags: Flags, acc: acc, f: fn(acc, String, FlagEntry) -> acc) -> acc {
   dict.fold(flags.internal, acc, f)
 }
 
-/// Convert a list of flags to a Flags.
-///
 fn new_flags() -> Flags {
   Flags(dict.new())
 }
@@ -1293,7 +1299,7 @@ fn get_value(
 /// Gets the value for the associated flag.
 ///
 /// This function should only ever be used when fetching flags set at the group level.
-/// For local flags please use the getter functions provided when calling `glint.flag`.
+/// For local flags please use the getter functions provided when calling [`glint.flag`](#flag).
 ///
 pub fn get_flag(from flags: Flags, for flag: Flag(a)) -> snag.Result(a) {
   flag.getter(flags, flag.name)
