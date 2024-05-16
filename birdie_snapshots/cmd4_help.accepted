@@ -1,0 +1,19 @@
+---
+version: 1.1.5
+title: cmd4 help
+file: ./test/glint_test.gleam
+test_name: help_test
+---
+Some awesome global help text!
+
+Command: cmd1 cmd4
+
+This is cmd4
+
+USAGE:
+	gleam run -m test cmd1 cmd4 [ --flag4=<FLOAT> --global=<STRING> ]
+
+FLAGS:
+	--flag4=<FLOAT>		This is flag4
+	--global=<STRING>		This is a global flag
+	--help			Print help information
