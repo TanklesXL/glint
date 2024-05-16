@@ -36,10 +36,20 @@ jobs:
 
   release-hex:
     runs-on: ubuntu-latest
+    environment: publish
     needs:
       - test
       - version
     steps:
       - uses: actions/checkout@v4
-      - uses: TanklesXL/gleam_actions/actions/deps_restore@main
-      - uses: TanklesXL/gleam_actions/actions/hex_publish@main
+      - uses: TanklesXL/gleam_actions/.github/actions/deps_restore@main
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: 26
+          rebar3-version: 3
+          gleam-version: 1
+      - run: gleam publish -y
+        env:
+          HEXPM_USER: ${{ secrets.HEXPM_USER }}
+          HEXPM_PASS: ${{ secrets.HEXPM_PASS }}
+        shell: bash
