@@ -12,5 +12,5 @@ jobs:
     uses: TanklesXL/gleam_actions/.github/workflows/test.yaml@main
     with:
       gleam_version: 1.1.0
-      node_enabled: true
-      erlang_enabled: true
+      test_node: true
+      test_erlang: true
