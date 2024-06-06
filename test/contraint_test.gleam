@@ -86,15 +86,15 @@ pub fn flag_one_of_none_of_test() {
   let #(test_flag, success, failure) = #(
     glint.ints_flag("li")
       |> glint.flag_constraint(
-      [1, 2, 3]
-      |> constraint.one_of
-      |> constraint.each,
-    )
+        [1, 2, 3]
+        |> constraint.one_of
+        |> constraint.each,
+      )
       |> glint.flag_constraint(
-      [4, 5, 6]
-      |> constraint.none_of
-      |> constraint.each,
-    ),
+        [4, 5, 6]
+        |> constraint.none_of
+        |> constraint.each,
+      ),
     "1,1,1",
     "2,2,6",
   )
@@ -149,15 +149,15 @@ pub fn flag_one_of_none_of_test() {
   let #(test_flag, success, failure) = #(
     glint.floats_flag("lf")
       |> glint.flag_constraint(
-      [1.0, 2.0, 3.0]
-      |> constraint.one_of()
-      |> constraint.each,
-    )
+        [1.0, 2.0, 3.0]
+        |> constraint.one_of()
+        |> constraint.each,
+      )
       |> glint.flag_constraint(
-      [4.0, 5.0, 6.0]
-      |> constraint.none_of()
-      |> constraint.each,
-    ),
+        [4.0, 5.0, 6.0]
+        |> constraint.none_of()
+        |> constraint.each,
+      ),
     "3.0,2.0,1.0",
     "2.0,3.0,6.0",
   )
@@ -212,15 +212,15 @@ pub fn flag_one_of_none_of_test() {
   let #(test_flag, success, failure) = #(
     glint.strings_flag("ls")
       |> glint.flag_constraint(
-      ["t1", "t2", "t3"]
-      |> constraint.one_of
-      |> constraint.each,
-    )
+        ["t1", "t2", "t3"]
+        |> constraint.one_of
+        |> constraint.each,
+      )
       |> glint.flag_constraint(
-      ["t4", "t5", "t6"]
-      |> constraint.none_of
-      |> constraint.each,
-    ),
+        ["t4", "t5", "t6"]
+        |> constraint.none_of
+        |> constraint.each,
+      ),
     "t3,t2,t1",
     "t2,t4,t1",
   )
