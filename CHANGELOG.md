@@ -1,8 +1,18 @@
 # Changelog
 
-## [Unreleased](https://github.com/TanklesXL/glint/compare/v0.18.1...HEAD)
+## [Unreleased](https://github.com/TanklesXL/glint/compare/v1.0.0-rc2...HEAD)
 
-- oh boy
+# v1
+
+## [1.0.0](https://github.com/TanklesXL/glint/compare/v0.18.1...v1.0.0)
+
+- replaced the pipe-based command builder API with a `use`-based one that provides better ergonomics
+- removal of the `glint/flag` module and named flag getter functions
+- flags are now handled directly by the `glint` module
+- constraints are now handled by the `glint/constraint` module
+- many functions in the `glint` module have had their names somewhat adjusted
+
+# v0
 
 ## [0.18.1](https://github.com/TanklesXL/glint/compare/v0.18.0...v0.18.1)
 
