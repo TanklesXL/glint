@@ -12,6 +12,7 @@ import gleam/string_builder as sb
 import gleam_community/ansi
 import gleam_community/colour.{type Colour}
 import glint/constraint
+import glint/internal/utils
 import snag.{type Snag}
 
 // --- CONFIGURATION ---
@@ -393,7 +394,7 @@ pub fn group_flag(
 @internal
 pub fn execute(glint: Glint(a), args: List(String)) -> Result(Out(a), String) {
   // create help flag to check for
-  let help_flag = help_flag()
+  let help_flag = prefix <> help_flag.meta.name
 
   // check if help flag is present
   let #(help, args) = case list.pop(args, fn(s) { s == help_flag }) {
@@ -607,16 +608,7 @@ fn is_not_empty(s: String) -> Bool {
   s != ""
 }
 
-const help_flag_name = "help"
-
-const help_flag_message = "--help\t\t\tPrint help information"
-
-/// Function to create the help flag string
-/// Exported for testing purposes only
-///
-fn help_flag() -> String {
-  prefix <> help_flag_name
-}
+const help_flag = FlagHelp(Metadata("help", "Print help information"), "")
 
 // -- HELP: FUNCTIONS --
 
@@ -679,6 +671,20 @@ type CommandHelp {
     named_args: List(String),
   )
 }
+
+/// The maximum width for console output, (e.g. command, flag, and subcommand
+/// descriptions).
+///
+const max_output_width = 100
+
+/// THe minimum width of the column containing flag/command names and the
+/// descripion.
+///
+const min_column_width = 24
+
+/// The width in spaces of a \t tab character.
+/// 
+const tab_width = 8
 
 // -- HELP - FUNCTIONS - BUILDERS --
 fn build_app_help(config: Config, command_name: String, node: CommandNode(_)) {
@@ -750,7 +756,10 @@ fn app_help_to_string(help: AppHelp) -> String {
       |> option.unwrap(""),
     help.command.meta.name
       |> string_map(string.append("Command: ", _)),
-    help.command.meta.description,
+    string.join(
+      utils.wordwrap(help.command.meta.description, max_output_width),
+      "\n",
+    ),
     command_help_to_usage_string(help.command, help.config),
     flags_help_to_string(help.command.flags, help.config),
     subcommands_help_to_string(help.command.subcommands, help.config),
@@ -825,12 +834,16 @@ fn command_help_to_usage_string(help: CommandHelp, config: Config) -> String {
     Some(pretty) -> heading_style(usage_heading, pretty.usage)
   }
   <> "\n\t"
-  <> app_name
-  <> string_map(help.meta.name, string.append(" ", _))
-  <> string_map(subcommands, string.append(" ", _))
-  <> string_map(named_args, string.append(" ", _))
-  <> string_map(unnamed_args, string.append(" ", _))
-  <> string_map(flags, string.append(" ", _))
+  <> utils.wordwrap(
+    app_name
+      <> string_map(help.meta.name, string.append(" ", _))
+      <> string_map(subcommands, string.append(" ", _))
+      <> string_map(named_args, string.append(" ", _))
+      <> string_map(unnamed_args, string.append(" ", _))
+      <> string_map(flags, string.append(" ", _)),
+    max_output_width - tab_width - 2,
+  )
+  |> string.join("\n\t  ")
 }
 
 // -- HELP - FUNCTIONS - STRINGIFIERS - FLAGS --
@@ -840,12 +853,19 @@ fn command_help_to_usage_string(help: CommandHelp, config: Config) -> String {
 fn flags_help_to_string(help: List(FlagHelp), config: Config) -> String {
   use <- bool.guard(help == [], "")
 
+  let longest_flag_length =
+    help
+    |> list.map(flag_help_to_string)
+    |> utils.max_string_length
+    |> int.max(min_column_width)
+
   case config.pretty_help {
     None -> flags_heading
     Some(pretty) -> heading_style(flags_heading, pretty.flags)
   }
   <> {
-    [help_flag_message, ..list.map(help, flag_help_to_string_with_description)]
+    [help_flag, ..help]
+    |> list.map(flag_help_to_string_with_description(_, longest_flag_length + 2))
     |> list.sort(string.compare)
     |> list.map(string.append("\n\t", _))
     |> string.concat
@@ -855,13 +875,34 @@ fn flags_help_to_string(help: List(FlagHelp), config: Config) -> String {
 /// generate the help text for a flag without a description
 ///
 fn flag_help_to_string(help: FlagHelp) -> String {
-  prefix <> help.meta.name <> "=<" <> help.type_ <> ">"
+  prefix
+  <> help.meta.name
+  <> case help.type_ {
+    "" -> ""
+    _ -> "=<" <> help.type_ <> ">"
+  }
 }
 
 /// generate the help text for a flag with a description
 ///
-fn flag_help_to_string_with_description(help: FlagHelp) -> String {
-  flag_help_to_string(help) <> "\t\t" <> help.meta.description
+fn flag_help_to_string_with_description(
+  help: FlagHelp,
+  longest_flag_length: Int,
+) -> String {
+  {
+    help
+    |> flag_help_to_string
+    |> string.pad_right(longest_flag_length, " ")
+  }
+  <> {
+    let description_width =
+      { max_output_width - longest_flag_length - tab_width }
+      |> int.max(min_column_width)
+
+    help.meta.description
+    |> utils.wordwrap(description_width)
+    |> string.join("\n\t" <> string.repeat(" ", longest_flag_length))
+  }
 }
 
 // -- HELP - FUNCTIONS - STRINGIFIERS - SUBCOMMANDS --
@@ -871,13 +912,19 @@ fn flag_help_to_string_with_description(help: FlagHelp) -> String {
 fn subcommands_help_to_string(help: List(Metadata), config: Config) -> String {
   use <- bool.guard(help == [], "")
 
+  let longest_subcommand_length =
+    help
+    |> list.map(fn(h) { h.name })
+    |> utils.max_string_length
+    |> int.max(min_column_width)
+
   case config.pretty_help {
     None -> subcommands_heading
     Some(pretty) -> heading_style(subcommands_heading, pretty.subcommands)
   }
   <> {
     help
-    |> list.map(subcommand_help_to_string)
+    |> list.map(subcommand_help_to_string(_, longest_subcommand_length + 2))
     |> list.sort(string.compare)
     |> list.map(string.append("\n\t", _))
     |> string.concat
@@ -886,10 +933,19 @@ fn subcommands_help_to_string(help: List(Metadata), config: Config) -> String {
 
 /// generate the help text for a single subcommand given its name and description
 ///
-fn subcommand_help_to_string(help: Metadata) -> String {
-  case help.description {
-    "" -> help.name
-    _ -> help.name <> "\t\t" <> help.description
+fn subcommand_help_to_string(
+  help: Metadata,
+  longest_subcommand_length: Int,
+) -> String {
+  string.pad_right(help.name, longest_subcommand_length, " ")
+  <> {
+    let description_width =
+      { max_output_width - longest_subcommand_length - tab_width }
+      |> int.max(min_column_width)
+
+    help.description
+    |> utils.wordwrap(description_width)
+    |> string.join("\n\t" <> string.repeat(" ", longest_subcommand_length))
   }
 }
 

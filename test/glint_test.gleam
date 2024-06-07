@@ -124,7 +124,9 @@ pub fn help_test() {
   let flag_5 =
     "flag5"
     |> glint.floats_flag()
-    |> glint.flag_help("This is flag5")
+    |> glint.flag_help(
+      "This is flag5 with a really really really really really really long description",
+    )
 
   let cli =
     glint.new()

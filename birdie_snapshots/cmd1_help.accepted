@@ -11,14 +11,16 @@ Command: cmd1
 This is cmd1
 
 USAGE:
-	gleam run -m test cmd1 ( cmd3 | cmd4 ) [ ARGS ] [ --flag2=<INT> --flag5=<FLOAT_LIST> --global=<STRING> ]
+	gleam run -m test cmd1 ( cmd3 | cmd4 ) [ ARGS ] [ --flag2=<INT> --flag5=<FLOAT_LIST>
+	  --global=<STRING> ]
 
 FLAGS:
-	--flag2=<INT>		This is flag2
-	--flag5=<FLOAT_LIST>		This is flag5
-	--global=<STRING>		This is a global flag
-	--help			Print help information
+	--flag2=<INT>             This is flag2
+	--flag5=<FLOAT_LIST>      This is flag5 with a really really really really really really
+	                          long description
+	--global=<STRING>         This is a global flag
+	--help                    Print help information
 
 SUBCOMMANDS:
-	cmd3		This is cmd3
-	cmd4		This is cmd4
+	cmd3                      This is cmd3
+	cmd4                      This is cmd4

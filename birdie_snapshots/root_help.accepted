@@ -9,14 +9,15 @@ Some awesome global help text!
 This is the root command
 
 USAGE:
-	gleam run -m test ( cmd1 | cmd2 | cmd5 ) <arg1> <arg2> [ ARGS ] [ --flag1=<STRING> --global=<STRING> ]
+	gleam run -m test ( cmd1 | cmd2 | cmd5 ) <arg1> <arg2> [ ARGS ] [ --flag1=<STRING>
+	  --global=<STRING> ]
 
 FLAGS:
-	--flag1=<STRING>		This is flag1
-	--global=<STRING>		This is a global flag
-	--help			Print help information
+	--flag1=<STRING>          This is flag1
+	--global=<STRING>         This is a global flag
+	--help                    Print help information
 
 SUBCOMMANDS:
-	cmd1		This is cmd1
-	cmd2		This is cmd2
-	cmd5
+	cmd1                      This is cmd1
+	cmd2                      This is cmd2
+	cmd5                      
