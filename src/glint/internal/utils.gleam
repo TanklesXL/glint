@@ -49,8 +49,8 @@ fn do_wordwrap(
       }
     }
 
-    // There are no more more tokens, so add the current line to the result if
-    // it's not empty
+    // There are no more tokens so return the final result, adding the current
+    // line to it if it's not empty
     [] if line == "" -> list.reverse(lines)
     [] -> list.reverse([line, ..lines])
   }
