@@ -28,6 +28,7 @@ type Config {
     as_module: Bool,
     description: Option(String),
     exit: Bool,
+    indent_width: Int,
     max_output_width: Int,
     min_first_column_width: Int,
     column_gap: Int,
@@ -50,6 +51,7 @@ const default_config = Config(
   as_module: False,
   description: None,
   exit: True,
+  indent_width: 4,
   max_output_width: 80,
   min_first_column_width: 20,
   column_gap: 2,
@@ -93,6 +95,15 @@ pub fn without_exit(glint: Glint(a)) -> Glint(a) {
 ///
 pub fn as_module(glint: Glint(a)) -> Glint(a) {
   config(glint, Config(..glint.config, as_module: True))
+}
+
+/// Adjusts the indent width used to indent content under the usage, flags,
+/// and subcommands headings.
+/// 
+/// Default: 4.
+///
+pub fn with_indent_width(glint: Glint(a), width: Int) -> Glint(a) {
+  Glint(..glint, config: Config(..glint.config, indent_width: width))
 }
 
 /// Adjusts the output width at which help text will wrap onto a new line.
@@ -702,10 +713,6 @@ type CommandHelp {
   )
 }
 
-/// The width in spaces of a \t tab character.
-/// 
-const tab_width = 8
-
 // -- HELP - FUNCTIONS - BUILDERS --
 fn build_app_help(config: Config, command_name: String, node: CommandNode(_)) {
   AppHelp(config: config, command: build_command_help(command_name, node))
@@ -852,15 +859,15 @@ fn command_help_to_usage_string(help: CommandHelp, config: Config) -> String {
     option.map(help.unnamed_args, args_count_to_usage_string)
     |> option.unwrap("[ ARGS ]")
 
-  // The max width of the usage accounts for the one tab indent plus two spaces
-  // of indentation on wrapped lines
-  let max_usage_width = config.max_output_width - tab_width - 2
+  // The max width of the usage accounts for the constant indent
+  let max_usage_width = config.max_output_width - config.indent_width
 
   case config.pretty_help {
     None -> usage_heading
     Some(pretty) -> heading_style(usage_heading, pretty.usage)
   }
-  <> "\n\t"
+  <> "\n"
+  <> string.repeat(" ", config.indent_width)
   <> utils.wordwrap(
     app_name
       <> string_map(help.meta.name, string.append(" ", _))
@@ -870,7 +877,7 @@ fn command_help_to_usage_string(help: CommandHelp, config: Config) -> String {
       <> string_map(flags, string.append(" ", _)),
     max_usage_width,
   )
-  |> string.join("\n\t  ")
+  |> string.join("\n" <> string.repeat(" ", config.indent_width * 2))
 }
 
 // -- HELP - FUNCTIONS - STRINGIFIERS - FLAGS --
@@ -898,7 +905,10 @@ fn flags_help_to_string(help: List(FlagHelp), config: Config) -> String {
       config,
     ))
     |> list.sort(string.compare)
-    |> list.map(string.append("\n\t", _))
+    |> list.map(string.append(
+      "\n" <> string.repeat(" ", config.indent_width),
+      _,
+    ))
     |> string.concat
   }
 }
@@ -927,13 +937,16 @@ fn flag_help_to_string_with_description(
     |> string.pad_right(longest_flag_length, " ")
 
   let description_width =
-    { config.max_output_width - longest_flag_length - tab_width }
+    config.max_output_width
+    |> int.subtract(longest_flag_length + config.indent_width)
     |> int.max(config.min_first_column_width)
 
   let description =
     help.meta.description
     |> utils.wordwrap(description_width)
-    |> string.join("\n\t" <> string.repeat(" ", longest_flag_length))
+    |> string.join(
+      "\n" <> string.repeat(" ", config.indent_width + longest_flag_length),
+    )
 
   name <> description
 }
@@ -963,7 +976,10 @@ fn subcommands_help_to_string(help: List(Metadata), config: Config) -> String {
       config,
     ))
     |> list.sort(string.compare)
-    |> list.map(string.append("\n\t", _))
+    |> list.map(string.append(
+      "\n" <> string.repeat(" ", config.indent_width),
+      _,
+    ))
     |> string.concat
   }
 }
@@ -978,13 +994,17 @@ fn subcommand_help_to_string(
   let name = string.pad_right(help.name, longest_subcommand_length, " ")
 
   let description_width =
-    { config.max_output_width - longest_subcommand_length - tab_width }
+    config.max_output_width
+    |> int.subtract(longest_subcommand_length + config.indent_width)
     |> int.max(config.min_first_column_width)
 
   let description =
     help.description
     |> utils.wordwrap(description_width)
-    |> string.join("\n\t" <> string.repeat(" ", longest_subcommand_length))
+    |> string.join(
+      "\n"
+      <> string.repeat(" ", config.indent_width + longest_subcommand_length),
+    )
 
   name <> description
 }

@@ -11,4 +11,4 @@ Command: cmd5 cmd6 cmd7
 This is cmd7
 
 USAGE:
-	gleam run -m test cmd5 cmd6 cmd7 [ ARGS ]
+    gleam run -m test cmd5 cmd6 cmd7 [ ARGS ]

@@ -12,9 +12,9 @@ This is cmd4 which has a very very very very very very very very long
 description
 
 USAGE:
-	gleam run -m test cmd1 cmd4 [ --flag4=<FLOAT> --global=<STRING> ]
+    gleam run -m test cmd1 cmd4 [ --flag4=<FLOAT> --global=<STRING> ]
 
 FLAGS:
-	--flag4=<FLOAT>       This is flag4
-	--global=<STRING>     This is a global flag
-	--help                Print help information
+    --flag4=<FLOAT>       This is flag4
+    --global=<STRING>     This is a global flag
+    --help                Print help information

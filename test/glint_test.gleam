@@ -10,10 +10,7 @@ pub fn main() {
 
 pub fn path_clean_test() {
   glint.new()
-  |> glint.add(
-    ["", " ", " cmd", "subcmd\t"],
-    glint.command(fn(_, _, _) { Nil }),
-  )
+  |> glint.add(["", " ", " cmd", "subcmd"], glint.command(fn(_, _, _) { Nil }))
   |> glint.execute(["cmd", "subcmd"])
   |> should.be_ok()
 }

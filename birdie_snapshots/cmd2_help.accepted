@@ -11,8 +11,8 @@ Command: cmd2
 This is cmd2
 
 USAGE:
-	gleam run -m test cmd2 <arg1> <arg2> [ --global=<STRING> ]
+    gleam run -m test cmd2 <arg1> <arg2> [ --global=<STRING> ]
 
 FLAGS:
-	--global=<STRING>     This is a global flag
-	--help                Print help information
+    --global=<STRING>     This is a global flag
+    --help                Print help information

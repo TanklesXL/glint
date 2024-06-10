@@ -29,15 +29,15 @@
 //// Prints Hello, <names>!
 ////
 //// USAGE:
-//// 	gleam run -m examples/hello ( single ) [ 1 or more arguments ] [ --caps=<BOOL> --repeat=<INT> ]
+////         gleam run -m examples/hello ( single ) [ 1 or more arguments ] [ --caps=<BOOL> --repeat=<INT> ]
 ////
 //// FLAGS:
-//// 	--caps=<BOOL>		Capitalize the hello message
-//// 	--help			Print help information
-//// 	--repeat=<INT>		Repeat the message n-times
+////         --caps=<BOOL>       Capitalize the hello message
+////         --help              Print help information
+////         --repeat=<INT>      Repeat the message n-times
 ////
 //// SUBCOMMANDS:
-//// 	single		Prints Hello, <name>!
+////         single              Prints Hello, <name>!
 //// ```
 ////
 //// Here is the help text for the `single` command:
@@ -50,12 +50,12 @@
 //// Prints Hello, <name>!
 ////
 //// USAGE:
-//// 	gleam run -m examples/hello single <name> [ --caps=<BOOL> --repeat=<INT> ]
+////         gleam run -m examples/hello single <name> [ --caps=<BOOL> --repeat=<INT> ]
 ////
 //// FLAGS:
-//// 	--caps=<BOOL>		Capitalize the hello message
-//// 	--help			Print help information
-//// 	--repeat=<INT>		Repeat the message n-times
+////         --caps=<BOOL>       Capitalize the hello message
+////         --help              Print help information
+////         --repeat=<INT>      Repeat the message n-times
 //// ```
 
 // stdlib imports
