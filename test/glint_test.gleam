@@ -122,10 +122,10 @@ pub fn help_test() {
     |> glint.flag_help("This is flag4")
 
   let flag_5 =
-    "flag5"
+    "very-very-very-long-flag"
     |> glint.floats_flag()
     |> glint.flag_help(
-      "This is flag5 with a really really really really really really long description",
+      "This is a very long flag with a very very very very very very long description",
     )
 
   let cli =
@@ -155,7 +155,9 @@ pub fn help_test() {
       glint.command(nil)
     })
     |> glint.add(at: ["cmd1", "cmd4"], do: {
-      use <- glint.command_help("This is cmd4")
+      use <- glint.command_help(
+        "This is cmd4 which has a very very very very very very very very long description",
+      )
       use _flag4 <- glint.flag(flag_4)
       use <- glint.unnamed_args(glint.EqArgs(0))
       glint.command(nil)
@@ -172,6 +174,10 @@ pub fn help_test() {
       do: glint.command_help("This is cmd6", fn() { glint.command(nil) }),
     )
     |> glint.path_help(["cmd5", "cmd6", "cmd7"], "This is cmd7")
+    |> glint.path_help(
+      ["cmd8-very-very-very-very-long"],
+      "This is cmd8 with a very very very very very very very long description",
+    )
 
   // execute root command
   glint.execute(cli, ["a", "b"])

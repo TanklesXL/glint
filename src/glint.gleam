@@ -28,6 +28,9 @@ type Config {
     as_module: Bool,
     description: Option(String),
     exit: Bool,
+    max_output_width: Int,
+    min_first_column_width: Int,
+    column_gap: Int,
   )
 }
 
@@ -47,6 +50,9 @@ const default_config = Config(
   as_module: False,
   description: None,
   exit: True,
+  max_output_width: 80,
+  min_first_column_width: 20,
+  column_gap: 2,
 )
 
 // -- CONFIGURATION: FUNCTIONS --
@@ -87,6 +93,30 @@ pub fn without_exit(glint: Glint(a)) -> Glint(a) {
 ///
 pub fn as_module(glint: Glint(a)) -> Glint(a) {
   config(glint, Config(..glint.config, as_module: True))
+}
+
+/// Adjusts the output width at which help text will wrap onto a new line.
+/// 
+/// Default: 80.
+///
+pub fn with_max_output_width(glint: Glint(a), width: Int) -> Glint(a) {
+  Glint(..glint, config: Config(..glint.config, max_output_width: width))
+}
+
+/// Adjusts the minimum width of the column containing flag and command names.
+/// 
+/// Default: 20.
+///
+pub fn with_min_first_column_width(glint: Glint(a), width: Int) -> Glint(a) {
+  Glint(..glint, config: Config(..glint.config, min_first_column_width: width))
+}
+
+/// Adjusts the size of the gap between columns in the help output.
+/// 
+/// Default: 2.
+///
+pub fn with_column_gap(glint: Glint(a), gap: Int) -> Glint(a) {
+  Glint(..glint, config: Config(..glint.config, column_gap: gap))
 }
 
 // --- CORE ---
@@ -672,16 +702,6 @@ type CommandHelp {
   )
 }
 
-/// The maximum width for console output, (e.g. command, flag, and subcommand
-/// descriptions).
-///
-const max_output_width = 100
-
-/// THe minimum width of the column containing flag/command names and the
-/// descripion.
-///
-const min_column_width = 24
-
 /// The width in spaces of a \t tab character.
 /// 
 const tab_width = 8
@@ -757,7 +777,10 @@ fn app_help_to_string(help: AppHelp) -> String {
     help.command.meta.name
       |> string_map(string.append("Command: ", _)),
     string.join(
-      utils.wordwrap(help.command.meta.description, max_output_width),
+      utils.wordwrap(
+        help.command.meta.description,
+        help.config.max_output_width,
+      ),
       "\n",
     ),
     command_help_to_usage_string(help.command, help.config),
@@ -829,6 +852,10 @@ fn command_help_to_usage_string(help: CommandHelp, config: Config) -> String {
     option.map(help.unnamed_args, args_count_to_usage_string)
     |> option.unwrap("[ ARGS ]")
 
+  // The max width of the usage accounts for the one tab indent plus two spaces
+  // of indentation on wrapped lines
+  let max_usage_width = config.max_output_width - tab_width - 2
+
   case config.pretty_help {
     None -> usage_heading
     Some(pretty) -> heading_style(usage_heading, pretty.usage)
@@ -841,7 +868,7 @@ fn command_help_to_usage_string(help: CommandHelp, config: Config) -> String {
       <> string_map(named_args, string.append(" ", _))
       <> string_map(unnamed_args, string.append(" ", _))
       <> string_map(flags, string.append(" ", _)),
-    max_output_width - tab_width - 2,
+    max_usage_width,
   )
   |> string.join("\n\t  ")
 }
@@ -857,7 +884,7 @@ fn flags_help_to_string(help: List(FlagHelp), config: Config) -> String {
     help
     |> list.map(flag_help_to_string)
     |> utils.max_string_length
-    |> int.max(min_column_width)
+    |> int.max(config.min_first_column_width)
 
   case config.pretty_help {
     None -> flags_heading
@@ -865,7 +892,11 @@ fn flags_help_to_string(help: List(FlagHelp), config: Config) -> String {
   }
   <> {
     [help_flag, ..help]
-    |> list.map(flag_help_to_string_with_description(_, longest_flag_length + 2))
+    |> list.map(flag_help_to_string_with_description(
+      _,
+      longest_flag_length + config.column_gap,
+      config,
+    ))
     |> list.sort(string.compare)
     |> list.map(string.append("\n\t", _))
     |> string.concat
@@ -888,21 +919,23 @@ fn flag_help_to_string(help: FlagHelp) -> String {
 fn flag_help_to_string_with_description(
   help: FlagHelp,
   longest_flag_length: Int,
+  config: Config,
 ) -> String {
-  {
+  let name =
     help
     |> flag_help_to_string
     |> string.pad_right(longest_flag_length, " ")
-  }
-  <> {
-    let description_width =
-      { max_output_width - longest_flag_length - tab_width }
-      |> int.max(min_column_width)
 
+  let description_width =
+    { config.max_output_width - longest_flag_length - tab_width }
+    |> int.max(config.min_first_column_width)
+
+  let description =
     help.meta.description
     |> utils.wordwrap(description_width)
     |> string.join("\n\t" <> string.repeat(" ", longest_flag_length))
-  }
+
+  name <> description
 }
 
 // -- HELP - FUNCTIONS - STRINGIFIERS - SUBCOMMANDS --
@@ -916,7 +949,7 @@ fn subcommands_help_to_string(help: List(Metadata), config: Config) -> String {
     help
     |> list.map(fn(h) { h.name })
     |> utils.max_string_length
-    |> int.max(min_column_width)
+    |> int.max(config.min_first_column_width)
 
   case config.pretty_help {
     None -> subcommands_heading
@@ -924,7 +957,11 @@ fn subcommands_help_to_string(help: List(Metadata), config: Config) -> String {
   }
   <> {
     help
-    |> list.map(subcommand_help_to_string(_, longest_subcommand_length + 2))
+    |> list.map(subcommand_help_to_string(
+      _,
+      longest_subcommand_length + config.column_gap,
+      config,
+    ))
     |> list.sort(string.compare)
     |> list.map(string.append("\n\t", _))
     |> string.concat
@@ -936,17 +973,20 @@ fn subcommands_help_to_string(help: List(Metadata), config: Config) -> String {
 fn subcommand_help_to_string(
   help: Metadata,
   longest_subcommand_length: Int,
+  config: Config,
 ) -> String {
-  string.pad_right(help.name, longest_subcommand_length, " ")
-  <> {
-    let description_width =
-      { max_output_width - longest_subcommand_length - tab_width }
-      |> int.max(min_column_width)
+  let name = string.pad_right(help.name, longest_subcommand_length, " ")
 
+  let description_width =
+    { config.max_output_width - longest_subcommand_length - tab_width }
+    |> int.max(config.min_first_column_width)
+
+  let description =
     help.description
     |> utils.wordwrap(description_width)
     |> string.join("\n\t" <> string.repeat(" ", longest_subcommand_length))
-  }
+
+  name <> description
 }
 
 fn string_map(s: String, f: fn(String) -> String) -> String {
