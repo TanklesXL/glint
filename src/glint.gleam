@@ -8,7 +8,6 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
-import gleam/string_builder as sb
 import gleam_community/ansi
 import gleam_community/colour.{type Colour}
 import glint/constraint
@@ -99,7 +98,7 @@ pub fn as_module(glint: Glint(a)) -> Glint(a) {
 
 /// Adjusts the indent width used to indent content under the usage, flags,
 /// and subcommands headings.
-/// 
+///
 /// Default: 4.
 ///
 pub fn with_indent_width(glint: Glint(a), width: Int) -> Glint(a) {
@@ -107,7 +106,7 @@ pub fn with_indent_width(glint: Glint(a), width: Int) -> Glint(a) {
 }
 
 /// Adjusts the output width at which help text will wrap onto a new line.
-/// 
+///
 /// Default: 80.
 ///
 pub fn with_max_output_width(glint: Glint(a), width: Int) -> Glint(a) {
@@ -115,7 +114,7 @@ pub fn with_max_output_width(glint: Glint(a), width: Int) -> Glint(a) {
 }
 
 /// Adjusts the minimum width of the column containing flag and command names.
-/// 
+///
 /// Default: 20.
 ///
 pub fn with_min_first_column_width(glint: Glint(a), width: Int) -> Glint(a) {
@@ -123,7 +122,7 @@ pub fn with_min_first_column_width(glint: Glint(a), width: Int) -> Glint(a) {
 }
 
 /// Adjusts the size of the gap between columns in the help output.
-/// 
+///
 /// Default: 2.
 ///
 pub fn with_column_gap(glint: Glint(a), gap: Int) -> Glint(a) {
@@ -778,18 +777,20 @@ fn build_subcommands_help(
 
 // -- HELP - FUNCTIONS - STRINGIFIERS --
 fn app_help_to_string(help: AppHelp) -> String {
+  let command = case help.command.meta.name {
+    "" -> ""
+    s -> "Command: " <> s
+  }
+
+  let command_description =
+    help.command.meta.description
+    |> utils.wordwrap(help.config.max_output_width)
+    |> string.join("\n")
+
   [
-    help.config.description
-      |> option.unwrap(""),
-    help.command.meta.name
-      |> string_map(string.append("Command: ", _)),
-    string.join(
-      utils.wordwrap(
-        help.command.meta.description,
-        help.config.max_output_width,
-      ),
-      "\n",
-    ),
+    option.unwrap(help.config.description, ""),
+    command,
+    command_description,
     command_help_to_usage_string(help.command, help.config),
     flags_help_to_string(help.command.flags, help.config),
     subcommands_help_to_string(help.command.subcommands, help.config),
@@ -812,14 +813,12 @@ fn flags_help_to_usage_strings(help: List(FlagHelp)) -> List(String) {
 ///
 fn flags_help_to_usage_string(help: List(FlagHelp)) -> String {
   use <- bool.guard(help == [], "")
+  let content =
+    help
+    |> flags_help_to_usage_strings
+    |> string.join(" ")
 
-  help
-  |> flags_help_to_usage_strings
-  |> list.intersperse(" ")
-  |> sb.from_strings()
-  |> sb.prepend(prefix: "[ ")
-  |> sb.append(suffix: " ]")
-  |> sb.to_string
+  "[ " <> content <> " ]"
 }
 
 /// convert an ArgsCount to a string for usage text
@@ -843,12 +842,14 @@ fn command_help_to_usage_string(help: CommandHelp, config: Config) -> String {
   }
 
   let flags = flags_help_to_usage_string(help.flags)
-  let subcommands =
+  let subcommands = case
     list.map(help.subcommands, fn(sc) { sc.name })
     |> list.sort(string.compare)
     |> string.join(" | ")
-    |> string_map(string.append("( ", _))
-    |> string_map(string.append(_, " )"))
+  {
+    "" -> ""
+    subcommands -> "( " <> subcommands <> " )"
+  }
 
   let named_args =
     help.named_args
@@ -862,22 +863,20 @@ fn command_help_to_usage_string(help: CommandHelp, config: Config) -> String {
   // The max width of the usage accounts for the constant indent
   let max_usage_width = config.max_output_width - config.indent_width
 
+  let content =
+    [app_name, help.meta.name, subcommands, named_args, unnamed_args, flags]
+    |> list.filter(is_not_empty)
+    |> string.join(" ")
+    |> utils.wordwrap(max_usage_width)
+    |> string.join("\n" <> string.repeat(" ", config.indent_width * 2))
+
   case config.pretty_help {
     None -> usage_heading
     Some(pretty) -> heading_style(usage_heading, pretty.usage)
   }
   <> "\n"
   <> string.repeat(" ", config.indent_width)
-  <> utils.wordwrap(
-    app_name
-      <> string_map(help.meta.name, string.append(" ", _))
-      <> string_map(subcommands, string.append(" ", _))
-      <> string_map(named_args, string.append(" ", _))
-      <> string_map(unnamed_args, string.append(" ", _))
-      <> string_map(flags, string.append(" ", _)),
-    max_usage_width,
-  )
-  |> string.join("\n" <> string.repeat(" ", config.indent_width * 2))
+  <> content
 }
 
 // -- HELP - FUNCTIONS - STRINGIFIERS - FLAGS --
@@ -1007,13 +1006,6 @@ fn subcommand_help_to_string(
     )
 
   name <> description
-}
-
-fn string_map(s: String, f: fn(String) -> String) -> String {
-  case s {
-    "" -> ""
-    _ -> f(s)
-  }
 }
 
 // ----- FLAGS -----
