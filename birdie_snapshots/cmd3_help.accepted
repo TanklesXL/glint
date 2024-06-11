@@ -11,9 +11,10 @@ Command: cmd1 cmd3
 This is cmd3
 
 USAGE:
-	gleam run -m test cmd1 cmd3 <woo> [ 2 or more arguments ] [ --flag3=<BOOL> --global=<STRING> ]
+    gleam run -m test cmd1 cmd3 <woo> [ 2 or more arguments ] [ --flag3=<BOOL>
+        --global=<STRING> ]
 
 FLAGS:
-	--flag3=<BOOL>		This is flag3
-	--global=<STRING>		This is a global flag
-	--help			Print help information
+    --flag3=<BOOL>        This is flag3
+    --global=<STRING>     This is a global flag
+    --help                Print help information
