@@ -783,16 +783,15 @@ fn app_help_to_string(help: AppHelp) -> String {
     s -> "Command: " <> s
   }
 
+  let command_description =
+    help.command.meta.description
+    |> utils.wordwrap(help.config.max_output_width)
+    |> string.join("\n")
+
   [
     option.unwrap(help.config.description, ""),
     command,
-    string.join(
-      utils.wordwrap(
-        help.command.meta.description,
-        help.config.max_output_width,
-      ),
-      "\n",
-    ),
+    command_description,
     command_help_to_usage_string(help.command, help.config),
     flags_help_to_string(help.command.flags, help.config),
     subcommands_help_to_string(help.command.subcommands, help.config),
@@ -867,19 +866,20 @@ fn command_help_to_usage_string(help: CommandHelp, config: Config) -> String {
   // The max width of the usage accounts for the constant indent
   let max_usage_width = config.max_output_width - config.indent_width
 
+  let content =
+    [app_name, help.meta.name, subcommands, named_args, unnamed_args, flags]
+    |> list.filter(is_not_empty)
+    |> string.join(" ")
+    |> utils.wordwrap(max_usage_width)
+    |> string.join("\n" <> string.repeat(" ", config.indent_width * 2))
+
   case config.pretty_help {
     None -> usage_heading
     Some(pretty) -> heading_style(usage_heading, pretty.usage)
   }
   <> "\n"
   <> string.repeat(" ", config.indent_width)
-  <> {
-    [app_name, help.meta.name, subcommands, named_args, unnamed_args, flags]
-    |> list.filter(is_not_empty)
-    |> string.join(" ")
-    |> utils.wordwrap(max_usage_width)
-    |> string.join("\n" <> string.repeat(" ", config.indent_width * 2))
-  }
+  <> content
 }
 
 // -- HELP - FUNCTIONS - STRINGIFIERS - FLAGS --
