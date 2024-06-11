@@ -8,7 +8,6 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
-import gleam/string_builder as sb
 import gleam_community/ansi
 import gleam_community/colour.{type Colour}
 import glint/constraint
@@ -814,14 +813,12 @@ fn flags_help_to_usage_strings(help: List(FlagHelp)) -> List(String) {
 ///
 fn flags_help_to_usage_string(help: List(FlagHelp)) -> String {
   use <- bool.guard(help == [], "")
+  let content =
+    help
+    |> flags_help_to_usage_strings
+    |> string.join(" ")
 
-  help
-  |> flags_help_to_usage_strings
-  |> list.intersperse(" ")
-  |> sb.from_strings()
-  |> sb.prepend(prefix: "[ ")
-  |> sb.append(suffix: " ]")
-  |> sb.to_string
+  "[ " <> content <> " ]"
 }
 
 /// convert an ArgsCount to a string for usage text
