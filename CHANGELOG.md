@@ -11,6 +11,7 @@
 - flags are now handled directly by the `glint` module
 - constraints are now handled by the `glint/constraint` module
 - many functions in the `glint` module have had their names somewhat adjusted
+- help text formatting is now consistently aligned and more legible
 
 # v0
 
