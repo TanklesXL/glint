@@ -1,8 +1,5 @@
 # glint
 
-> [!WARNING]
-> This README is being updated in preparation for glint `v1.0.0`. For documentation on the latest released glint versions please see [hexdocs](https://hexdocs.pm/glint/). Note that by  default `gleam add glint` will give you the latest non pre-release version of glint which at the moment is `v0.18.1`.
-
 [![Hex Package](https://img.shields.io/hexpm/v/glint?color=ffaff3&label=%F0%9F%93%A6)](https://hex.pm/packages/glint)
 [![Hex.pm](https://img.shields.io/hexpm/dt/glint?color=ffaff3)](https://hex.pm/packages/glint)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3?label=%F0%9F%93%9A)](https://hexdocs.pm/glint/)
@@ -49,16 +46,12 @@ Help text descriptions can be attached to all of glint's components:
 You can import `glint` as a dependency and use it to build command-line applications like the following simplified version of the [the hello world example](./test/examples/hello.gleam).
 
 ```gleam
-// stdlib imports
 import gleam/io
 import gleam/list
 import gleam/result
 import gleam/string.{uppercase}
-// external dep imports
-import snag
-import argv
-// glint imports
 import glint
+import argv
 
 // this function returns the builder for the caps flag
 fn caps_flag() -> glint.Flag(Bool) {
@@ -106,7 +99,7 @@ pub fn main() {
   // with pretty help enabled, using the built-in colours
   |> glint.pretty_help(glint.default_pretty_help())
   // with a root command that executes the `hello` function
-  |> glint.add(at: [], do: hello)
+  |> glint.add(at: [], do: hello())
   // execute given arguments from stdin
   |> glint.run(argv.load().arguments)
 }
