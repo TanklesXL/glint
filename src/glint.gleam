@@ -97,7 +97,7 @@ pub fn as_module(glint: Glint(a)) -> Glint(a) {
 }
 
 /// Adjusts the indent width used to indent content under the usage, flags,
-/// and subcommands headings.
+/// and subcommands headings in the help output.
 ///
 /// Default: 4.
 ///
@@ -113,7 +113,7 @@ pub fn with_max_output_width(glint: Glint(a), width: Int) -> Glint(a) {
   Glint(..glint, config: Config(..glint.config, max_output_width: width))
 }
 
-/// Adjusts the minimum width of the column containing flag and command names.
+/// Adjusts the minimum width of the column containing flag and command names in the help output.
 ///
 /// Default: 20.
 ///
