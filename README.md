@@ -8,7 +8,7 @@
 [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3?label=%F0%9F%93%9A)](https://hexdocs.pm/glint/)
 [![GitHub Workflow Status](https://img.shields.io/github/workflow/status/tanklesxl/glint/main)](https://github.com/tanklesxl/glint/actions)
 
-Gleam command-line argument parsing with flags and automatic help text.
+Gleam command-line argument parsing with flags and automated help text generation.
 
 ## Installation
 
