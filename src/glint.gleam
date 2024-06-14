@@ -892,24 +892,25 @@ fn flags_help_to_string(help: List(FlagHelp), config: Config) -> String {
     |> utils.max_string_length
     |> int.max(config.min_first_column_width)
 
-  case config.pretty_help {
+  let heading = case config.pretty_help {
     None -> flags_heading
     Some(pretty) -> heading_style(flags_heading, pretty.flags)
   }
-  <> {
+
+  let content =
     [help_flag, ..help]
-    |> list.map(flag_help_to_string_with_description(
-      _,
-      longest_flag_length + config.column_gap,
-      config,
-    ))
-    |> list.sort(string.compare)
-    |> list.map(string.append(
-      "\n" <> string.repeat(" ", config.indent_width),
-      _,
-    ))
+    |> list.sort(fn(h1, h2) { string.compare(h1.meta.name, h2.meta.name) })
+    |> list.map(fn(h) {
+      flag_help_to_string_with_description(
+        h,
+        longest_flag_length + config.column_gap,
+        config,
+      )
+      |> string.append("\n" <> string.repeat(" ", config.indent_width), _)
+    })
     |> string.concat
-  }
+
+  heading <> content
 }
 
 /// generate the help text for a flag without a description
@@ -963,24 +964,25 @@ fn subcommands_help_to_string(help: List(Metadata), config: Config) -> String {
     |> utils.max_string_length
     |> int.max(config.min_first_column_width)
 
-  case config.pretty_help {
+  let heading = case config.pretty_help {
     None -> subcommands_heading
     Some(pretty) -> heading_style(subcommands_heading, pretty.subcommands)
   }
-  <> {
+
+  let content =
     help
-    |> list.map(subcommand_help_to_string(
-      _,
-      longest_subcommand_length + config.column_gap,
-      config,
-    ))
-    |> list.sort(string.compare)
-    |> list.map(string.append(
-      "\n" <> string.repeat(" ", config.indent_width),
-      _,
-    ))
+    |> list.sort(fn(h1, h2) { string.compare(h1.name, h2.name) })
+    |> list.map(fn(h) {
+      subcommand_help_to_string(
+        h,
+        longest_subcommand_length + config.column_gap,
+        config,
+      )
+      |> string.append("\n" <> string.repeat(" ", config.indent_width), _)
+    })
     |> string.concat
-  }
+
+  heading <> content
 }
 
 /// generate the help text for a single subcommand given its name and description
