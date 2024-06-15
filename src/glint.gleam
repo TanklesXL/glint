@@ -6,6 +6,7 @@ import gleam/int
 import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
+import gleam/pair
 import gleam/result
 import gleam/string
 import gleam_community/ansi
@@ -897,7 +898,7 @@ fn flags_help_to_string(help: List(FlagHelp), config: Config) -> String {
     Some(pretty) -> heading_style(flags_heading, pretty.flags)
   }
 
-  let content =
+  let content: List(#(String, Bool)) =
     [help_flag, ..help]
     |> list.sort(fn(h1, h2) { string.compare(h1.meta.name, h2.meta.name) })
     |> list.map(fn(h) {
@@ -906,9 +907,18 @@ fn flags_help_to_string(help: List(FlagHelp), config: Config) -> String {
         longest_flag_length + config.column_gap,
         config,
       )
-      |> string.append("\n" <> string.repeat(" ", config.indent_width), _)
+      |> pair.map_first(string.append(
+        "\n" <> string.repeat(" ", config.indent_width),
+        _,
+      ))
     })
-    |> string.concat
+
+  let joiner = case list.any(content, pair.second) {
+    True -> string.join(_, "\n")
+    False -> string.concat
+  }
+
+  let content = content |> list.map(pair.first) |> joiner
 
   heading <> content
 }
@@ -930,7 +940,7 @@ fn flag_help_to_string_with_description(
   help: FlagHelp,
   longest_flag_length: Int,
   config: Config,
-) -> String {
+) -> #(String, Bool) {
   let name =
     help
     |> flag_help_to_string
@@ -941,14 +951,18 @@ fn flag_help_to_string_with_description(
     |> int.subtract(longest_flag_length + config.indent_width)
     |> int.max(config.min_first_column_width)
 
+  let lines = help.meta.description |> utils.wordwrap(description_width)
+  let wrapped = case lines {
+    [] | [_] -> False
+    _ -> True
+  }
   let description =
-    help.meta.description
-    |> utils.wordwrap(description_width)
+    lines
     |> string.join(
       "\n" <> string.repeat(" ", config.indent_width + longest_flag_length),
     )
 
-  name <> description
+  #(name <> description, wrapped)
 }
 
 // -- HELP - FUNCTIONS - STRINGIFIERS - SUBCOMMANDS --
@@ -978,11 +992,18 @@ fn subcommands_help_to_string(help: List(Metadata), config: Config) -> String {
         longest_subcommand_length + config.column_gap,
         config,
       )
-      |> string.append("\n" <> string.repeat(" ", config.indent_width), _)
+      |> pair.map_first(string.append(
+        "\n" <> string.repeat(" ", config.indent_width),
+        _,
+      ))
     })
-    |> string.concat
 
-  heading <> content
+  let joiner = case list.any(content, pair.second) {
+    True -> string.join(_, "\n")
+    False -> string.concat
+  }
+
+  heading <> { content |> list.map(pair.first) |> joiner }
 }
 
 /// generate the help text for a single subcommand given its name and description
@@ -991,7 +1012,7 @@ fn subcommand_help_to_string(
   help: Metadata,
   longest_subcommand_length: Int,
   config: Config,
-) -> String {
+) -> #(String, Bool) {
   let name = string.pad_right(help.name, longest_subcommand_length, " ")
 
   let description_width =
@@ -999,15 +1020,23 @@ fn subcommand_help_to_string(
     |> int.subtract(longest_subcommand_length + config.indent_width)
     |> int.max(config.min_first_column_width)
 
-  let description =
+  let lines =
     help.description
     |> utils.wordwrap(description_width)
+
+  let wrapped = case lines {
+    [] | [_] -> False
+    _ -> True
+  }
+
+  let description =
+    lines
     |> string.join(
       "\n"
       <> string.repeat(" ", config.indent_width + longest_subcommand_length),
     )
 
-  name <> description
+  #(name <> description, wrapped)
 }
 
 // ----- FLAGS -----
