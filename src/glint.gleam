@@ -950,11 +950,13 @@ fn flag_help_to_string_with_description(
     |> int.subtract(longest_flag_length + config.indent_width)
     |> int.max(config.min_first_column_width)
 
-  let lines = help.meta.description |> utils.wordwrap(description_width)
+  let lines = utils.wordwrap(help.meta.description, description_width)
+
   let wrapped = case lines {
     [] | [_] -> False
     _ -> True
   }
+
   let description =
     lines
     |> string.join(
@@ -1020,9 +1022,7 @@ fn subcommand_help_to_string(
     |> int.subtract(longest_subcommand_length + config.indent_width)
     |> int.max(config.min_first_column_width)
 
-  let lines =
-    help.description
-    |> utils.wordwrap(description_width)
+  let lines = utils.wordwrap(help.description, description_width)
 
   let wrapped = case lines {
     [] | [_] -> False
