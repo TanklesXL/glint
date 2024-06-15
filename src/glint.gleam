@@ -898,29 +898,28 @@ fn flags_help_to_string(help: List(FlagHelp), config: Config) -> String {
     Some(pretty) -> heading_style(flags_heading, pretty.flags)
   }
 
-  let content: List(#(String, Bool)) =
-    [help_flag, ..help]
-    |> list.sort(fn(h1, h2) { string.compare(h1.meta.name, h2.meta.name) })
-    |> list.map(fn(h) {
+  let #(content, wrapped) =
+    list.fold([help_flag, ..help], #([], False), fn(acc, h) {
       flag_help_to_string_with_description(
         h,
         longest_flag_length + config.column_gap,
         config,
       )
-      |> pair.map_first(string.append(
-        "\n" <> string.repeat(" ", config.indent_width),
-        _,
-      ))
+      |> pair.map_first(fn(h) {
+        [
+          string.append("\n" <> string.repeat(" ", config.indent_width), h),
+          ..acc.0
+        ]
+      })
+      |> pair.map_second(fn(wrapped) { acc.1 || wrapped })
     })
 
-  let joiner = case list.any(content, pair.second) {
+  let joiner = case wrapped {
     True -> string.join(_, "\n")
     False -> string.concat
   }
 
-  let content = content |> list.map(pair.first) |> joiner
-
-  heading <> content
+  heading <> { content |> list.sort(string.compare) |> joiner }
 }
 
 /// generate the help text for a flag without a description
@@ -983,27 +982,28 @@ fn subcommands_help_to_string(help: List(Metadata), config: Config) -> String {
     Some(pretty) -> heading_style(subcommands_heading, pretty.subcommands)
   }
 
-  let content =
-    help
-    |> list.sort(fn(h1, h2) { string.compare(h1.name, h2.name) })
-    |> list.map(fn(h) {
+  let #(content, wrapped) =
+    list.fold(help, #([], False), fn(acc, h) {
       subcommand_help_to_string(
         h,
         longest_subcommand_length + config.column_gap,
         config,
       )
-      |> pair.map_first(string.append(
-        "\n" <> string.repeat(" ", config.indent_width),
-        _,
-      ))
+      |> pair.map_first(fn(h) {
+        [
+          string.append("\n" <> string.repeat(" ", config.indent_width), h),
+          ..acc.0
+        ]
+      })
+      |> pair.map_second(fn(wrapped) { acc.1 || wrapped })
     })
 
-  let joiner = case list.any(content, pair.second) {
+  let joiner = case wrapped {
     True -> string.join(_, "\n")
     False -> string.concat
   }
 
-  heading <> { content |> list.map(pair.first) |> joiner }
+  heading <> { content |> list.sort(string.compare) |> joiner }
 }
 
 /// generate the help text for a single subcommand given its name and description
