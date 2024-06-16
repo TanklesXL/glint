@@ -929,41 +929,14 @@ fn flag_help_to_string_with_description(
   longest_flag_length: Int,
   config: Config,
 ) -> #(String, Bool) {
-  help_content_to_wrapped_string(
+  utils.help_content_to_wrapped_string(
     flag_help_to_string(help),
     help.meta.description,
     longest_flag_length,
-    config,
+    config.min_first_column_width,
+    config.max_output_width,
+    config.indent_width,
   )
-}
-
-fn help_content_to_wrapped_string(
-  left: String,
-  right: String,
-  left_length: Int,
-  config: Config,
-) -> #(String, Bool) {
-  let left_formatted = string.pad_right(left, left_length, " ")
-
-  let right_width =
-    config.max_output_width
-    |> int.subtract(left_length + config.indent_width)
-    |> int.max(config.min_first_column_width)
-
-  let lines = utils.wordwrap(right, right_width)
-
-  let wrapped = case lines {
-    [] | [_] -> False
-    _ -> True
-  }
-
-  let right_formatted =
-    string.join(
-      lines,
-      "\n" <> string.repeat(" ", config.indent_width + left_length),
-    )
-
-  #(left_formatted <> right_formatted, wrapped)
 }
 
 // -- HELP - FUNCTIONS - STRINGIFIERS - SUBCOMMANDS --
@@ -1005,11 +978,13 @@ fn subcommand_help_to_string(
   longest_subcommand_length: Int,
   config: Config,
 ) -> #(String, Bool) {
-  help_content_to_wrapped_string(
+  utils.help_content_to_wrapped_string(
     help.name,
     help.description,
     longest_subcommand_length,
-    config,
+    config.min_first_column_width,
+    config.max_output_width,
+    config.indent_width,
   )
 }
 
