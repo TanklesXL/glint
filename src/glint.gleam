@@ -6,7 +6,6 @@ import gleam/int
 import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
-import gleam/pair
 import gleam/result
 import gleam/string
 import gleam_community/ansi
@@ -898,28 +897,18 @@ fn flags_help_to_string(help: List(FlagHelp), config: Config) -> String {
     Some(pretty) -> heading_style(flags_heading, pretty.flags)
   }
 
-  let #(content, wrapped) =
-    list.fold([help_flag, ..help], #([], False), fn(acc, h) {
+  let content =
+    utils.to_spaced_indented_string(
+      [help_flag, ..help],
+      config.indent_width,
       flag_help_to_string_with_description(
-        h,
+        _,
         longest_flag_length + config.column_gap,
         config,
-      )
-      |> pair.map_first(fn(h) {
-        [
-          string.append("\n" <> string.repeat(" ", config.indent_width), h),
-          ..acc.0
-        ]
-      })
-      |> pair.map_second(fn(wrapped) { acc.1 || wrapped })
-    })
+      ),
+    )
 
-  let joiner = case wrapped {
-    True -> string.join(_, "\n")
-    False -> string.concat
-  }
-
-  heading <> { content |> list.sort(string.compare) |> joiner }
+  heading <> content
 }
 
 /// generate the help text for a flag without a description
@@ -940,30 +929,41 @@ fn flag_help_to_string_with_description(
   longest_flag_length: Int,
   config: Config,
 ) -> #(String, Bool) {
-  let name =
-    help
-    |> flag_help_to_string
-    |> string.pad_right(longest_flag_length, " ")
+  help_content_to_wrapped_string(
+    flag_help_to_string(help),
+    help.meta.description,
+    longest_flag_length,
+    config,
+  )
+}
 
-  let description_width =
+fn help_content_to_wrapped_string(
+  left: String,
+  right: String,
+  left_length: Int,
+  config: Config,
+) -> #(String, Bool) {
+  let left_formatted = string.pad_right(left, left_length, " ")
+
+  let right_width =
     config.max_output_width
-    |> int.subtract(longest_flag_length + config.indent_width)
+    |> int.subtract(left_length + config.indent_width)
     |> int.max(config.min_first_column_width)
 
-  let lines = utils.wordwrap(help.meta.description, description_width)
+  let lines = utils.wordwrap(right, right_width)
 
   let wrapped = case lines {
     [] | [_] -> False
     _ -> True
   }
 
-  let description =
-    lines
-    |> string.join(
-      "\n" <> string.repeat(" ", config.indent_width + longest_flag_length),
+  let right_formatted =
+    string.join(
+      lines,
+      "\n" <> string.repeat(" ", config.indent_width + left_length),
     )
 
-  #(name <> description, wrapped)
+  #(left_formatted <> right_formatted, wrapped)
 }
 
 // -- HELP - FUNCTIONS - STRINGIFIERS - SUBCOMMANDS --
@@ -984,28 +984,18 @@ fn subcommands_help_to_string(help: List(Metadata), config: Config) -> String {
     Some(pretty) -> heading_style(subcommands_heading, pretty.subcommands)
   }
 
-  let #(content, wrapped) =
-    list.fold(help, #([], False), fn(acc, h) {
+  let content =
+    utils.to_spaced_indented_string(
+      help,
+      config.indent_width,
       subcommand_help_to_string(
-        h,
+        _,
         longest_subcommand_length + config.column_gap,
         config,
-      )
-      |> pair.map_first(fn(h) {
-        [
-          string.append("\n" <> string.repeat(" ", config.indent_width), h),
-          ..acc.0
-        ]
-      })
-      |> pair.map_second(fn(wrapped) { acc.1 || wrapped })
-    })
+      ),
+    )
 
-  let joiner = case wrapped {
-    True -> string.join(_, "\n")
-    False -> string.concat
-  }
-
-  heading <> { content |> list.sort(string.compare) |> joiner }
+  heading <> content
 }
 
 /// generate the help text for a single subcommand given its name and description
@@ -1015,28 +1005,12 @@ fn subcommand_help_to_string(
   longest_subcommand_length: Int,
   config: Config,
 ) -> #(String, Bool) {
-  let name = string.pad_right(help.name, longest_subcommand_length, " ")
-
-  let description_width =
-    config.max_output_width
-    |> int.subtract(longest_subcommand_length + config.indent_width)
-    |> int.max(config.min_first_column_width)
-
-  let lines = utils.wordwrap(help.description, description_width)
-
-  let wrapped = case lines {
-    [] | [_] -> False
-    _ -> True
-  }
-
-  let description =
-    lines
-    |> string.join(
-      "\n"
-      <> string.repeat(" ", config.indent_width + longest_subcommand_length),
-    )
-
-  #(name <> description, wrapped)
+  help_content_to_wrapped_string(
+    help.name,
+    help.description,
+    longest_subcommand_length,
+    config,
+  )
 }
 
 // ----- FLAGS -----

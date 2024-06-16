@@ -55,3 +55,28 @@ fn do_wordwrap(
     [] -> list.reverse([line, ..lines])
   }
 }
+
+pub fn to_spaced_indented_string(
+  data: List(a),
+  indent_width: Int,
+  f: fn(a) -> #(String, Bool),
+) -> String {
+  let #(content, wrapped) = {
+    use acc, h <- list.fold(data, #([], False))
+    let #(content, wrapped) = f(h)
+    #(
+      [
+        string.append("\n" <> string.repeat(" ", indent_width), content),
+        ..acc.0
+      ],
+      acc.1 || wrapped,
+    )
+  }
+
+  let joiner = case wrapped {
+    True -> "\n"
+    False -> ""
+  }
+
+  content |> list.sort(string.compare) |> string.join(joiner)
+}
