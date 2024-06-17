@@ -897,16 +897,17 @@ fn flags_help_to_string(help: List(FlagHelp), config: Config) -> String {
     Some(pretty) -> heading_style(flags_heading, pretty.flags)
   }
 
-  let content =
-    utils.to_spaced_indented_string(
-      [help_flag, ..help],
-      config.indent_width,
-      flag_help_to_string_with_description(
-        _,
-        longest_flag_length + config.column_gap,
-        config,
-      ),
+  let f = fn(help) {
+    help_content_to_wrapped_string(
+      flag_help_to_string(help),
+      help.meta.description,
+      longest_flag_length,
+      config,
     )
+  }
+
+  let content =
+    utils.to_spaced_indented_string([help_flag, ..help], config.indent_width, f)
 
   heading <> content
 }
@@ -922,21 +923,34 @@ fn flag_help_to_string(help: FlagHelp) -> String {
   }
 }
 
-/// generate the help text for a flag with a description
-///
-fn flag_help_to_string_with_description(
-  help: FlagHelp,
-  longest_flag_length: Int,
+fn help_content_to_wrapped_string(
+  left: String,
+  right: String,
+  left_length: Int,
   config: Config,
 ) -> #(String, Bool) {
-  utils.help_content_to_wrapped_string(
-    flag_help_to_string(help),
-    help.meta.description,
-    longest_flag_length,
-    config.min_first_column_width,
-    config.max_output_width,
-    config.indent_width,
-  )
+  let left_length = left_length + config.column_gap
+
+  let left_formatted = string.pad_right(left, left_length, " ")
+
+  let lines =
+    config.max_output_width
+    |> int.subtract(left_length + config.indent_width)
+    |> int.max(config.min_first_column_width)
+    |> utils.wordwrap(right, _)
+
+  let right_formatted =
+    string.join(
+      lines,
+      "\n" <> string.repeat(" ", config.indent_width + left_length),
+    )
+
+  let wrapped = case lines {
+    [] | [_] -> False
+    _ -> True
+  }
+
+  #(left_formatted <> right_formatted, wrapped)
 }
 
 // -- HELP - FUNCTIONS - STRINGIFIERS - SUBCOMMANDS --
@@ -957,35 +971,18 @@ fn subcommands_help_to_string(help: List(Metadata), config: Config) -> String {
     Some(pretty) -> heading_style(subcommands_heading, pretty.subcommands)
   }
 
-  let content =
-    utils.to_spaced_indented_string(
-      help,
-      config.indent_width,
-      subcommand_help_to_string(
-        _,
-        longest_subcommand_length + config.column_gap,
-        config,
-      ),
+  let f = fn(help: Metadata) {
+    help_content_to_wrapped_string(
+      help.name,
+      help.description,
+      longest_subcommand_length,
+      config,
     )
+  }
+
+  let content = utils.to_spaced_indented_string(help, config.indent_width, f)
 
   heading <> content
-}
-
-/// generate the help text for a single subcommand given its name and description
-///
-fn subcommand_help_to_string(
-  help: Metadata,
-  longest_subcommand_length: Int,
-  config: Config,
-) -> #(String, Bool) {
-  utils.help_content_to_wrapped_string(
-    help.name,
-    help.description,
-    longest_subcommand_length,
-    config.min_first_column_width,
-    config.max_output_width,
-    config.indent_width,
-  )
 }
 
 // ----- FLAGS -----
