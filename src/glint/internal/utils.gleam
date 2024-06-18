@@ -56,9 +56,16 @@ fn do_wordwrap(
   }
 }
 
+/// convert a list of items to an indented string with spaced contents
+///
 pub fn to_spaced_indented_string(
+  // items to be stringified and joined
   data: List(a),
+  // how many spaces to indent each line
   indent_width: Int,
+  // a function that takes an item and returns:
+  // - the string representation of the item
+  // - whether or not the string representation was wrapped
   f: fn(a) -> #(String, Bool),
 ) -> String {
   let #(content, wrapped) = {
