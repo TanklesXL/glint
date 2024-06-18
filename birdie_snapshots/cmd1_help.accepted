@@ -16,13 +16,17 @@ USAGE:
 
 FLAGS:
     --flag2=<INT>                            This is flag2
+
     --global=<STRING>                        This is a global flag
+
     --help                                   Print help information
+
     --very-very-very-long-flag=<FLOAT_LIST>  This is a very long flag with a
                                              very very very very very very long
                                              description
 
 SUBCOMMANDS:
     cmd3                  This is cmd3
+
     cmd4                  This is cmd4 which has a very very very very very very
                           very very long description

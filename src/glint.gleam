@@ -1,5 +1,4 @@
 import gleam
-import gleam/bool
 import gleam/dict
 import gleam/float
 import gleam/int
@@ -8,10 +7,9 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
-import gleam_community/ansi
 import gleam_community/colour.{type Colour}
 import glint/constraint
-import glint/internal/utils
+import glint/internal/help
 import snag.{type Snag}
 
 // --- CONFIGURATION ---
@@ -288,7 +286,7 @@ fn empty_command() -> CommandNode(a) {
 fn sanitize_path(path: List(String)) -> List(String) {
   path
   |> list.map(string.trim)
-  |> list.filter(is_not_empty)
+  |> list.filter(fn(s) { s != "" })
 }
 
 /// Create a [Command(a)](#Command) from a [Runner(a)](#Runner).
@@ -434,7 +432,7 @@ pub fn group_flag(
 @internal
 pub fn execute(glint: Glint(a), args: List(String)) -> Result(Out(a), String) {
   // create help flag to check for
-  let help_flag = prefix <> help_flag.meta.name
+  let help_flag = flag_prefix <> help.help_flag.meta.name
 
   // check if help flag is present
   let #(help, args) = case list.pop(args, fn(s) { s == help_flag }) {
@@ -443,7 +441,7 @@ pub fn execute(glint: Glint(a), args: List(String)) -> Result(Out(a), String) {
   }
 
   // split flags out from the args list
-  let #(flags, args) = list.partition(args, string.starts_with(_, prefix))
+  let #(flags, args) = list.partition(args, string.starts_with(_, flag_prefix))
 
   // search for command and execute
   do_execute(glint.cmd, glint.config, args, flags, help, [])
@@ -634,22 +632,6 @@ pub fn default_pretty_help() -> PrettyHelp {
   )
 }
 
-// --- constants for setting up sections of the help message ---
-
-const flags_heading = "FLAGS:"
-
-const subcommands_heading = "SUBCOMMANDS:"
-
-const usage_heading = "USAGE:"
-
-/// Helper for filtering out empty strings
-///
-fn is_not_empty(s: String) -> Bool {
-  s != ""
-}
-
-const help_flag = FlagHelp(Metadata("help", "Print help information"), "")
-
 // -- HELP: FUNCTIONS --
 
 /// generate the help text for a command
@@ -659,82 +641,54 @@ fn cmd_help(path: List(String), cmd: CommandNode(a), config: Config) -> String {
   path
   |> list.reverse
   |> string.join(" ")
-  |> build_app_help(config, _, cmd)
-  |> app_help_to_string
-}
-
-/// Style heading text with the provided rgb colouring
-/// this is only intended for use within glint itself.
-///
-fn heading_style(heading: String, colour: Colour) -> String {
-  heading
-  |> ansi.bold
-  |> ansi.underline
-  |> ansi.italic
-  |> ansi.hex(colour.to_rgb_hex(colour))
-  |> ansi.reset
-}
-
-// ----- HELP -----
-
-// --- HELP: TYPES ---
-//
-
-type AppHelp {
-  AppHelp(config: Config, command: CommandHelp)
-}
-
-/// Common metadata for commands and flags
-///
-type Metadata {
-  Metadata(name: String, description: String)
-}
-
-/// Help type for flag metadata
-///
-type FlagHelp {
-  FlagHelp(meta: Metadata, type_: String)
-}
-
-/// Help type for command metadata
-type CommandHelp {
-  CommandHelp(
-    // Every command has a name and description
-    meta: Metadata,
-    // A command can have >= 0 flags associated with it
-    flags: List(FlagHelp),
-    // A command can have >= 0 subcommands associated with it
-    subcommands: List(Metadata),
-    // A command can have a set number of unnamed arguments
-    unnamed_args: Option(ArgsCount),
-    // A command can specify named arguments
-    named_args: List(String),
-  )
+  |> build_command_help(cmd)
+  |> help.command_help_to_string(build_help_config(config))
 }
 
 // -- HELP - FUNCTIONS - BUILDERS --
-fn build_app_help(config: Config, command_name: String, node: CommandNode(_)) {
-  AppHelp(config: config, command: build_command_help(command_name, node))
+fn build_help_config(config: Config) -> help.Config {
+  help.Config(
+    name: config.name,
+    usage_colour: option.map(config.pretty_help, fn(p) { p.usage }),
+    flags_colour: option.map(config.pretty_help, fn(p) { p.flags }),
+    subcommands_colour: option.map(config.pretty_help, fn(p) { p.subcommands }),
+    as_module: config.as_module,
+    description: config.description,
+    indent_width: config.indent_width,
+    max_output_width: config.max_output_width,
+    min_first_column_width: config.min_first_column_width,
+    column_gap: config.column_gap,
+    flag_prefix: flag_prefix,
+    flag_delimiter: flag_delimiter,
+  )
 }
 
 /// build the help representation for a subtree of commands
 ///
-fn build_command_help(name: String, node: CommandNode(_)) -> CommandHelp {
-  let #(description, flags, unnamed_args, named_args) = case node.contents {
-    None -> #(node.description, [], None, [])
-    Some(cmd) -> #(
-      node.description,
-      build_flags_help(merge(node.group_flags, cmd.flags)),
-      cmd.unnamed_args,
-      cmd.named_args,
-    )
-  }
+fn build_command_help(name: String, node: CommandNode(_)) -> help.Command {
+  let #(description, flags, unnamed_args, named_args) =
+    node.contents
+    |> option.map(fn(cmd) {
+      #(
+        node.description,
+        build_flags_help(merge(node.group_flags, cmd.flags)),
+        cmd.unnamed_args,
+        cmd.named_args,
+      )
+    })
+    |> option.unwrap(#(node.description, [], None, []))
 
-  CommandHelp(
-    meta: Metadata(name: name, description: description),
+  help.Command(
+    meta: help.Metadata(name: name, description: description),
     flags: flags,
     subcommands: build_subcommands_help(node.subcommands),
-    unnamed_args: unnamed_args,
+    unnamed_args: {
+      use args <- option.map(unnamed_args)
+      case args {
+        EqArgs(n) -> help.EqArgs(n)
+        MinArgs(n) -> help.MinArgs(n)
+      }
+    },
     named_args: named_args,
   )
 }
@@ -755,11 +709,11 @@ fn flag_type_info(flag: FlagEntry) {
 
 /// build the help representation for a list of flags
 ///
-fn build_flags_help(flags: Flags) -> List(FlagHelp) {
+fn build_flags_help(flags: Flags) -> List(help.Flag) {
   use acc, name, flag <- fold(flags, [])
   [
-    FlagHelp(
-      meta: Metadata(name: name, description: flag.description),
+    help.Flag(
+      meta: help.Metadata(name: name, description: flag.description),
       type_: flag_type_info(flag),
     ),
     ..acc
@@ -770,252 +724,19 @@ fn build_flags_help(flags: Flags) -> List(FlagHelp) {
 ///
 fn build_subcommands_help(
   subcommands: dict.Dict(String, CommandNode(_)),
-) -> List(Metadata) {
+) -> List(help.Metadata) {
   use acc, name, node <- dict.fold(subcommands, [])
-  [Metadata(name: name, description: node.description), ..acc]
-}
-
-// -- HELP - FUNCTIONS - STRINGIFIERS --
-fn app_help_to_string(help: AppHelp) -> String {
-  let command = case help.command.meta.name {
-    "" -> ""
-    s -> "Command: " <> s
-  }
-
-  let command_description =
-    help.command.meta.description
-    |> utils.wordwrap(help.config.max_output_width)
-    |> string.join("\n")
-
-  [
-    option.unwrap(help.config.description, ""),
-    command,
-    command_description,
-    command_help_to_usage_string(help.command, help.config),
-    flags_help_to_string(help.command.flags, help.config),
-    subcommands_help_to_string(help.command.subcommands, help.config),
-  ]
-  |> list.filter(is_not_empty)
-  |> string.join("\n\n")
-}
-
-// -- HELP - FUNCTIONS - STRINGIFIERS - USAGE --
-
-/// convert a List(FlagHelp) to a list of strings for use in usage text
-///
-fn flags_help_to_usage_strings(help: List(FlagHelp)) -> List(String) {
-  help
-  |> list.map(flag_help_to_string)
-  |> list.sort(string.compare)
-}
-
-/// generate the usage help text for the flags of a command
-///
-fn flags_help_to_usage_string(help: List(FlagHelp)) -> String {
-  use <- bool.guard(help == [], "")
-  let content =
-    help
-    |> flags_help_to_usage_strings
-    |> string.join(" ")
-
-  "[ " <> content <> " ]"
-}
-
-/// convert an ArgsCount to a string for usage text
-///
-fn args_count_to_usage_string(count: ArgsCount) -> String {
-  case count {
-    EqArgs(0) -> ""
-    EqArgs(1) -> "[ 1 argument ]"
-    EqArgs(n) -> "[ " <> int.to_string(n) <> " arguments ]"
-    MinArgs(n) -> "[ " <> int.to_string(n) <> " or more arguments ]"
-  }
-}
-
-/// convert a CommandHelp to a styled usage block
-///
-fn command_help_to_usage_string(help: CommandHelp, config: Config) -> String {
-  let app_name = case config.name {
-    Some(name) if config.as_module -> "gleam run -m " <> name
-    Some(name) -> name
-    None -> "gleam run"
-  }
-
-  let flags = flags_help_to_usage_string(help.flags)
-  let subcommands = case
-    list.map(help.subcommands, fn(sc) { sc.name })
-    |> list.sort(string.compare)
-    |> string.join(" | ")
-  {
-    "" -> ""
-    subcommands -> "( " <> subcommands <> " )"
-  }
-
-  let named_args =
-    help.named_args
-    |> list.map(fn(s) { "<" <> s <> ">" })
-    |> string.join(" ")
-
-  let unnamed_args =
-    option.map(help.unnamed_args, args_count_to_usage_string)
-    |> option.unwrap("[ ARGS ]")
-
-  // The max width of the usage accounts for the constant indent
-  let max_usage_width = config.max_output_width - config.indent_width
-
-  let content =
-    [app_name, help.meta.name, subcommands, named_args, unnamed_args, flags]
-    |> list.filter(is_not_empty)
-    |> string.join(" ")
-    |> utils.wordwrap(max_usage_width)
-    |> string.join("\n" <> string.repeat(" ", config.indent_width * 2))
-
-  case config.pretty_help {
-    None -> usage_heading
-    Some(pretty) -> heading_style(usage_heading, pretty.usage)
-  }
-  <> "\n"
-  <> string.repeat(" ", config.indent_width)
-  <> content
-}
-
-// -- HELP - FUNCTIONS - STRINGIFIERS - FLAGS --
-
-/// generate the usage help string for a command
-///
-fn flags_help_to_string(help: List(FlagHelp), config: Config) -> String {
-  use <- bool.guard(help == [], "")
-
-  let longest_flag_length =
-    help
-    |> list.map(flag_help_to_string)
-    |> utils.max_string_length
-    |> int.max(config.min_first_column_width)
-
-  case config.pretty_help {
-    None -> flags_heading
-    Some(pretty) -> heading_style(flags_heading, pretty.flags)
-  }
-  <> {
-    [help_flag, ..help]
-    |> list.map(flag_help_to_string_with_description(
-      _,
-      longest_flag_length + config.column_gap,
-      config,
-    ))
-    |> list.sort(string.compare)
-    |> list.map(string.append(
-      "\n" <> string.repeat(" ", config.indent_width),
-      _,
-    ))
-    |> string.concat
-  }
-}
-
-/// generate the help text for a flag without a description
-///
-fn flag_help_to_string(help: FlagHelp) -> String {
-  prefix
-  <> help.meta.name
-  <> case help.type_ {
-    "" -> ""
-    _ -> "=<" <> help.type_ <> ">"
-  }
-}
-
-/// generate the help text for a flag with a description
-///
-fn flag_help_to_string_with_description(
-  help: FlagHelp,
-  longest_flag_length: Int,
-  config: Config,
-) -> String {
-  let name =
-    help
-    |> flag_help_to_string
-    |> string.pad_right(longest_flag_length, " ")
-
-  let description_width =
-    config.max_output_width
-    |> int.subtract(longest_flag_length + config.indent_width)
-    |> int.max(config.min_first_column_width)
-
-  let description =
-    help.meta.description
-    |> utils.wordwrap(description_width)
-    |> string.join(
-      "\n" <> string.repeat(" ", config.indent_width + longest_flag_length),
-    )
-
-  name <> description
-}
-
-// -- HELP - FUNCTIONS - STRINGIFIERS - SUBCOMMANDS --
-
-/// generate the styled help text for a list of subcommands
-///
-fn subcommands_help_to_string(help: List(Metadata), config: Config) -> String {
-  use <- bool.guard(help == [], "")
-
-  let longest_subcommand_length =
-    help
-    |> list.map(fn(h) { h.name })
-    |> utils.max_string_length
-    |> int.max(config.min_first_column_width)
-
-  case config.pretty_help {
-    None -> subcommands_heading
-    Some(pretty) -> heading_style(subcommands_heading, pretty.subcommands)
-  }
-  <> {
-    help
-    |> list.map(subcommand_help_to_string(
-      _,
-      longest_subcommand_length + config.column_gap,
-      config,
-    ))
-    |> list.sort(string.compare)
-    |> list.map(string.append(
-      "\n" <> string.repeat(" ", config.indent_width),
-      _,
-    ))
-    |> string.concat
-  }
-}
-
-/// generate the help text for a single subcommand given its name and description
-///
-fn subcommand_help_to_string(
-  help: Metadata,
-  longest_subcommand_length: Int,
-  config: Config,
-) -> String {
-  let name = string.pad_right(help.name, longest_subcommand_length, " ")
-
-  let description_width =
-    config.max_output_width
-    |> int.subtract(longest_subcommand_length + config.indent_width)
-    |> int.max(config.min_first_column_width)
-
-  let description =
-    help.description
-    |> utils.wordwrap(description_width)
-    |> string.join(
-      "\n"
-      <> string.repeat(" ", config.indent_width + longest_subcommand_length),
-    )
-
-  name <> description
+  [help.Metadata(name: name, description: node.description), ..acc]
 }
 
 // ----- FLAGS -----
 
 /// FlagEntry inputs must start with this prefix
 ///
-const prefix = "--"
+const flag_prefix = "--"
 
 /// The separation character for flag names and their values
-const delimiter = "="
+const flag_delimiter = "="
 
 /// Supported flag types.
 ///
@@ -1288,9 +1009,9 @@ fn new_flags() -> Flags {
 /// This function is only intended to be used from glint.execute_root
 ///
 fn update_flags(in flags: Flags, with flag_input: String) -> snag.Result(Flags) {
-  let flag_input = string.drop_left(flag_input, string.length(prefix))
+  let flag_input = string.drop_left(flag_input, string.length(flag_prefix))
 
-  case string.split_once(flag_input, delimiter) {
+  case string.split_once(flag_input, flag_delimiter) {
     Ok(data) -> update_flag_value(flags, data)
     Error(_) -> attempt_toggle_flag(flags, flag_input)
   }
