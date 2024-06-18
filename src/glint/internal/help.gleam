@@ -269,7 +269,9 @@ fn to_spaced_indented_string(
 
   let #(content, wrapped) =
     list.fold(data, #([], False), fn(acc, data) {
-      accumulate_formatted_content(acc, f(data), left_length, config)
+      let #(left, right) = f(data)
+      let #(line, wrapped) = format_content(left, right, left_length, config)
+      #([line, ..acc.0], wrapped || acc.1)
     })
 
   let joiner = case wrapped {
@@ -280,14 +282,12 @@ fn to_spaced_indented_string(
   content |> list.sort(string.compare) |> string.join(joiner)
 }
 
-fn accumulate_formatted_content(
-  acc: #(List(String), Bool),
-  data: #(String, String),
+fn format_content(
+  left: String,
+  right: String,
   left_length: Int,
   config: Config,
-) {
-  let #(left, right) = data
-
+) -> #(String, Bool) {
   let left_formatted = string.pad_right(left, left_length, " ")
 
   let lines =
@@ -308,14 +308,11 @@ fn accumulate_formatted_content(
   }
 
   #(
-    [
-      "\n"
-        <> string.append(
-        string.repeat(" ", config.indent_width),
-        left_formatted <> right_formatted,
-      ),
-      ..acc.0
-    ],
-    wrapped || acc.1,
+    "\n"
+      <> string.append(
+      string.repeat(" ", config.indent_width),
+      left_formatted <> right_formatted,
+    ),
+    wrapped,
   )
 }
