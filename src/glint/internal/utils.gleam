@@ -55,35 +55,3 @@ fn do_wordwrap(
     [] -> list.reverse([line, ..lines])
   }
 }
-
-/// convert a list of items to an indented string with spaced contents
-///
-pub fn to_spaced_indented_string(
-  // items to be stringified and joined
-  data: List(a),
-  // how many spaces to indent each line
-  indent_width: Int,
-  // a function that takes an item and returns:
-  // - the string representation of the item
-  // - whether or not the string representation was wrapped
-  f: fn(a) -> #(String, Bool),
-) -> String {
-  let #(content, wrapped) = {
-    use acc, h <- list.fold(data, #([], False))
-    let #(content, wrapped) = f(h)
-    #(
-      [
-        string.append("\n" <> string.repeat(" ", indent_width), content),
-        ..acc.0
-      ],
-      acc.1 || wrapped,
-    )
-  }
-
-  let joiner = case wrapped {
-    True -> "\n"
-    False -> ""
-  }
-
-  content |> list.sort(string.compare) |> string.join(joiner)
-}

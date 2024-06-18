@@ -202,19 +202,13 @@ fn flags_help_to_string(help: List(Flag), config: Config) -> String {
     Some(pretty) -> heading_style(flags_heading, pretty)
   }
 
-  let content = {
-    use help <- utils.to_spaced_indented_string(
+  let content =
+    to_spaced_indented_string(
       [help_flag, ..help],
-      config.indent_width,
-    )
-
-    help_content_to_wrapped_string(
-      flag_help_to_string(help, config),
-      help.meta.description,
+      fn(help) { #(flag_help_to_string(help, config), help.meta.description) },
       longest_flag_length,
       config,
     )
-  }
 
   heading <> content
 }
@@ -228,36 +222,6 @@ fn flag_help_to_string(help: Flag, config: Config) -> String {
     "" -> ""
     _ -> config.flag_delimiter <> "<" <> help.type_ <> ">"
   }
-}
-
-fn help_content_to_wrapped_string(
-  left: String,
-  right: String,
-  left_length: Int,
-  config: Config,
-) -> #(String, Bool) {
-  let left_length = left_length + config.column_gap
-
-  let left_formatted = string.pad_right(left, left_length, " ")
-
-  let lines =
-    config.max_output_width
-    |> int.subtract(left_length + config.indent_width)
-    |> int.max(config.min_first_column_width)
-    |> utils.wordwrap(right, _)
-
-  let right_formatted =
-    string.join(
-      lines,
-      "\n" <> string.repeat(" ", config.indent_width + left_length),
-    )
-
-  let wrapped = case lines {
-    [] | [_] -> False
-    _ -> True
-  }
-
-  #(left_formatted <> right_formatted, wrapped)
 }
 
 // -- HELP - FUNCTIONS - STRINGIFIERS - SUBCOMMANDS --
@@ -278,15 +242,80 @@ fn subcommands_help_to_string(help: List(Metadata), config: Config) -> String {
     Some(pretty) -> heading_style(subcommands_heading, pretty)
   }
 
-  let content = {
-    use help <- utils.to_spaced_indented_string(help, config.indent_width)
-    help_content_to_wrapped_string(
-      help.name,
-      help.description,
+  let content =
+    to_spaced_indented_string(
+      help,
+      fn(help) { #(help.name, help.description) },
       longest_subcommand_length,
       config,
     )
-  }
 
   heading <> content
+}
+
+/// convert a list of items to an indented string with spaced contents
+///
+fn to_spaced_indented_string(
+  // items to be stringified and joined
+  data: List(a),
+  // function to convert each item to a tuple of (left, right) strings
+  f: fn(a) -> #(String, String),
+  // longest length of the first column
+  left_length: Int,
+  // how many spaces to indent each line
+  config: Config,
+) -> String {
+  let left_length = left_length + config.column_gap
+
+  let #(content, wrapped) =
+    list.fold(data, #([], False), fn(acc, data) {
+      accumulate_formatted_content(acc, f(data), left_length, config)
+    })
+
+  let joiner = case wrapped {
+    True -> "\n"
+    False -> ""
+  }
+
+  content |> list.sort(string.compare) |> string.join(joiner)
+}
+
+fn accumulate_formatted_content(
+  acc: #(List(String), Bool),
+  data: #(String, String),
+  left_length: Int,
+  config: Config,
+) {
+  let #(left, right) = data
+
+  let left_formatted = string.pad_right(left, left_length, " ")
+
+  let lines =
+    config.max_output_width
+    |> int.subtract(left_length + config.indent_width)
+    |> int.max(config.min_first_column_width)
+    |> utils.wordwrap(right, _)
+
+  let right_formatted =
+    string.join(
+      lines,
+      "\n" <> string.repeat(" ", config.indent_width + left_length),
+    )
+
+  let wrapped = case lines {
+    [] | [_] -> False
+    _ -> True
+  }
+
+  #(
+    [
+      "\n"
+        <> string.append(
+        string.repeat(" ", config.indent_width),
+        left_formatted <> right_formatted,
+      ),
+      ..acc.0
+    ],
+    wrapped || acc.1,
+  )
 }
