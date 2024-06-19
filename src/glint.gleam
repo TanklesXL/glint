@@ -226,7 +226,7 @@ pub fn path_help(
   put description: String,
 ) -> Glint(a) {
   use node <- update_at(in: glint, at: path)
-  CommandNode(..node, description: description)
+  CommandNode(..node, description: string.trim(description))
 }
 
 /// Set help text for the application as a whole.
@@ -235,7 +235,10 @@ pub fn path_help(
 /// To set help text specifically for the root command please use [`glint.command_help`](#command_help) or [`glint.path_help([],...)`](#path_help)
 ///
 pub fn global_help(in glint: Glint(a), of description: String) -> Glint(a) {
-  Glint(..glint, config: Config(..glint.config, description: Some(description)))
+  Glint(
+    ..glint,
+    config: Config(..glint.config, description: Some(string.trim(description))),
+  )
 }
 
 /// Adds a new command to be run at the specified path.
@@ -315,7 +318,7 @@ pub fn command(do runner: Runner(a)) -> Command(a) {
 /// Attach a helptext description to a [`Command(a)`](#Command)
 ///
 pub fn command_help(of desc: String, with f: fn() -> Command(a)) -> Command(a) {
-  Command(..f(), description: desc)
+  Command(..f(), description: string.trim(desc))
 }
 
 /// Specify a specific number of unnamed args that a given command expects.
@@ -966,7 +969,7 @@ type FlagEntry {
 /// ```
 ///
 pub fn flag_help(for flag: Flag(a), of description: String) -> Flag(a) {
-  Flag(..flag, desc: description)
+  Flag(..flag, desc: string.trim(description))
 }
 
 /// Set the default value for a flag.
