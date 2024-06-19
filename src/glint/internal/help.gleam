@@ -93,7 +93,7 @@ pub fn command_help_to_string(help: Command, config: Config) -> String {
     |> string.join("\n")
 
   [
-    option.unwrap(config.description, ""),
+    config.description |> option.unwrap(""),
     command,
     command_description,
     command_help_to_usage_string(help, config),
@@ -309,10 +309,9 @@ fn format_content(
 
   #(
     "\n"
-      <> string.append(
-      string.repeat(" ", config.indent_width),
-      left_formatted <> right_formatted,
-    ),
+      <> string.repeat(" ", config.indent_width)
+      <> left_formatted
+      <> right_formatted,
     wrapped,
   )
 }

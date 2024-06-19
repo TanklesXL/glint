@@ -1,3 +1,4 @@
+import gleam/bool
 import gleam/int
 import gleam/list
 import gleam/string
@@ -16,8 +17,8 @@ pub fn max_string_length(strings: List(String)) -> Int {
 /// the input string are retained.
 ///
 pub fn wordwrap(s: String, max_width: Int) -> List(String) {
-  use line <- list.flat_map(string.split(s, "\n"))
-
+  use <- bool.guard(s == "", [])
+  use line <- list.flat_map(s |> string.split("\n"))
   line
   |> string.split(" ")
   |> do_wordwrap(max_width, "", [])
