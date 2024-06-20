@@ -57,7 +57,10 @@ fn do_wordwrap(
   }
 }
 
-pub fn space_split_lines(s: String) -> List(String) {
+/// splis a string for consecutive newline groups
+/// replaces individual newlines with a spacet
+/// groups of newlines > 1 are replaced with n-2 newlines followed by a new item
+fn space_split_lines(s: String) -> List(String) {
   {
     s
     |> string.to_graphemes
