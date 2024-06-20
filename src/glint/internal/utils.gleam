@@ -58,7 +58,13 @@ fn do_wordwrap(
 }
 
 pub fn space_split_lines(s: String) -> List(String) {
-  { s |> string.to_graphemes |> do_space_split_lines(#([], False)) }.0
+  {
+    s
+    |> string.to_graphemes
+    |> do_space_split_lines(#([], False))
+  }.0
+  // the list is built in reverse order, so reverse it
+  |> list.reverse
 }
 
 fn do_space_split_lines(
@@ -66,29 +72,40 @@ fn do_space_split_lines(
   acc: #(List(String), Bool),
 ) -> #(List(String), Bool) {
   case ls, acc.0, acc.1 {
-    [], _, _ -> #(list.reverse(acc.0), acc.1)
-
+    // base case
+    [], _, _ -> acc
+    // the start of a chain of newlines
+    // set the flag to true
+    ["\n", "\n", ..rest], _, False -> do_space_split_lines(rest, #(acc.0, True))
+    // a continued chain of new lines, but no values have been accumulated yet
+    // this shouldnt be possible but we handle it anyway
     ["\n", "\n", ..rest], [], True -> do_space_split_lines(rest, #([], True))
-
+    // a continued chain of new lines
+    // add a newline to the most recent accumulated value
     ["\n", "\n", ..rest], [s, ..accs], True ->
       do_space_split_lines(["\n", ..rest], #([s <> "\n", ..accs], True))
-
-    ["\n", "\n", ..rest], _, False -> do_space_split_lines(rest, #(acc.0, True))
-
+    // a single newline in a chain of newlines, but no values have been accumulated yet
+    // this shouldnt be possible but we handle it anyway
     ["\n", ..rest], [], True -> do_space_split_lines(rest, #([], True))
-
+    // a single newline in a chain
+    // add a newline to the most recent accumulated value
     ["\n", ..rest], [s, ..accs], True ->
       do_space_split_lines(rest, #([s <> "\n", ..accs], True))
-
+    // a single newline on its own but with no accumulated values yet
+    // skip it
     ["\n", ..rest], [], False -> do_space_split_lines(rest, #([], False))
-
+    // a single newline on its own
+    // add a space to the most recent accumulated value
     ["\n", ..rest], [s, ..accs], False ->
       do_space_split_lines(rest, #([s <> " ", ..accs], False))
-
+    // a non-newline character after a chain of newlines
+    // start a new accumulated value
     [c, ..rest], _, True -> do_space_split_lines(rest, #([c, ..acc.0], False))
-
+    // a non-newline character not after a chain of newlines, with no accumulated values
+    // add it as a new accumulated value
     [c, ..rest], [], False -> do_space_split_lines(rest, #([c], False))
-
+    // a non-newline character not after a chain of newlines
+    // add it to the end of the most recent accumulated value
     [c, ..rest], [s, ..accs], False ->
       do_space_split_lines(rest, #([s <> c, ..accs], False))
   }
