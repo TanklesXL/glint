@@ -234,6 +234,12 @@ pub fn path_help(
 /// Help text set with this function wil be printed at the top of the help text for every command.
 /// To set help text specifically for the root command please use [`glint.command_help`](#command_help) or [`glint.path_help([],...)`](#path_help)
 ///
+/// This function allows for user-supplied newlines in long text strings. Individual newline characters are instead converted to spaces.
+/// This is useful for developers to format their help text in a more readable way in the source code.
+///
+/// For formatted text to appear on a new line, use 2 newline characters.
+/// For formatted text to appear in a new paragraph, use 3 newline characters.
+///
 pub fn global_help(in glint: Glint(a), of description: String) -> Glint(a) {
   Glint(
     ..glint,
@@ -316,6 +322,12 @@ pub fn command(do runner: Runner(a)) -> Command(a) {
 }
 
 /// Attach a helptext description to a [`Command(a)`](#Command)
+///
+/// This function allows for user-supplied newlines in long text strings. Individual newline characters are instead converted to spaces.
+/// This is useful for developers to format their help text in a more readable way in the source code.
+///
+/// For formatted text to appear on a new line, use 2 newline characters.
+/// For formatted text to appear in a new paragraph, use 3 newline characters.
 ///
 pub fn command_help(of desc: String, with f: fn() -> Command(a)) -> Command(a) {
   Command(..f(), description: string.trim(desc))
@@ -960,6 +972,12 @@ type FlagEntry {
 }
 
 /// Attach a help text description to a flag.
+///
+/// This function allows for user-supplied newlines in long text strings. Individual newline characters are instead converted to spaces.
+/// This is useful for developers to format their help text in a more readable way in the source code.
+///
+/// For formatted text to appear on a new line, use 2 newline characters.
+/// For formatted text to appear in a new paragraph, use 3 newline characters.
 ///
 /// ### Example:
 ///
