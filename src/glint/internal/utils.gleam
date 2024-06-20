@@ -18,7 +18,7 @@ pub fn max_string_length(strings: List(String)) -> Int {
 ///
 pub fn wordwrap(s: String, max_width: Int) -> List(String) {
   use <- bool.guard(s == "", [])
-  use line <- list.flat_map(space_single_newlines_split_multi_newlines(s))
+  use line <- list.flat_map(space_split_lines(s))
   line
   |> string.split(" ")
   |> do_wordwrap(max_width, "", [])
@@ -57,49 +57,39 @@ fn do_wordwrap(
   }
 }
 
-pub fn space_single_newlines_split_multi_newlines(s: String) -> List(String) {
-  { s |> string.to_graphemes |> do_split_first_newlines(#([], False)) }.0
+pub fn space_split_lines(s: String) -> List(String) {
+  { s |> string.to_graphemes |> do_space_split_lines(#([], False)) }.0
 }
 
-fn do_split_first_newlines(
+fn do_space_split_lines(
   ls: List(String),
   acc: #(List(String), Bool),
 ) -> #(List(String), Bool) {
-  case ls {
-    [] -> #(list.reverse(acc.0), acc.1)
+  case ls, acc.0, acc.1 {
+    [], _, _ -> #(list.reverse(acc.0), acc.1)
 
-    ["\n", "\n", ..rest] if acc.1 -> {
-      case acc.0 {
-        [] -> do_split_first_newlines(rest, #([], True))
-        [s, ..accs] ->
-          do_split_first_newlines(["\n", ..rest], #([s <> "\n", ..accs], True))
-      }
-    }
+    ["\n", "\n", ..rest], [], True -> do_space_split_lines(rest, #([], True))
 
-    ["\n", "\n", ..rest] -> do_split_first_newlines(rest, #(acc.0, True))
+    ["\n", "\n", ..rest], [s, ..accs], True ->
+      do_space_split_lines(["\n", ..rest], #([s <> "\n", ..accs], True))
 
-    ["\n", ..rest] if acc.1 -> {
-      case acc.0 {
-        [] -> do_split_first_newlines(rest, #([], True))
-        [s, ..accs] ->
-          do_split_first_newlines(rest, #([s <> "\n", ..accs], True))
-      }
-    }
-    ["\n", ..rest] -> {
-      case acc.0 {
-        [] -> do_split_first_newlines(rest, #([], False))
-        [s, ..accs] ->
-          do_split_first_newlines(rest, #([s <> " ", ..accs], False))
-      }
-    }
+    ["\n", "\n", ..rest], _, False -> do_space_split_lines(rest, #(acc.0, True))
 
-    [c, ..rest] if acc.1 ->
-      do_split_first_newlines(rest, #([c, ..acc.0], False))
+    ["\n", ..rest], [], True -> do_space_split_lines(rest, #([], True))
 
-    [c, ..rest] ->
-      case acc.0 {
-        [] -> do_split_first_newlines(rest, #([c], False))
-        [s, ..accs] -> do_split_first_newlines(rest, #([s <> c, ..accs], False))
-      }
+    ["\n", ..rest], [s, ..accs], True ->
+      do_space_split_lines(rest, #([s <> "\n", ..accs], True))
+
+    ["\n", ..rest], [], False -> do_space_split_lines(rest, #([], False))
+
+    ["\n", ..rest], [s, ..accs], False ->
+      do_space_split_lines(rest, #([s <> " ", ..accs], False))
+
+    [c, ..rest], _, True -> do_space_split_lines(rest, #([c, ..acc.0], False))
+
+    [c, ..rest], [], False -> do_space_split_lines(rest, #([c], False))
+
+    [c, ..rest], [s, ..accs], False ->
+      do_space_split_lines(rest, #([s <> c, ..accs], False))
   }
 }
