@@ -32,6 +32,8 @@ The general workflow involves
 
 ### Help text
 
+Glint automatically generates help text for your commands and flags. Help text is both automatically formatted and wrapped. You can attach help text to your commands and flags with the functions described below.
+
 _**Note**_:Help text is generated and printed whenever a glint command is called with the built-in flag `--help`. It is also printed after the error text when any errors are encountered due to invalid flags or arguments.
 
 Help text descriptions can be attached to all of glint's components:
@@ -40,6 +42,36 @@ Help text descriptions can be attached to all of glint's components:
 - attach comand help text with `glint.command_help`
 - attach flag help text with `glint.flag_help`
 - attach help text to a non-initialized command with `glint.path_help`
+
+#### Help text formatting
+
+It is not uncommon for developers to want to format long text strings in such a way that it is easier to read in a code editor. Glint accounts for this be being sensitive to multiple line breaks in a help text string. This means that text like the following:
+
+```
+A very very very very very very very long help text
+string that is too long to fit on one line.
+
+Here is something that gets its own line.
+
+
+And here is something that gets its own paragraph.
+```
+
+Will be formatted as follows:
+
+```
+A very very very very very very very long help text
+string that is too long to fit on one line.
+Here is something that gets its own line.
+
+And here is something that gets its own paragraph.
+```
+
+#### Help text wrapping
+
+In addition to newline formatting, glint also handles wrapping helptext so that it fits within the configured terminal width. This means that if you have a long help text string it will be adjusted to fit on additional lines if it is too long to fit on one line. Spacing is also added to keep descriptions aligned with each other.
+
+There are functions that you can use to tweak glints default wrapping behaviour, but the defaults should be sufficient for the majority of use cases.
 
 ### Mini Example
 

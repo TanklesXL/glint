@@ -176,8 +176,16 @@ fn help() {
   |> glint.path_help(
     ["cmd8-very-very-very-very-long"],
     "This is cmd8 with a very very very very very very very long description.
+Same line as prev.
 
-This should show up on a new line.",
+This should show up on a new line.
+
+
+New new line
+
+
+
+New new new line.",
   )
 }
 
