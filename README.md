@@ -57,11 +57,20 @@ Here is something that gets its own line.
 And here is something that gets its own paragraph.
 ```
 
-Will be formatted as follows:
+Will be formatted as follows(without word wrapping):
 
 ```
-A very very very very very very very long help text
-string that is too long to fit on one line.
+A very very very very very very very long help text string that is too long to fit on one line.
+Here is something that gets its own line.
+
+And here is something that gets its own paragraph.
+```
+
+And when wrapped will look something like the following:
+
+```
+A very very very very very very very long help
+text string that is too long to fit on one line.
 Here is something that gets its own line.
 
 And here is something that gets its own paragraph.
