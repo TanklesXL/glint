@@ -57,42 +57,32 @@ fn do_wordwrap(
   }
 }
 
-/// splis a string for consecutive newline groups
+/// split a string for consecutive newline groups
 /// replaces individual newlines with a spacet
 /// groups of newlines > 1 are replaced with n-2 newlines followed by a new item
 fn space_split_lines(s: String) -> List(String) {
-  {
+  let chunks =
     s
+    |> string.trim
     |> string.to_graphemes
-    |> do_space_split_lines(#([], False))
-  }.0
-  // the list is built in reverse order, so reverse it
-  |> list.reverse
-}
+    |> list.chunk(fn(s) { s == "\n" })
 
-fn do_space_split_lines(
-  ls: List(String),
-  acc: #(List(String), Bool),
-) -> #(List(String), Bool) {
-  case ls, acc.0, acc.1 {
-    // base case
-    [], _, _ -> acc
-    // the start of a chain of newlines
-    ["\n", "\n", ..rest], _, False -> do_space_split_lines(rest, #(acc.0, True))
-    // a single newline in a chain, add a newline to the accumulator
-    ["\n", ..rest], [s, ..accs], True ->
-      do_space_split_lines(rest, #([s <> "\n", ..accs], True))
-    // a single newline on its own, add a space to the most recent accumulated value
-    ["\n", ..rest], [s, ..accs], False ->
-      do_space_split_lines(rest, #([s <> " ", ..accs], False))
-    // a single new line part of a chain with no accumulated values yet
-    // skip it
-    ["\n", ..rest], [], chain -> do_space_split_lines(rest, #([], chain))
-    // a non-newline character not after a chain of newlines
-    // add it to the end of the most recent accumulated value
-    [c, ..rest], [s, ..accs], False ->
-      do_space_split_lines(rest, #([s <> c, ..accs], False))
-    // a non-newline character, create a new accumulated value
-    [c, ..rest], _, _ -> do_space_split_lines(rest, #([c, ..acc.0], False))
+  let lines = {
+    use acc, chunk <- list.fold(chunks, #([], False))
+    case chunk, acc.0 {
+      // convert newline chunks into n-2 newlines
+      ["\n", "\n", ..rest], [s, ..accs] -> #(
+        [s <> string.concat(rest), ..accs],
+        True,
+      )
+      // convert single newlines into spaces
+      ["\n"], [s, ..accs] -> #([s <> " ", ..accs], False)
+      // add the next string to the end of the last IFF the last was not a multi newline
+      _, [s, ..accs] if !acc.1 -> #([s <> string.concat(chunk), ..accs], False)
+      // add the next string as the next value in the accumulated list
+      _, _ -> #([string.concat(chunk), ..acc.0], False)
+    }
   }
+
+  list.reverse(lines.0)
 }

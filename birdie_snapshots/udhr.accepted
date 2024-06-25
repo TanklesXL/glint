@@ -1,5 +1,5 @@
 ---
-version: 1.1.5
+version: 1.1.6
 title: udhr
 file: ./test/glint/internal/utils_test.gleam
 test_name: big_wordwrap_test
@@ -253,4 +253,4 @@ Article 30
 
 Nothing in this Declaration may be interpreted as implying for any State, group
 or person any right to engage in any activity or to perform any act aimed at the
-destruction of any of the rights and freedoms set forth herein. 
+destruction of any of the rights and freedoms set forth herein.
