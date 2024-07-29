@@ -1,8 +1,13 @@
 # Changelog
 
-## [Unreleased](https://github.com/TanklesXL/glint/compare/v1.0.0-rc2...HEAD)
+## [Unreleased](https://github.com/TanklesXL/glint/compare/v1.0.1...HEAD)
 
 # v1
+
+## [1.0.1](https://github.com/TanklesXL/glint/compare/v1.0.0...v1.0.1)
+
+- updated gleam stdlib to >=0.39
+- replace calls to `dict.update` with `dict.upsert`
 
 ## [1.0.0](https://github.com/TanklesXL/glint/compare/v0.18.1...v1.0.0)
 
