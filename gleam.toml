@@ -15,7 +15,7 @@ links = [
     { title = "Docs", href = "https://hexdocs.pm/glint/" },
 ]
 
-gleam = "~> 1.0"
+gleam = ">= 1.4.0 and < 2.0.0"
 
 [dependencies]
 gleam_stdlib = "~> 0.39 or ~> 1.0"
