@@ -56,18 +56,12 @@ const default_config = Config(
 
 // -- CONFIGURATION: FUNCTIONS --
 
-/// Add the provided config to the existing command tree
-///
-fn config(glint: Glint(a), config: Config) -> Glint(a) {
-  Glint(..glint, config: config)
-}
-
 /// Enable custom colours for help text headers.
 ///
 /// For a pre-made style, pass in [`glint.default_pretty_help`](#default_pretty_help)
 ///
 pub fn pretty_help(glint: Glint(a), pretty: PrettyHelp) -> Glint(a) {
-  config(glint, Config(..glint.config, pretty_help: Some(pretty)))
+  Glint(..glint, config: Config(..glint.config, pretty_help: Some(pretty)))
 }
 
 /// Give the current glint application a name.
@@ -75,7 +69,7 @@ pub fn pretty_help(glint: Glint(a), pretty: PrettyHelp) -> Glint(a) {
 /// The name specified here is used when generating help text for the current glint instance.
 ///
 pub fn with_name(glint: Glint(a), name: String) -> Glint(a) {
-  config(glint, Config(..glint.config, name: Some(name)))
+  Glint(..glint, config: Config(..glint.config, name: Some(name)))
 }
 
 /// By default, Glint exits with error status 1 when an error is encountered (eg. invalid flag or command not found)
@@ -91,7 +85,7 @@ pub fn without_exit(glint: Glint(a)) -> Glint(a) {
 /// Use in conjunction with [`glint.with_name`](#with_name) to get usage text output like `gleam run -m <name>`
 ///
 pub fn as_module(glint: Glint(a)) -> Glint(a) {
-  config(glint, Config(..glint.config, as_module: True))
+  Glint(..glint, config: Config(..glint.config, as_module: True))
 }
 
 /// Adjusts the indent width used to indent content under the usage, flags,
@@ -99,32 +93,35 @@ pub fn as_module(glint: Glint(a)) -> Glint(a) {
 ///
 /// Default: 4.
 ///
-pub fn with_indent_width(glint: Glint(a), width: Int) -> Glint(a) {
-  Glint(..glint, config: Config(..glint.config, indent_width: width))
+pub fn with_indent_width(glint: Glint(a), indent_width: Int) -> Glint(a) {
+  Glint(..glint, config: Config(..glint.config, indent_width:))
 }
 
 /// Adjusts the output width at which help text will wrap onto a new line.
 ///
 /// Default: 80.
 ///
-pub fn with_max_output_width(glint: Glint(a), width: Int) -> Glint(a) {
-  Glint(..glint, config: Config(..glint.config, max_output_width: width))
+pub fn with_max_output_width(glint: Glint(a), max_output_width: Int) -> Glint(a) {
+  Glint(..glint, config: Config(..glint.config, max_output_width:))
 }
 
 /// Adjusts the minimum width of the column containing flag and command names in the help output.
 ///
 /// Default: 20.
 ///
-pub fn with_min_first_column_width(glint: Glint(a), width: Int) -> Glint(a) {
-  Glint(..glint, config: Config(..glint.config, min_first_column_width: width))
+pub fn with_min_first_column_width(
+  glint: Glint(a),
+  min_first_column_width: Int,
+) -> Glint(a) {
+  Glint(..glint, config: Config(..glint.config, min_first_column_width:))
 }
 
 /// Adjusts the size of the gap between columns in the help output.
 ///
 /// Default: 2.
 ///
-pub fn with_column_gap(glint: Glint(a), gap: Int) -> Glint(a) {
-  Glint(..glint, config: Config(..glint.config, column_gap: gap))
+pub fn with_column_gap(glint: Glint(a), column_gap: Int) -> Glint(a) {
+  Glint(..glint, config: Config(..glint.config, column_gap:))
 }
 
 // --- CORE ---
@@ -472,42 +469,33 @@ fn do_execute(
   case args {
     // when there are no more available arguments
     // and help flag has been passed, generate help message
-    [] if help ->
-      command_path
-      |> cmd_help(cmd, config)
-      |> Help
-      |> Ok
+    [] if help -> Ok(Help(cmd_help(command_path, cmd, config)))
 
     // when there are no more available arguments
     // run the current command
-    [] -> execute_root(command_path, config, cmd, [], flags)
+    [] -> execute_root(command_path, config, cmd, [], flags) |> result.map(Out)
 
     // when there are arguments remaining
     // check if the next one is a subcommand of the current command
     [arg, ..rest] ->
       case dict.get(cmd.subcommands, arg) {
         // subcommand found, continue
-        Ok(sub_command) -> {
-          let sub_command =
-            CommandNode(
-              ..sub_command,
-              group_flags: merge(cmd.group_flags, sub_command.group_flags),
-            )
-          do_execute(sub_command, config, rest, flags, help, [
-            arg,
-            ..command_path
-          ])
-        }
+        Ok(sub_command) ->
+          CommandNode(
+            ..sub_command,
+            group_flags: merge(cmd.group_flags, sub_command.group_flags),
+          )
+          |> do_execute(config, rest, flags, help, [arg, ..command_path])
+
         // subcommand not found, but help flag has been passed
         // generate and return help message
-        _ if help ->
-          command_path
-          |> cmd_help(cmd, config)
-          |> Help
-          |> Ok
+        _ if help -> Ok(Help(cmd_help(command_path, cmd, config)))
+
         // subcommand not found, but help flag has not been passed
         // execute the current command
-        _ -> execute_root(command_path, config, cmd, args, flags)
+        _ ->
+          execute_root(command_path, config, cmd, args, flags)
+          |> result.map(Out)
       }
   }
 }
@@ -532,58 +520,61 @@ fn execute_root(
   cmd: CommandNode(a),
   args: List(String),
   flag_inputs: List(String),
-) -> Result(Out(a), String) {
-  let res =
-    {
-      use contents <- option.map(cmd.contents)
-      use new_flags <- result.try(list.try_fold(
-        over: flag_inputs,
-        from: merge(cmd.group_flags, contents.flags),
-        with: update_flags,
-      ))
+) -> Result(a, String) {
+  {
+    // check if the command can actually be executed
+    use contents <- result.try(option.to_result(
+      cmd.contents,
+      snag.new("command not found"),
+    ))
 
-      use named_args <- result.try({
-        let named = list.zip(contents.named_args, args)
-        case list.length(named) == list.length(contents.named_args) {
-          True -> Ok(dict.from_list(named))
-          False ->
-            snag.error(
-              "unmatched named arguments: "
-              <> {
-                contents.named_args
-                |> list.drop(list.length(named))
-                |> list.map(fn(s) { "'" <> s <> "'" })
-                |> string.join(", ")
-              },
-            )
-        }
-      })
+    // merge flags and parse flag inputs
+    use new_flags <- result.try(list.try_fold(
+      over: flag_inputs,
+      from: merge(cmd.group_flags, contents.flags),
+      with: update_flags,
+    ))
 
-      let args = list.drop(args, dict.size(named_args))
+    // get named arguments
+    use named_args <- result.try({
+      let named = list.zip(contents.named_args, args)
+      case list.length(named) == list.length(contents.named_args) {
+        True -> Ok(dict.from_list(named))
+        False ->
+          snag.error(
+            "unmatched named arguments: "
+            <> {
+              contents.named_args
+              |> list.drop(list.length(named))
+              |> list.map(fn(s) { "'" <> s <> "'" })
+              |> string.join(", ")
+            },
+          )
+      }
+    })
 
-      use _ <- result.map(case contents.unnamed_args {
-        Some(count) ->
-          count
-          |> args_compare(list.length(args))
-          |> snag.context("invalid number of arguments provided")
-        None -> Ok(Nil)
-      })
+    // get unnamed arguments
+    let args = list.drop(args, dict.size(named_args))
 
-      Out(contents.do(NamedArgs(named_args), args, new_flags))
-    }
-    |> option.unwrap(snag.error("command not found"))
-    |> snag.context("failed to run command")
-    |> result.map_error(fn(err) { #(err, cmd_help(path, cmd, config)) })
+    // validate unnamed argument quantity
+    use _ <- result.map(case contents.unnamed_args {
+      Some(count) ->
+        count
+        |> args_compare(list.length(args))
+        |> snag.context("invalid number of arguments provided")
+      None -> Ok(Nil)
+    })
 
-  case res {
-    Ok(out) -> Ok(out)
-    Error(#(snag, help)) ->
-      Error(
-        snag.pretty_print(snag)
-        <> "\nSee the following help text, available via the '--help' flag.\n\n"
-        <> help,
-      )
+    // execute the command
+    contents.do(NamedArgs(named_args), args, new_flags)
   }
+  |> result.map_error(fn(err) {
+    err
+    |> snag.layer("failed to run command")
+    |> snag.pretty_print
+    <> "\nSee the following help text, available via the '--help' flag.\n\n"
+    <> cmd_help(path, cmd, config)
+  })
 }
 
 /// Run a glint app and print any errors enountered, or the help text if requested.

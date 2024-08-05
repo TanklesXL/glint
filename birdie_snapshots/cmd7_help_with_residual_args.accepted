@@ -1,0 +1,14 @@
+---
+version: 1.1.8
+title: cmd7 help with residual args
+file: ./test/glint_test.gleam
+test_name: call_leaf_help_with_residual_args_test
+---
+Some awesome global help text!
+
+Command: cmd5 cmd6 cmd7
+
+This is cmd7
+
+USAGE:
+    gleam run -m test cmd5 cmd6 cmd7 [ ARGS ]

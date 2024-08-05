@@ -269,6 +269,20 @@ pub fn cmd7_help_test() {
   |> birdie.snap("cmd7 help")
 }
 
+pub fn call_help_with_residual_args_test() {
+  // help message for command a subcommand whose help was set with glint.path_help
+  glint.execute(help(), ["cmd5", "cmd6", "arg", "--help"])
+  |> assert_unwrap_help
+  |> birdie.snap("cmd6 help with residual args")
+}
+
+pub fn call_leaf_help_with_residual_args_test() {
+  // help message for command a subcommand whose help was set with glint.path_help
+  glint.execute(help(), ["cmd5", "cmd6", "cmd7", "arg", "--help"])
+  |> assert_unwrap_help
+  |> birdie.snap("cmd7 help with residual args")
+}
+
 pub fn global_and_group_flags_test() {
   let flag_f =
     glint.int_flag("f")

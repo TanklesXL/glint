@@ -2,6 +2,8 @@
 
 ## [Unreleased](https://github.com/TanklesXL/glint/compare/v1.0.1...HEAD)
 
+- use punning internally, requires gleam >= 1.4
+
 # v1
 
 ## [1.0.1](https://github.com/TanklesXL/glint/compare/v1.0.0...v1.0.1)
