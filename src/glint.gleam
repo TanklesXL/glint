@@ -1,12 +1,14 @@
 import gleam
 import gleam/dict
 import gleam/float
+import gleam/function
 import gleam/int
 import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
+import gleam_community/ansi
 import gleam_community/colour.{type Colour}
 import glint/constraint
 import glint/internal/help
@@ -20,7 +22,7 @@ import snag.{type Snag}
 ///
 type Config {
   Config(
-    pretty_help: Option(PrettyHelp),
+    pretty_help: HeaderFormat,
     name: Option(String),
     as_module: Bool,
     description: Option(String),
@@ -32,8 +34,79 @@ type Config {
   )
 }
 
+type HeaderFormat {
+  HeaderFormat(
+    usage: fn(String) -> String,
+    flags: fn(String) -> String,
+    subcommands: fn(String) -> String,
+  )
+}
+
+/// Set the style for each of the glint helptext headers (usage, flags, subcommands).
+///
+/// This function will likely be used with colouring functions from [gleam_community/ansi](https://hexdocs.pm/gleam_community_ansi/).
+///
+/// When setting your own header styles, you may want to leverage the default formatting as provided by [`glint.default_header_format`](#default_header_format)
+/// which can be composed witth other functions from [gleam_community/ansi](https://hexdocs.pm/gleam_community_ansi/)..
+///
+///
+/// Example:
+///
+/// ```gleam
+/// glint.with_header_style(
+///   glint,
+///   usage: fn(s) { s |> glint.default_header_format |> ansi.cyan },
+///   flags: fn(s) { s |> glint.default_header_format |> ansi.magenta },
+///   subcommands: fn(s) { s |> glint.default_header_format |> ansi.yellow },
+/// )
+/// ```
+pub fn with_header_style(
+  glint: Glint(a),
+  usage usage: fn(String) -> String,
+  flags flags: fn(String) -> String,
+  subcommands subcommands: fn(String) -> String,
+) -> Glint(a) {
+  Glint(
+    ..glint,
+    config: Config(
+      ..glint.config,
+      pretty_help: HeaderFormat(usage:, flags:, subcommands:),
+    ),
+  )
+}
+
+/// This function sets the glint help text header styles using glint's defaults.
+///
+/// Each help text header is formatted as bold, italic and underline (see [`glint.default_header_format`](#default_header_format)).
+///
+/// The default colours are ANSI compatible  as follows:
+/// - usage: cyan
+/// - flags: pink
+/// - subcommands: yellow
+///
+pub fn with_default_header_style(glint: Glint(a)) -> Glint(a) {
+  with_header_style(
+    glint,
+    usage: fn(s) { s |> default_header_format |> ansi.cyan },
+    flags: fn(s) { s |> default_header_format |> ansi.pink },
+    subcommands: fn(s) { s |> default_header_format |> ansi.yellow },
+  )
+}
+
+/// Style heading text as bold, underlined and italic.
+///
+/// This function can be combined with other functions from [gleam_community/ansi](https://hexdocs.pm/gleam_community_ansi/)
+///
+pub fn default_header_format(heading: String) -> String {
+  heading
+  |> ansi.bold
+  |> ansi.underline
+  |> ansi.italic
+}
+
 /// PrettyHelp defines the header colours to be used when styling help text
 ///
+@deprecated("this type will be removed in an upcoming version of glint")
 pub type PrettyHelp {
   PrettyHelp(usage: Colour, flags: Colour, subcommands: Colour)
 }
@@ -43,7 +116,11 @@ pub type PrettyHelp {
 /// default config
 ///
 const default_config = Config(
-  pretty_help: None,
+  pretty_help: HeaderFormat(
+    function.identity,
+    function.identity,
+    function.identity,
+  ),
   name: None,
   as_module: False,
   description: None,
@@ -58,10 +135,25 @@ const default_config = Config(
 
 /// Enable custom colours for help text headers.
 ///
-/// For a pre-made style, pass in [`glint.default_pretty_help`](#default_pretty_help)
+/// For a pre-made style, pass in [`glint.with_default_header_style`](#with_default_header_style) instead.
 ///
+@deprecated("use glint.with_header_style instead")
 pub fn pretty_help(glint: Glint(a), pretty: PrettyHelp) -> Glint(a) {
-  Glint(..glint, config: Config(..glint.config, pretty_help: Some(pretty)))
+  let style = fn(s: String, colour: colour.Colour) -> String {
+    s |> default_header_format |> ansi.colour(colour)
+  }
+
+  Glint(
+    ..glint,
+    config: Config(
+      ..glint.config,
+      pretty_help: HeaderFormat(
+        usage: style(_, pretty.usage),
+        flags: style(_, pretty.flags),
+        subcommands: style(_, pretty.subcommands),
+      ),
+    ),
+  )
 }
 
 /// Give the current glint application a name.
@@ -623,6 +715,7 @@ pub fn run_and_handle(
 ///
 /// buttercup (r: 252, g: 226, b: 174) colour for subcommands
 ///
+@deprecated("use glint.with_default_header_style instead")
 pub fn default_pretty_help() -> PrettyHelp {
   let assert Ok(usage_colour) = colour.from_rgb255(182, 255, 234)
   let assert Ok(flags_colour) = colour.from_rgb255(255, 175, 243)
@@ -652,9 +745,9 @@ fn cmd_help(path: List(String), cmd: CommandNode(a), config: Config) -> String {
 fn build_help_config(config: Config) -> help.Config {
   help.Config(
     name: config.name,
-    usage_colour: option.map(config.pretty_help, fn(p) { p.usage }),
-    flags_colour: option.map(config.pretty_help, fn(p) { p.flags }),
-    subcommands_colour: option.map(config.pretty_help, fn(p) { p.subcommands }),
+    usage_colour: config.pretty_help.usage,
+    flags_colour: config.pretty_help.flags,
+    subcommands_colour: config.pretty_help.subcommands,
     as_module: config.as_module,
     description: config.description,
     indent_width: config.indent_width,
