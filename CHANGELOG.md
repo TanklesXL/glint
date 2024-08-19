@@ -5,6 +5,7 @@
 - use punning internally, requires gleam >= 1.4
 - new function-based helptext header style API
 - deprecate old gleam_community/colour based pretty help API
+- update JS exit behaviour to not fail if node:process module is not found (specifically when used in a browser)
 
 # v1
 
