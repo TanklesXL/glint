@@ -150,7 +150,7 @@ pub type ArgsCount {
 
 /// The type representing a glint command.
 ///
-/// To create a new command, use the [`glint.command`](#command) funcion.
+/// To create a new command, use the [`glint.command`](#command) function.
 ///
 pub opaque type Command(a) {
   Command(
