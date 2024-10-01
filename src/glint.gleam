@@ -1355,5 +1355,5 @@ fn do_update_at(
 }
 
 @external(erlang, "erlang", "halt")
-@external(javascript, "node:process", "exit")
+@external(javascript, "./glint_ffi.mjs", "exit")
 fn exit(status: Int) -> Nil
