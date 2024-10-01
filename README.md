@@ -86,7 +86,7 @@ pub fn main() {
   // with an app name of "hello", this is used when printing help text
   |> glint.with_name("hello")
   // with pretty help enabled, using the built-in colours
-  |> glint.pretty_help(glint.default_pretty_help())
+  |> glint.with_default_header_style
   // with a root command that executes the `hello` function
   |> glint.add(at: [], do: hello())
   // execute given arguments from stdin

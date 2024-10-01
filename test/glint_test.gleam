@@ -354,6 +354,7 @@ pub fn global_and_group_flags_test() {
   |> glint.execute(["sub", "sub", "--sub_group_flag=2"])
 }
 
+@deprecated("remove when the pretty help removal happens")
 pub fn default_pretty_help_test() {
   // default_pretty_help has asserts
   // we need to call the function to make sure it does not crash

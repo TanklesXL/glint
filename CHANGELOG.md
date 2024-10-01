@@ -3,6 +3,8 @@
 ## [Unreleased](https://github.com/TanklesXL/glint/compare/v1.0.1...HEAD)
 
 - use punning internally, requires gleam >= 1.4
+- new function-based helptext header style API
+- deprecate old gleam_community/colour based pretty help API
 
 # v1
 
