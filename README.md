@@ -46,11 +46,11 @@ import argv
 fn caps_flag() -> glint.Flag(Bool) {
   // create a new boolean flag with key "caps"
   // this flag will be called as --caps=true (or simply --caps as glint handles boolean flags in a bit of a special manner) from the command line
-  glint.bool_flag("caps")
+  glint.default("caps")
   // set the flag default value to False
-  |> glint.flag_default(False)
+  |> glint.default(False)
   //  set the flag help text
-  |> glint.flag_help("Capitalize the hello message")
+  |> glint.param_help("Capitalize the hello message")
 }
 
 /// the glint command that will be executed
@@ -120,16 +120,16 @@ Glint flags are a type-safe way to provide options to your commands.
 
 - Create a new flag with a typed flag constructor function:
 
-  - `glint.int_flag`: `glint.Flag(Int)`
-  - `glint.ints_flag`: `glint.Flag(List(Int))`
-  - `glint.float_flag`: `glint.Flag(Float)`
-  - `glint.floats_flag`: `glint.Flag(List(Floats))`
-  - `glint.string_flag`: `glint.Flag(String)`
-  - `glint.strings_flag`: `glint.Flag(List(String))`
-  - `glint.bool_flag`: `glint.Flag(Bool)`
+  - `glint.int`: `glint.Flag(Int)`
+  - `glint.ints`: `glint.Flag(List(Int))`
+  - `glint.float`: `glint.Flag(Float)`
+  - `glint.floats`: `glint.Flag(List(Floats))`
+  - `glint.string`: `glint.Flag(String)`
+  - `glint.strings`: `glint.Flag(List(String))`
+  - `glint.default`: `glint.Flag(Bool)`
 
-- Set the flag description with `glint.flag_help`
-- Set the flag default value with `glint.flag_default`, **note**: it is safe to use `let assert` when fetching values for flags with default values.
+- Set the flag description with `glint.param_help`
+- Set the flag default value with `glint.default`, **note**: it is safe to use `let assert` when fetching values for flags with default values.
 - Add a flag to a command with `glint.flag`.
 - Add a `constraint.Constraint(a)` to a `glint.Flag(a)` with `glint.flag_constraint`
 
@@ -148,8 +148,8 @@ import glint
 import snag
 // ...
 // with pipes
-glint.int_flag("my_int")
-|> glint.flag_default(0)
+glint.int("my_int")
+|> glint.default(0)
 |> glint.constraint(fn(i){
   case i < 0 {
     True -> snag.error("cannot be negative")
@@ -159,8 +159,8 @@ glint.int_flag("my_int")
 // or
 // with use
 use i <- glint.flag_constraint(
-  glint.int_flag("my_int")
-  |> glint.flag_default(0)
+  glint.int("my_int")
+  |> glint.default(0)
 )
 case i < 0 {
   True -> snag.error("cannot be negative")
@@ -181,8 +181,8 @@ import glint
 import glint/constraint
 import snag
 // ...
-glint.ints_flag("my_ints")
-|> glint.flag_default([])
+glint.ints("my_ints")
+|> glint.default([])
 |> glint.flag_constraint(
   [1, 2, 3, 4]
   |> constraint.one_of
@@ -208,7 +208,7 @@ Help text descriptions can be attached to all of glint's components:
 
 - attach global help text with `glint.global_help`
 - attach comand help text with `glint.command_help`
-- attach flag help text with `glint.flag_help`
+- attach flag help text with `glint.param_help`
 - attach help text to a non-initialized command with `glint.path_help`
 
 #### Help text formatting

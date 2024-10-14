@@ -27,8 +27,7 @@ pub fn hello_test() {
     ),
   ])
 
-  let assert [head, ..rest] = tc.input
-  hello.hello(head, rest, tc.caps, tc.repeat)
+  hello.hello(tc.input, tc.caps, tc.repeat)
   |> should.equal(tc.expected)
 }
 

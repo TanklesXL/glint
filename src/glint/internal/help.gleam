@@ -20,7 +20,7 @@ fn heading_style(heading: String, colour: Colour) -> String {
 
 // --- HELP: CONSTANTS ---
 //
-pub const help_flag = Flag(Metadata("help", "Print help information"), "")
+pub const help_flag = Parameter(Metadata("help", "Print help information"), "")
 
 const flags_heading = "FLAGS:"
 
@@ -60,8 +60,8 @@ pub type Metadata {
 
 /// Help type for flag metadata
 ///
-pub type Flag {
-  Flag(meta: Metadata, type_: String)
+pub type Parameter {
+  Parameter(meta: Metadata, type_: String)
 }
 
 /// Help type for command metadata
@@ -70,13 +70,13 @@ pub type Command {
     // Every command has a name and description
     meta: Metadata,
     // A command can have >= 0 flags associated with it
-    flags: List(Flag),
+    flags: List(Parameter),
     // A command can have >= 0 subcommands associated with it
     subcommands: List(Metadata),
     // A command can have a set number of unnamed arguments
     unnamed_args: Option(ArgsCount),
     // A command can specify named arguments
-    named_args: List(String),
+    named_args: List(Parameter),
   )
 }
 
@@ -108,7 +108,10 @@ pub fn command_help_to_string(help: Command, config: Config) -> String {
 
 /// convert a List(Flag) to a list of strings for use in usage text
 ///
-fn flags_help_to_usage_strings(help: List(Flag), config: Config) -> List(String) {
+fn flags_help_to_usage_strings(
+  help: List(Parameter),
+  config: Config,
+) -> List(String) {
   help
   |> list.map(flag_help_to_string(_, config))
   |> list.sort(string.compare)
@@ -116,7 +119,7 @@ fn flags_help_to_usage_strings(help: List(Flag), config: Config) -> List(String)
 
 /// generate the usage help text for the flags of a command
 ///
-fn flags_help_to_usage_string(config: Config, help: List(Flag)) -> String {
+fn flags_help_to_usage_string(config: Config, help: List(Parameter)) -> String {
   use <- bool.guard(help == [], "")
   let content =
     help
@@ -158,7 +161,7 @@ fn command_help_to_usage_string(help: Command, config: Config) -> String {
 
   let named_args =
     help.named_args
-    |> list.map(fn(s) { "<" <> s <> ">" })
+    |> list.map(fn(s) { "<" <> s.meta.name <> ">" })
     |> string.join(" ")
 
   let unnamed_args =
@@ -188,7 +191,7 @@ fn command_help_to_usage_string(help: Command, config: Config) -> String {
 
 /// generate the usage help string for a command
 ///
-fn flags_help_to_string(help: List(Flag), config: Config) -> String {
+fn flags_help_to_string(help: List(Parameter), config: Config) -> String {
   use <- bool.guard(help == [], "")
 
   let longest_flag_length =
@@ -215,7 +218,7 @@ fn flags_help_to_string(help: List(Flag), config: Config) -> String {
 
 /// generate the help text for a flag without a description
 ///
-fn flag_help_to_string(help: Flag, config: Config) -> String {
+fn flag_help_to_string(help: Parameter, config: Config) -> String {
   config.flag_prefix
   <> help.meta.name
   <> case help.type_ {
