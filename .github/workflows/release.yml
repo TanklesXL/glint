@@ -10,7 +10,7 @@ jobs:
     uses: TanklesXL/gleam_actions/.github/workflows/release.yaml@main
     secrets: inherit
     with:
-      gleam_version: 1.4.1
+      gleam_version: 1.5.1
       erlang_version: 27
       test_erlang: true
       test_node: true
