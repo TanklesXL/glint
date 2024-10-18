@@ -345,37 +345,6 @@ pub fn unnamed_args(
   Command(..f(), unnamed_args: Some(count))
 }
 
-//   Command(..cmd, named_args: [name, ..cmd.named_args])
-// }
-
-/// Add a [`Flag(a)`](#Flag) to a [`Command(a)`](#Command)
-///
-/// The provided callback is provided a function to fetch the current flag fvalue from the command input [`Flags`](#Flags).
-///
-/// This function is most ergonomic as part of a `use` chain when building commands.
-///
-/// ### Example:
-///
-/// ```gleam
-/// ...
-/// use repeat <- glint.flag(
-///   glint.int("repeat")
-///   |> glint.default(1)
-///   |> glint.param_help("Repeat the message n-times")
-/// )
-/// ...
-/// use named, unnamed, flags <- glint.command()
-/// let repeat_value = repeat(flags)
-/// ```
-///
-// pub fn flag(
-//   of flag: Flag(a),
-//   with f: fn(fn(Flags) -> snag.Result(a)) -> Command(b),
-// ) -> Command(b) {
-//   let cmd = f(flag.getter(_, flag.name))
-//   Command(..cmd, flags: insert(cmd.flags, flag.name, build_flag(flag)))
-// }
-
 /// Add a flag for a group of commands.
 /// The provided flags will be available to all commands at or beyond the provided path
 ///
@@ -744,40 +713,6 @@ const flag_prefix = "--"
 /// The separation character for flag names and their values
 const flag_delimiter = "="
 
-// pub fn flag_constraint(
-//   builder: Flag(a),
-//   constraint: constraint.Constraint(a),
-// ) -> Flag(a) {
-//   Flag(..builder, parser: wrap_with_constraint(builder.parser, constraint))
-// }
-
-/// attach a Constraint(a) to a Parser(a,Snag)
-/// this function should not be used directly unless
-// fn wrap_with_constraint(
-//   p: Parser(a, Snag),
-//   constraint: constraint.Constraint(a),
-// ) -> Parser(a, Snag) {
-//   fn(input: String) -> snag.Result(a) { attempt(p(input), constraint) }
-// }
-
-// fn attempt(
-//   val: gleam.Result(a, e),
-//   f: fn(a) -> gleam.Result(_, e),
-// ) -> gleam.Result(a, e) {
-//   use a <- result.try(val)
-//   result.replace(f(a), a)
-// }
-
-/// FlagEntry data and descriptions.
-///
-// type FlagEntry {
-//   FlagEntry(value: Value, description: String)
-// }
-
-// pub fn flag_default(for flag: Flag(a), of default: a) -> Flag(a) {
-//   Flag(..flag, default: Some(default))
-// }
-
 /// Flags passed as input to a command.
 ///
 pub opaque type Flags {
@@ -1030,16 +965,6 @@ pub fn param_help(p: Parameter(a, b), description: String) {
   Parameter(..p, internal: parameter.Parameter(..p.internal, description:))
 }
 
-type Parameters(a) {
-  I(value: Parameter(Int, a))
-  LI(value: Parameter(List(Int), a))
-  S(value: Parameter(String, a))
-  LS(value: Parameter(List(String), a))
-  B(value: Parameter(Bool, a))
-  F(value: Parameter(Float, a))
-  LF(value: Parameter(List(Float), a))
-}
-
 pub fn int(name: String) -> Parameter(Int, _) {
   use params <- new_parameter(name, I, fn(s) {
     s
@@ -1132,6 +1057,26 @@ pub fn bool(name: String) -> Parameter(Bool, _) {
   }
 }
 
+/// Add a [`Flag(a)`](#Flag) to a [`Command(a)`](#Command)
+///
+/// The provided callback is provided a function to fetch the current flag fvalue from the command input [`Flags`](#Flags).
+///
+/// This function is most ergonomic as part of a `use` chain when building commands.
+///
+/// ### Example:
+///
+/// ```gleam
+/// ...
+/// use repeat <- glint.flag(
+///   glint.int("repeat")
+///   |> glint.default(1)
+///   |> glint.param_help("Repeat the message n-times")
+/// )
+/// ...
+/// use named, unnamed, flags <- glint.command()
+/// let repeat_value = repeat(flags)
+/// ```
+///
 pub fn flag(
   p: Parameter(a, Flag),
   f: fn(fn(Flags) -> Result(a, Nil)) -> Command(b),
@@ -1307,4 +1252,14 @@ pub opaque type Parameter(kind, usage) {
     constructor: fn(Parameter(kind, usage)) -> Parameters(usage),
     getter: fn(dict.Dict(String, Parameters(usage))) -> Result(kind, Nil),
   )
+}
+
+pub type Parameters(a) {
+  I(value: Parameter(Int, a))
+  LI(value: Parameter(List(Int), a))
+  S(value: Parameter(String, a))
+  LS(value: Parameter(List(String), a))
+  B(value: Parameter(Bool, a))
+  F(value: Parameter(Float, a))
+  LF(value: Parameter(List(Float), a))
 }
