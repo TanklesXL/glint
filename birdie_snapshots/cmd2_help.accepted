@@ -1,8 +1,8 @@
 ---
-version: 1.1.5
+version: 1.1.8
 title: cmd2 help
 file: ./test/glint_test.gleam
-test_name: help_test
+test_name: cmd2_help_test
 ---
 Some awesome global help text!
 
@@ -11,7 +11,7 @@ Command: cmd2
 This is cmd2
 
 USAGE:
-    gleam run -m test cmd2 <arg1> <arg2> [ --global=<STRING> ]
+    gleam run -m test cmd2 <arg1> <arg2> [ FLAGS ]
 
 FLAGS:
     --global=<STRING>     This is a global flag

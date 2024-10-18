@@ -52,7 +52,7 @@ pub fn hello(names: List(String), caps: Bool, repeat: Int) -> String {
 
 /// a boolean flag with default False to control message capitalization.
 ///
-pub fn caps_flag() -> glint.Parameter(Bool, glint.FlagPhantom) {
+pub fn caps_flag() -> glint.Parameter(Bool, glint.Flag) {
   glint.bool("caps")
   |> glint.default(False)
   |> glint.param_help("Capitalize the hello message")
@@ -61,7 +61,7 @@ pub fn caps_flag() -> glint.Parameter(Bool, glint.FlagPhantom) {
 /// an int flag with default 1 to control how many times to repeat the message.
 /// this flag is constrained to values greater than 0.
 ///
-pub fn repeat_flag() -> glint.Parameter(Int, glint.FlagPhantom) {
+pub fn repeat_flag() -> glint.Parameter(Int, glint.Flag) {
   use n <- glint.constraint(
     glint.int("repeat")
     |> glint.default(1)
