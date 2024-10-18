@@ -261,7 +261,7 @@ fn empty_command() -> CommandNode(a) {
   CommandNode(
     contents: None,
     subcommands: dict.new(),
-    group_flags: new_flags(),
+    group_flags: Flags(dict.new()),
     description: "",
   )
 }
@@ -290,7 +290,7 @@ fn sanitize_path(path: List(String)) -> List(String) {
 pub fn command(do runner: Runner(a)) -> Command(a) {
   Command(
     do: runner,
-    flags: new_flags(),
+    flags: Flags(dict.new()),
     description: "",
     unnamed_args: None,
     named_args: [],
@@ -345,38 +345,6 @@ pub fn unnamed_args(
   Command(..f(), unnamed_args: Some(count))
 }
 
-/// Add a list of named arguments to a [`Command(a)`](#Command). The value can be retrieved from the command's [`NamedArgs`](#NamedArgs)
-///
-/// These named arguments will be matched with the first N arguments passed to the command.
-///
-///
-/// **IMPORTANT**:
-///
-/// - Matched named arguments will **not** be present in the commmand's unnamed args list
-///
-/// - All named arguments must match for a command to succeed.
-///
-/// ### Example:
-///
-/// ```gleam
-/// ...
-/// use first_name <- glint.named_arg("first name")
-/// ...
-/// use named, unnamed, flags <- glint.command()
-/// let first = first_name(named)
-/// ```
-///
-// pub fn named_arg(
-//   named name: String,
-//   with f: fn(fn(NamedArgs) -> String) -> Command(a),
-// ) -> Command(a) {
-//   let cmd = {
-//     use named_args <- f()
-//     // we can assert here because the command runner will only execute if the named args match
-//     let assert Ok(arg) = dict.get(named_args.internal, name)
-//     arg
-//   }
-
 //   Command(..cmd, named_args: [name, ..cmd.named_args])
 // }
 
@@ -419,7 +387,7 @@ pub fn group_flag(
   use node <- update_at(in: glint, at: path)
   CommandNode(
     ..node,
-    group_flags: Flags(insert_flag(
+    group_flags: Flags(dict.insert(
       node.group_flags.internal,
       flag.internal.name,
       flag.constructor(flag),
@@ -485,7 +453,7 @@ fn do_execute(
         Ok(sub_command) ->
           CommandNode(
             ..sub_command,
-            group_flags: Flags(merge(
+            group_flags: Flags(dict.merge(
               cmd.group_flags.internal,
               sub_command.group_flags.internal,
             )),
@@ -536,7 +504,7 @@ fn execute_root(
     // merge flags and parse flag inputs
     use new_flags <- result.try(list.try_fold(
       over: flag_inputs,
-      from: merge(cmd.group_flags.internal, contents.flags.internal),
+      from: dict.merge(cmd.group_flags.internal, contents.flags.internal),
       with: update_flags,
     ))
 
@@ -689,7 +657,10 @@ fn build_command_help(name: String, node: CommandNode(_)) -> help.Command {
     |> option.map(fn(cmd) {
       #(
         node.description,
-        build_flags_help(merge(node.group_flags.internal, cmd.flags.internal)),
+        build_flags_help(dict.merge(
+          node.group_flags.internal,
+          cmd.flags.internal,
+        )),
         cmd.unnamed_args,
         cmd.named_args |> build_named_args_help,
       )
@@ -730,7 +701,7 @@ fn parameters_type_info(p: Parameters(a)) {
 fn build_flags_help(
   params: dict.Dict(String, Parameters(Flag)),
 ) -> List(help.Parameter) {
-  use acc, name, flag <- fold(params, [])
+  use acc, name, flag <- dict.fold(params, [])
   [
     help.Parameter(
       meta: help.Metadata(name: name, description: parameter_help(flag)),
@@ -811,33 +782,6 @@ const flag_delimiter = "="
 ///
 pub opaque type Flags {
   Flags(internal: dict.Dict(String, Parameters(Flag)))
-}
-
-fn insert_flag(
-  in flags: dict.Dict(String, Parameters(Flag)),
-  at name: String,
-  insert flag: Parameters(Flag),
-) -> dict.Dict(String, Parameters(Flag)) {
-  dict.insert(flags, name, flag)
-}
-
-fn merge(
-  into a: dict.Dict(String, Parameters(a)),
-  from b: dict.Dict(String, Parameters(a)),
-) -> dict.Dict(String, Parameters(a)) {
-  dict.merge(a, b)
-}
-
-fn fold(
-  params: dict.Dict(String, Parameters(a)),
-  acc: acc,
-  f: fn(acc, String, Parameters(a)) -> acc,
-) -> acc {
-  dict.fold(params, acc, f)
-}
-
-fn new_flags() -> Flags {
-  Flags(dict.new())
 }
 
 /// Updates a flag value, ensuring that the new value can satisfy the required type.
@@ -935,8 +879,7 @@ fn undefined_flag_err(key: String) -> Snag {
 
 /// Gets the value for the associated flag.
 ///
-/// This function should only ever be used when fetching flags set at the group level.
-/// For local flags please use the getter functions provided when calling [`glint.flag`](#flag).
+/// In most cases you should use the getter functions provided when calling [`glint.flag`](#flag).
 ///
 pub fn get_flag(
   from flags: Flags,
@@ -945,6 +888,10 @@ pub fn get_flag(
   flag.getter(flags.internal)
 }
 
+/// Gets the value for the associated named argument.
+///
+/// In most cases you should use the getter functions provided when calling [`glint.named_arg`](#named_arg).
+///
 pub fn get_named_arg(
   from named_args: NamedArgs,
   for named_arg: Parameter(a, NamedArg),
@@ -952,89 +899,6 @@ pub fn get_named_arg(
   let assert Ok(a) = named_arg.getter(named_args.internal)
   a
 }
-
-// /// Gets the current value for the associated int flag
-// ///
-// fn get_int_flag(from flags: Flags, for name: String) -> snag.Result(Int) {
-//   use flag <- get_value(flags, name)
-//   case flag.value {
-//     I(FlagInternals(value: Some(val), ..)) -> Ok(val)
-//     I(FlagInternals(value: None, ..)) -> flag_not_provided_error()
-//     _ -> access_type_error("int")
-//   }
-// }
-
-// /// Gets the current value for the associated ints flag
-// ///
-// fn get_ints_flag(from flags: Flags, for name: String) -> snag.Result(List(Int)) {
-//   use flag <- get_value(flags, name)
-//   case flag.value {
-//     LI(FlagInternals(value: Some(val), ..)) -> Ok(val)
-//     LI(FlagInternals(value: None, ..)) -> flag_not_provided_error()
-//     _ -> access_type_error("int list")
-//   }
-// }
-
-// /// Gets the current value for the associated bool flag
-// ///
-// fn get_bool_flag(from flags: Flags, for name: String) -> snag.Result(Bool) {
-//   use flag <- get_value(flags, name)
-//   case flag.value {
-//     B(FlagInternals(Some(val), ..)) -> Ok(val)
-//     B(FlagInternals(None, ..)) -> flag_not_provided_error()
-//     _ -> access_type_error("bool")
-//   }
-// }
-
-// /// Gets the current value for the associated string flag
-// ///
-// fn get_string_flag(from flags: Flags, for name: String) -> snag.Result(String) {
-//   use flag <- get_value(flags, name)
-//   case flag.value {
-//     S(FlagInternals(value: Some(val), ..)) -> Ok(val)
-//     S(FlagInternals(value: None, ..)) -> flag_not_provided_error()
-//     _ -> access_type_error("string")
-//   }
-// }
-
-// /// Gets the current value for the associated strings flag
-// ///
-// fn get_strings_flag(
-//   from flags: Flags,
-//   for name: String,
-// ) -> snag.Result(List(String)) {
-//   use flag <- get_value(flags, name)
-//   case flag.value {
-//     LS(FlagInternals(value: Some(val), ..)) -> Ok(val)
-//     LS(FlagInternals(value: None, ..)) -> flag_not_provided_error()
-//     _ -> access_type_error("string list")
-//   }
-// }
-
-// /// Gets the current value for the associated float flag
-// ///
-// fn get_floats(from flags: Flags, for name: String) -> snag.Result(Float) {
-//   use flag <- get_value(flags, name)
-//   case flag.value {
-//     F(FlagInternals(value: Some(val), ..)) -> Ok(val)
-//     F(FlagInternals(value: None, ..)) -> flag_not_provided_error()
-//     _ -> access_type_error("float")
-//   }
-// }
-
-// /// Gets the current value for the associated float flag
-// ///
-// fn get_floats_flag(
-//   from flags: Flags,
-//   for name: String,
-// ) -> snag.Result(List(Float)) {
-//   use flag <- get_value(flags, name)
-//   case flag.value {
-//     LF(FlagInternals(value: Some(val), ..)) -> Ok(val)
-//     LF(FlagInternals(value: None, ..)) -> flag_not_provided_error()
-//     _ -> access_type_error("float list")
-//   }
-// }
 
 // traverses a Glint(a) tree for the provided path
 // executes the provided function on the terminal node
@@ -1283,6 +1147,26 @@ pub fn flag(
   )
 }
 
+/// Add a list of named arguments to a [`Command(a)`](#Command). The value can be retrieved from the command's [`NamedArgs`](#NamedArgs)
+///
+/// These named arguments will be matched with the first N arguments passed to the command.
+///
+///
+/// **IMPORTANT**:
+///
+/// - Matched named arguments will **not** be present in the commmand's unnamed args list
+///
+/// - All named arguments must match for a command to succeed.
+///
+/// ### Example:
+///
+/// ```gleam
+/// ...
+/// use first_name <- glint.named_arg(glint.string("name"))
+/// ...
+/// use named, unnamed, flags <- glint.command()
+/// let first = first_name(named)
+/// ```
 pub fn named_arg(
   p: Parameter(a, NamedArg),
   f: fn(fn(NamedArgs) -> a) -> Command(b),
