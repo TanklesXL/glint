@@ -11,11 +11,11 @@ Command: cmd5 cmd6
 This is cmd6
 
 USAGE:
-    gleam run -m test cmd5 cmd6 ( cmd7 ) [ ARGS ] [ --global=<STRING> ]
+    gleam run -m test cmd5 cmd6 ( cmd7 ) [ ARGS ] [ FLAGS ]
+
+SUBCOMMANDS:
+    cmd7                  This is cmd7
 
 FLAGS:
     --global=<STRING>     This is a global flag
     --help                Print help information
-
-SUBCOMMANDS:
-    cmd7                  This is cmd7

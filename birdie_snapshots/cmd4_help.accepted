@@ -1,8 +1,8 @@
 ---
-version: 1.1.5
+version: 1.1.8
 title: cmd4 help
 file: ./test/glint_test.gleam
-test_name: help_test
+test_name: cmd4_help_test
 ---
 Some awesome global help text!
 
@@ -12,7 +12,7 @@ This is cmd4 which has a very very very very very very very very long
 description
 
 USAGE:
-    gleam run -m test cmd1 cmd4 [ --flag4=<FLOAT> --global=<STRING> ]
+    gleam run -m test cmd1 cmd4 [ FLAGS ]
 
 FLAGS:
     --flag4=<FLOAT>       This is flag4

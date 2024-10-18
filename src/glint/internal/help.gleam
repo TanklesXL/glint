@@ -97,8 +97,8 @@ pub fn command_help_to_string(help: Command, config: Config) -> String {
     command,
     command_description,
     command_help_to_usage_string(help, config),
-    flags_help_to_string(help.flags, config),
     subcommands_help_to_string(help.subcommands, config),
+    flags_help_to_string(help.flags, config),
   ]
   |> list.filter(fn(s) { s != "" })
   |> string.join("\n\n")
@@ -106,27 +106,11 @@ pub fn command_help_to_string(help: Command, config: Config) -> String {
 
 // -- HELP - FUNCTIONS - STRINGIFIERS - USAGE --
 
-/// convert a List(Flag) to a list of strings for use in usage text
-///
-fn flags_help_to_usage_strings(
-  help: List(Parameter),
-  config: Config,
-) -> List(String) {
-  help
-  |> list.map(flag_help_to_string(_, config))
-  |> list.sort(string.compare)
-}
-
 /// generate the usage help text for the flags of a command
 ///
-fn flags_help_to_usage_string(config: Config, help: List(Parameter)) -> String {
+fn flags_help_to_usage_string(help: List(Parameter)) -> String {
   use <- bool.guard(help == [], "")
-  let content =
-    help
-    |> flags_help_to_usage_strings(config)
-    |> string.join(" ")
-
-  "[ " <> content <> " ]"
+  "[ FLAGS ]"
 }
 
 /// convert an ArgsCount to a string for usage text
@@ -149,7 +133,7 @@ fn command_help_to_usage_string(help: Command, config: Config) -> String {
     None -> "gleam run"
   }
 
-  let flags = flags_help_to_usage_string(config, help.flags)
+  let flags = flags_help_to_usage_string(help.flags)
   let subcommands = case
     list.map(help.subcommands, fn(sc) { sc.name })
     |> list.sort(string.compare)

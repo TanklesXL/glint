@@ -1,6 +1,4 @@
-import gleam
 import gleam/dict
-import gleam/float
 import gleam/int
 import gleam/io
 import gleam/list
@@ -10,6 +8,7 @@ import gleam/string
 import gleam_community/colour.{type Colour}
 import glint/constraint
 import glint/internal/help
+import glint/internal/parameter
 import glint/internal/parse
 import snag.{type Snag}
 
@@ -159,14 +158,14 @@ pub opaque type Command(a) {
     flags: Flags,
     description: String,
     unnamed_args: Option(ArgsCount),
-    named_args: List(Parameters(NamedArgPhantom)),
+    named_args: List(Parameters(NamedArg)),
   )
 }
 
 /// A container for named arguments available to commands at runtime.
 ///
 pub opaque type NamedArgs {
-  NamedArgs(internal: dict.Dict(String, Parameters(NamedArgPhantom)))
+  NamedArgs(internal: dict.Dict(String, Parameters(NamedArg)))
 }
 
 /// Functions that execute when glint commands are run.
@@ -415,7 +414,7 @@ pub fn unnamed_args(
 pub fn group_flag(
   in glint: Glint(a),
   at path: List(String),
-  of flag: Parameter(_, FlagPhantom),
+  of flag: Parameter(_, Flag),
 ) -> Glint(a) {
   use node <- update_at(in: glint, at: path)
   CommandNode(
@@ -729,7 +728,7 @@ fn parameters_type_info(p: Parameters(a)) {
 /// build the help representation for a list of flags
 ///
 fn build_flags_help(
-  params: dict.Dict(String, Parameters(FlagPhantom)),
+  params: dict.Dict(String, Parameters(Flag)),
 ) -> List(help.Parameter) {
   use acc, name, flag <- fold(params, [])
   [
@@ -744,7 +743,7 @@ fn build_flags_help(
 /// build the help representation for a list of flags
 ///
 fn build_named_args_help(
-  params: List(Parameters(NamedArgPhantom)),
+  params: List(Parameters(NamedArg)),
 ) -> List(help.Parameter) {
   use param <- list.map(params)
   help.Parameter(
@@ -774,194 +773,6 @@ const flag_prefix = "--"
 /// The separation character for flag names and their values
 const flag_delimiter = "="
 
-/// Supported flag types.
-///
-// type Value {
-//   /// Boolean flags, to be passed in as `--flag=true` or `--flag=false`.
-//   /// Can be toggled by omitting the desired value like `--flag`.
-//   /// Toggling will negate the existing value.
-//   ///
-//   B(FlagInternals(Bool))
-
-//   /// Int flags, to be passed in as `--flag=1`
-//   ///
-//   I(FlagInternals(Int))
-
-//   /// List(Int) flags, to be passed in as `--flag=1,2,3`
-//   ///
-//   LI(FlagInternals(List(Int)))
-
-//   /// Float flags, to be passed in as `--flag=1.0`
-//   ///
-//   F(FlagInternals(Float))
-
-//   /// List(Float) flags, to be passed in as `--flag=1.0,2.0`
-//   ///
-//   LF(FlagInternals(List(Float)))
-
-//   /// String flags, to be passed in as `--flag=hello`
-//   ///
-//   S(FlagInternals(String))
-
-//   /// List(String) flags, to be passed in as `--flag=hello,world`
-//   ///
-//   LS(FlagInternals(List(String)))
-// }
-
-/// Glint's typed flags.
-///
-/// Flags can be created using any of:
-/// - [`glint.int`](#int)
-/// - [`glint.ints`](#ints)
-/// - [`glint.float`](#float)
-/// - [`glint.floats`](#floats)
-/// - [`glint.string`](#string)
-/// - [`glint.strings_flag`](#strings_flag)
-/// - [`glint.bool`](#bool)
-///
-// pub opaque type Flag(a) {
-//   Flag(
-//     name: String,
-//     desc: String,
-//     parser: Parser(a, Snag),
-//     value: fn(FlagInternals(a)) -> Value,
-//     getter: fn(Flags, String) -> snag.Result(a),
-//     default: Option(a),
-//   )
-// }
-
-/// An internal representation of flag contents
-///
-type FlagInternals(a) {
-  FlagInternals(value: Option(a), parser: Parser(a, Snag))
-}
-
-// Flag initializers
-
-type Parser(a, b) =
-  fn(String) -> gleam.Result(a, b)
-
-// /// Initialise an int flag.
-// ///
-// pub fn int(named name: String) -> Flag(Int) {
-//   use input <- new_builder(name, I, get_int_flag)
-//   input
-//   |> int.parse
-//   |> result.replace_error(cannot_parse(input, "int"))
-// }
-
-// /// Initialise an int list flag.
-// ///
-// pub fn ints(named name: String) -> Flag(List(Int)) {
-//   use input <- new_builder(name, LI, get_ints_flag)
-//   input
-//   |> string.split(",")
-//   |> list.try_map(int.parse)
-//   |> result.replace_error(cannot_parse(input, "int list"))
-// }
-
-// ///Initialise a float flag.
-// ///
-// pub fn float(named name: String) -> Flag(Float) {
-//   use input <- new_builder(name, F, get_floats)
-//   input
-//   |> float.parse
-//   |> result.replace_error(cannot_parse(input, "float"))
-// }
-
-// /// Initialise a float list flag.
-// ///
-// pub fn floats(named name: String) -> Flag(List(Float)) {
-//   use input <- new_builder(name, LF, get_floats_flag)
-//   input
-//   |> string.split(",")
-//   |> list.try_map(float.parse)
-//   |> result.replace_error(cannot_parse(input, "float list"))
-// }
-
-// /// Initialise a string flag.
-// ///
-// pub fn string(named name: String) -> Flag(String) {
-//   new_builder(name, S, get_string_flag, fn(s) { Ok(s) })
-// }
-
-// /// Intitialise a string list flag.
-// ///
-// pub fn strings_flag(named name: String) -> Flag(List(String)) {
-//   use input <- new_builder(name, LS, get_strings_flag)
-//   input
-//   |> string.split(",")
-//   |> Ok
-// }
-
-// /// Initialise a boolean flag.
-// ///
-// pub fn bool(named name: String) -> Flag(Bool) {
-//   use input <- new_builder(name, B, get_bool_flag)
-//   case string.lowercase(input) {
-//     "true" | "t" -> Ok(True)
-//     "false" | "f" -> Ok(False)
-//     _ -> Error(cannot_parse(input, "bool"))
-//   }
-// }
-
-// /// initialize custom builders using a Value constructor and a parsing function
-// ///
-// fn new_builder(
-//   name: String,
-//   valuer: fn(FlagInternals(a)) -> Value,
-//   getter: fn(Flags, String) -> snag.Result(a),
-//   p: Parser(a, Snag),
-// ) -> Flag(a) {
-//   Flag(
-//     name: name,
-//     desc: "",
-//     parser: p,
-//     value: valuer,
-//     default: None,
-//     getter: getter,
-//   )
-// }
-
-// /// convert a (Flag(a) into its corresponding FlagEntry representation
-// ///
-// fn build_flag(fb: Flag(a)) -> FlagEntry {
-//   FlagEntry(
-//     value: fb.value(FlagInternals(value: fb.default, parser: fb.parser)),
-//     description: fb.desc,
-//   )
-// }
-
-/// Attach a constraint to a flag.
-///
-/// As constraints are just functions, this works well as both part of a pipeline or with `use`.
-///
-///
-/// ### Pipe:
-///
-/// ```gleam
-/// glint.int("my_flag")
-/// |> glint.param_help("An awesome flag")
-/// |> glint.flag_constraint(fn(i) {
-///   case i < 0 {
-///     True -> snag.error("must be greater than 0")
-///     False -> Ok(i)
-///   }})
-/// ```
-///
-/// ### Use:
-///
-/// ```gleam
-/// use i <- glint.flag_constraint(
-///   glint.int("my_flag")
-///   |> glint.param_help("An awesome flag")
-/// )
-/// case i < 0 {
-///   True -> snag.error("must be greater than 0")
-///   False -> Ok(i)
-/// }
-/// ```
-///
 // pub fn flag_constraint(
 //   builder: Flag(a),
 //   constraint: constraint.Constraint(a),
@@ -992,34 +803,6 @@ type Parser(a, b) =
 //   FlagEntry(value: Value, description: String)
 // }
 
-/// Attach a help text description to a flag.
-///
-/// This function allows for user-supplied newlines in long text strings. Individual newline characters are instead converted to spaces.
-/// This is useful for developers to format their help text in a more readable way in the source code.
-///
-/// For formatted text to appear on a new line, use 2 newline characters.
-/// For formatted text to appear in a new paragraph, use 3 newline characters.
-///
-/// ### Example:
-///
-/// ```gleam
-/// glint.int("awesome_flag")
-/// |> glint.param_help("Some great text!")
-/// ```
-///
-// pub fn flag_help(for flag: Flag(a), of description: String) -> Flag(a) {
-//   Flag(..flag, desc: description)
-// }
-
-/// Set the default value for a flag.
-///
-/// ### Example:
-///
-/// ```gleam
-/// glint.int("awesome_flag")
-/// |> glint.default(1)
-/// ```
-///
 // pub fn flag_default(for flag: Flag(a), of default: a) -> Flag(a) {
 //   Flag(..flag, default: Some(default))
 // }
@@ -1027,14 +810,14 @@ type Parser(a, b) =
 /// Flags passed as input to a command.
 ///
 pub opaque type Flags {
-  Flags(internal: dict.Dict(String, Parameters(FlagPhantom)))
+  Flags(internal: dict.Dict(String, Parameters(Flag)))
 }
 
 fn insert_flag(
-  in flags: dict.Dict(String, Parameters(FlagPhantom)),
+  in flags: dict.Dict(String, Parameters(Flag)),
   at name: String,
-  insert flag: Parameters(FlagPhantom),
-) -> dict.Dict(String, Parameters(FlagPhantom)) {
+  insert flag: Parameters(Flag),
+) -> dict.Dict(String, Parameters(Flag)) {
   dict.insert(flags, name, flag)
 }
 
@@ -1062,9 +845,9 @@ fn new_flags() -> Flags {
 /// This function is only intended to be used from glint.execute_root
 ///
 fn update_flags(
-  in flags: dict.Dict(String, Parameters(FlagPhantom)),
+  in flags: dict.Dict(String, Parameters(Flag)),
   with flag_input: String,
-) -> Result(dict.Dict(String, Parameters(FlagPhantom)), Snag) {
+) -> Result(dict.Dict(String, Parameters(Flag)), Snag) {
   let flag_input = string.drop_start(flag_input, string.length(flag_prefix))
 
   case string.split_once(flag_input, flag_delimiter) {
@@ -1074,9 +857,9 @@ fn update_flags(
 }
 
 fn update_flag_value(
-  in flags: dict.Dict(String, Parameters(FlagPhantom)),
+  in flags: dict.Dict(String, Parameters(Flag)),
   with data: #(String, String),
-) -> Result(dict.Dict(String, Parameters(FlagPhantom)), Snag) {
+) -> Result(dict.Dict(String, Parameters(Flag)), Snag) {
   let #(key, input) = data
   use contents <- result.try(
     dict.get(flags, key)
@@ -1129,74 +912,22 @@ fn attempt_toggle_flag(
       |> B
       |> dict.insert(into: flags, for: key)
       |> Ok
-    _ -> Error(no_value_flag_err(key))
+    _ -> Error(cannot_toggle_flag_error(key))
   }
 }
-
-fn access_type_error(flag_type) {
-  snag.error("cannot access flag as " <> flag_type)
-}
-
-fn flag_not_provided_error() {
-  snag.error("no value provided")
-}
-
-// fn construct_value(
-//   input: String,
-//   internal: FlagInternals(a),
-//   constructor: fn(FlagInternals(a)) -> Value,
-// ) -> snag.Result(Value) {
-//   use val <- result.map(internal.parser(input))
-//   constructor(FlagInternals(..internal, value: Some(val)))
-// }
-
-/// Computes the new flag value given the input and the expected flag type
-///
-// fn compute_flag(with input: String, given current: Value) -> snag.Result(Value) {
-//   input
-//   |> case current {
-//     I(internal) -> construct_value(_, internal, I)
-//     LI(internal) -> construct_value(_, internal, LI)
-//     F(internal) -> construct_value(_, internal, F)
-//     LF(internal) -> construct_value(_, internal, LF)
-//     S(internal) -> construct_value(_, internal, S)
-//     LS(internal) -> construct_value(_, internal, LS)
-//     B(internal) -> construct_value(_, internal, B)
-//   }
-//   |> snag.context("failed to compute value for flag")
-// }
-
-// fn compute_parameter(
-//   with input: String,
-//   given current: Parameters(a),
-// ) -> snag.Result(Parameters(a)) {
-//   input
-//   |> case current {
-//     I(internal) -> construct_value(_, internal, I)
-//     LI(internal) -> construct_value(_, internal, LI)
-//     F(internal) -> construct_value(_, internal, F)
-//     LF(internal) -> construct_value(_, internal, LF)
-//     S(internal) -> construct_value(_, internal, S)
-//     LS(internal) -> construct_value(_, internal, LS)
-//     B(internal) -> construct_value(_, internal, B)
-//   }
-//   |> snag.context("failed to compute value for flag")
-// }
 
 // Error creation and manipulation functions
 fn layer_invalid_flag(err: Snag, flag: String) -> Snag {
   snag.layer(err, "invalid flag '" <> flag <> "'")
 }
 
-fn no_value_flag_err(flag_input: String) -> Snag {
-  { "flag '" <> flag_input <> "' has no assigned value" }
-  |> snag.new()
+fn cannot_toggle_flag_error(flag_input: String) -> Snag {
+  snag.new("flag '" <> flag_input <> "' cannot be toggled")
   |> layer_invalid_flag(flag_input)
 }
 
 fn undefined_flag_err(key: String) -> Snag {
-  "flag provided but not defined"
-  |> snag.new()
+  snag.new("flag provided but not defined")
   |> layer_invalid_flag(key)
 }
 
@@ -1209,14 +940,14 @@ fn undefined_flag_err(key: String) -> Snag {
 ///
 pub fn get_flag(
   from flags: Flags,
-  for flag: Parameter(a, FlagPhantom),
+  for flag: Parameter(a, Flag),
 ) -> Result(a, Nil) {
   flag.getter(flags.internal)
 }
 
 pub fn get_named_arg(
   from named_args: NamedArgs,
-  for named_arg: Parameter(a, NamedArgPhantom),
+  for named_arg: Parameter(a, NamedArg),
 ) -> a {
   let assert Ok(a) = named_arg.getter(named_args.internal)
   a
@@ -1341,9 +1072,9 @@ fn do_update_at(
 @external(javascript, "node:process", "exit")
 fn exit(status: Int) -> Nil
 
-pub type NamedArgPhantom
+pub type NamedArg
 
-pub type FlagPhantom
+pub type Flag
 
 fn new_parameter(
   name: String,
@@ -1363,20 +1094,74 @@ fn new_parameter(
   )
 }
 
+/// Attach a constraint to a parameter.
+///
+/// As constraints are just functions, this works well as both part of a pipeline or with `use`.
+///
+///
+/// ### Pipe:
+///
+/// ```gleam
+/// glint.int("my_flag")
+/// |> glint.param_help("An awesome flag")
+/// |> glint.constraint(fn(i) {
+///   case i < 0 {
+///     True -> snag.error("must be greater than 0")
+///     False -> Ok(i)
+///   }})
+/// ```
+///
+/// ### Use:
+///
+/// ```gleam
+/// use i <- glint.constraint(
+///   glint.int("my_flag")
+///   |> glint.param_help("An awesome flag")
+/// )
+/// case i < 0 {
+///   True -> snag.error("must be greater than 0")
+///   False -> Ok(i)
+/// }
+/// ```
+///
 pub fn constraint(
   p: Parameter(a, b),
-  c: fn(a) -> Result(a, Snag),
+  c: constraint.Constraint(a),
 ) -> Parameter(a, b) {
   Parameter(..p, internal: parameter.add_constraint(p.internal, c))
 }
 
-pub fn default(p: Parameter(a, FlagPhantom), d: a) {
+/// Set the default value for a parameter.
+///
+/// ### Example:
+///
+/// ```gleam
+/// glint.int("awesome_flag")
+/// |> glint.default(1)
+/// ```
+///
+pub fn default(p: Parameter(a, Flag), d: a) {
   Parameter(
     ..p,
     internal: parameter.Parameter(..p.internal, value: option.Some(d)),
   )
 }
 
+/// Attach a help text description to a flag.
+///
+/// This function allows for user-supplied newlines in long text strings. Individual newline characters are instead converted to spaces.
+/// This is useful for developers to format their help text in a more readable way in the source code.
+///
+/// For formatted text to appear on a new line, use 2 newline characters.
+/// For formatted text to appear in a new paragraph, use 3 newline characters.
+///
+/// ### Example:
+///
+/// ```gleam
+/// glint.int("awesome_flag")
+/// |> glint.param_help("Some great text!")
+/// ```
+///
 pub fn param_help(p: Parameter(a, b), description: String) {
   Parameter(..p, internal: parameter.Parameter(..p.internal, description:))
 }
@@ -1484,7 +1269,7 @@ pub fn bool(name: String) -> Parameter(Bool, _) {
 }
 
 pub fn flag(
-  p: Parameter(a, FlagPhantom),
+  p: Parameter(a, Flag),
   f: fn(fn(Flags) -> Result(a, Nil)) -> Command(b),
 ) -> Command(b) {
   let cmd = f(fn(flags) { p.getter(flags.internal) })
@@ -1499,7 +1284,7 @@ pub fn flag(
 }
 
 pub fn named_arg(
-  p: Parameter(a, NamedArgPhantom),
+  p: Parameter(a, NamedArg),
   f: fn(fn(NamedArgs) -> a) -> Command(b),
 ) -> Command(b) {
   let cmd =
@@ -1621,8 +1406,17 @@ fn parameter_help(p: Parameters(a)) -> String {
   }
 }
 
-import glint/internal/parameter
-
+/// Glint's typed parameters.
+///
+/// Flags can be created using any of:
+/// - [`glint.int`](#int)
+/// - [`glint.ints`](#ints)
+/// - [`glint.float`](#float)
+/// - [`glint.floats`](#floats)
+/// - [`glint.string`](#string)
+/// - [`glint.strings_flag`](#strings_flag)
+/// - [`glint.bool`](#bool)
+///
 pub opaque type Parameter(kind, usage) {
   Parameter(
     internal: parameter.Parameter(kind, Snag),
