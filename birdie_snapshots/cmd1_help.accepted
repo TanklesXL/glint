@@ -1,5 +1,5 @@
 ---
-version: 1.1.5
+version: 1.1.8
 title: cmd1 help
 file: ./test/glint_test.gleam
 test_name: cmd1_help_test
@@ -11,8 +11,13 @@ Command: cmd1
 This is cmd1
 
 USAGE:
-    gleam run -m test cmd1 ( cmd3 | cmd4 ) [ ARGS ] [ --flag2=<INT>
-        --global=<STRING> --very-very-very-long-flag=<FLOAT_LIST> ]
+    gleam run -m test cmd1 ( cmd3 | cmd4 ) [ ARGS ] [ FLAGS ]
+
+SUBCOMMANDS:
+    cmd3                  This is cmd3
+
+    cmd4                  This is cmd4 which has a very very very very very very
+                          very very long description
 
 FLAGS:
     --flag2=<INT>                            This is flag2
@@ -24,9 +29,3 @@ FLAGS:
     --very-very-very-long-flag=<FLOAT_LIST>  This is a very long flag with a
                                              very very very very very very long
                                              description
-
-SUBCOMMANDS:
-    cmd3                  This is cmd3
-
-    cmd4                  This is cmd4 which has a very very very very very very
-                          very very long description
