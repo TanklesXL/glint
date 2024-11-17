@@ -108,7 +108,7 @@ pub fn app() {
   // show in usage text that the current app is run as a gleam module
   |> glint.as_module
   // with pretty help enabled, using the built-in colours
-  |> glint.pretty_help(glint.default_pretty_help())
+  |> glint.with_default_header_style
   // with group level flags
   // with flag `caps` for all commands (equivalent of using glint.global_flag)
   |> glint.group_flag([], caps_flag())
