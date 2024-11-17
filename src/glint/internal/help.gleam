@@ -3,20 +3,7 @@ import gleam/int
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/string
-import gleam_community/ansi
-import gleam_community/colour.{type Colour}
 import glint/internal/utils
-
-/// Style heading text with the provided rgb colouring
-/// this is only intended for use within glint itself.
-///
-fn heading_style(heading: String, colour: Colour) -> String {
-  heading
-  |> ansi.bold
-  |> ansi.underline
-  |> ansi.italic
-  |> ansi.hex(colour.to_rgb_hex(colour))
-}
 
 // --- HELP: CONSTANTS ---
 //
@@ -38,9 +25,10 @@ pub type ArgsCount {
 pub type Config {
   Config(
     name: Option(String),
-    usage_colour: Option(Colour),
-    flags_colour: Option(Colour),
-    subcommands_colour: Option(Colour),
+    usage_colour: fn(String) -> String,
+    named_args_colour: fn(String) -> String,
+    flags_colour: fn(String) -> String,
+    subcommands_colour: fn(String) -> String,
     as_module: Bool,
     description: Option(String),
     indent_width: Int,
@@ -162,10 +150,7 @@ fn command_help_to_usage_string(help: Command, config: Config) -> String {
     |> utils.wordwrap(max_usage_width)
     |> string.join("\n" <> string.repeat(" ", config.indent_width * 2))
 
-  case config.usage_colour {
-    None -> usage_heading
-    Some(pretty) -> heading_style(usage_heading, pretty)
-  }
+  config.usage_colour(usage_heading)
   <> "\n"
   <> string.repeat(" ", config.indent_width)
   <> content
@@ -184,10 +169,7 @@ fn flags_help_to_string(help: List(Parameter), config: Config) -> String {
     |> utils.max_string_length
     |> int.max(config.min_first_column_width)
 
-  let heading = case config.flags_colour {
-    None -> flags_heading
-    Some(pretty) -> heading_style(flags_heading, pretty)
-  }
+  let heading = config.flags_colour(flags_heading)
 
   let content =
     to_spaced_indented_string(
@@ -224,10 +206,7 @@ fn subcommands_help_to_string(help: List(Metadata), config: Config) -> String {
     |> utils.max_string_length
     |> int.max(config.min_first_column_width)
 
-  let heading = case config.subcommands_colour {
-    None -> subcommands_heading
-    Some(pretty) -> heading_style(subcommands_heading, pretty)
-  }
+  let heading = config.subcommands_colour(subcommands_heading)
 
   let content =
     to_spaced_indented_string(
