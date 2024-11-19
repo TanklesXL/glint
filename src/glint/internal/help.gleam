@@ -288,7 +288,7 @@ fn format_content(
   left_length: Int,
   config: Config,
 ) -> #(String, Bool) {
-  let left_formatted = string.pad_right(left, left_length, " ")
+  let left_formatted = string.pad_end(left, left_length, " ")
 
   let lines =
     config.max_output_width

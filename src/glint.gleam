@@ -1018,7 +1018,7 @@ fn new_flags() -> Flags {
 /// This function is only intended to be used from glint.execute_root
 ///
 fn update_flags(in flags: Flags, with flag_input: String) -> snag.Result(Flags) {
-  let flag_input = string.drop_left(flag_input, string.length(flag_prefix))
+  let flag_input = string.drop_start(flag_input, string.length(flag_prefix))
 
   case string.split_once(flag_input, flag_delimiter) {
     Ok(data) -> update_flag_value(flags, data)
