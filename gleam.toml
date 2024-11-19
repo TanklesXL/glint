@@ -18,8 +18,8 @@ links = [
 gleam = ">= 1.4.0 and < 2.0.0"
 
 [dependencies]
-gleam_stdlib = "~> 0.39 or ~> 1.0"
-snag = "~> 0.3"
+gleam_stdlib = ">= 0.43.0 and < 2.0.0"
+snag = ">= 1.0.0 and < 2.0.0"
 gleam_community_ansi = "~> 1.0"
 gleam_community_colour = "~> 1.0"
 

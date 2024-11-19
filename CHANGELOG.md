@@ -2,6 +2,9 @@
 
 ## [Unreleased](https://github.com/TanklesXL/glint/compare/v1.1.0...HEAD)
 
+- updated gleam stdlib to >= 0.43
+- fixed deprecation warnings on latest stdlib version
+
 # v1
 
 ## [1.1.0](https://github.com/TanklesXL/glint/compare/v1.1.0...v1.0.1)
