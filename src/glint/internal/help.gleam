@@ -15,6 +15,8 @@ const subcommands_heading = "SUBCOMMANDS:"
 
 const usage_heading = "USAGE:"
 
+const named_args_heading = "ARGUMENTS:"
+
 // --- HELP: TYPES ---
 
 pub type ArgsCount {
@@ -86,6 +88,7 @@ pub fn command_help_to_string(help: Command, config: Config) -> String {
     command_description,
     command_help_to_usage_string(help, config),
     subcommands_help_to_string(help.subcommands, config),
+    named_args_help_to_string(help.named_args, config),
     flags_help_to_string(help.flags, config),
   ]
   |> list.filter(fn(s) { s != "" })
@@ -158,7 +161,7 @@ fn command_help_to_usage_string(help: Command, config: Config) -> String {
 
 // -- HELP - FUNCTIONS - STRINGIFIERS - FLAGS --
 
-/// generate the usage help string for a command
+/// generate the usage help string for a list of flags
 ///
 fn flags_help_to_string(help: List(Parameter), config: Config) -> String {
   use <- bool.guard(help == [], "")
@@ -217,6 +220,41 @@ fn subcommands_help_to_string(help: List(Metadata), config: Config) -> String {
     )
 
   heading <> content
+}
+
+// -- HELP - FUNCTIONS - STRINGIFIERS - NAMED ARGUMENTS --
+/// generate the usage help string for named arguments
+///
+fn named_args_help_to_string(help: List(Parameter), config: Config) -> String {
+  use <- bool.guard(help == [], "")
+
+  let longest_arg_length =
+    help
+    |> list.map(named_arg_help_to_string(_))
+    |> utils.max_string_length
+    |> int.max(config.min_first_column_width)
+
+  let heading = config.named_args_colour(named_args_heading)
+
+  let content =
+    to_spaced_indented_string(
+      help,
+      fn(help) { #(named_arg_help_to_string(help), help.meta.description) },
+      longest_arg_length,
+      config,
+    )
+
+  heading <> content
+}
+
+/// generate the help text for a flag without a description
+///
+fn named_arg_help_to_string(help: Parameter) -> String {
+  help.meta.name
+  <> case help.type_ {
+    "" -> ""
+    _ -> ": " <> help.type_
+  }
 }
 
 /// convert a list of items to an indented string with spaced contents

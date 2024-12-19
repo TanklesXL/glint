@@ -681,13 +681,13 @@ fn build_command_help(name: String, node: CommandNode(_)) -> help.Command {
 ///
 fn parameters_type_info(p: Parameters(a)) {
   case p {
-    I(_) -> "INT"
-    B(_) -> "BOOL"
-    F(_) -> "FLOAT"
-    LF(_) -> "FLOAT_LIST"
-    LI(_) -> "INT_LIST"
-    LS(_) -> "STRING_LIST"
-    S(_) -> "STRING"
+    B(_) -> "bool"
+    I(_) -> "int"
+    F(_) -> "float"
+    S(_) -> "string"
+    LF(_) -> "float list (comma-separated)"
+    LI(_) -> "int list (comma-separated)"
+    LS(_) -> "string list (comma-separated)"
   }
 }
 
