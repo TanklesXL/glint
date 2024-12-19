@@ -200,13 +200,15 @@ pub opaque type Glint(a) {
 
 /// Specify the expected number of unnamed arguments with this type and the [`glint.unnamed_args`](#unnamed_args) function
 ///
-pub type ArgsCount {
+type ArgsCount {
   /// Specifies that a command must accept a specific number of unnamed arguments
   ///
-  EqArgs(Int)
+  EqArgs(name: String, help: String, cont: Int)
   /// Specifies that a command must accept a minimum number of unnamed arguments
   ///
-  MinArgs(Int)
+  MinArgs(name: String, help: String, cont: Int)
+  /// Specifies that a command accepts no arguments
+  NoArgs
 }
 
 /// The type representing a glint command.
@@ -384,26 +386,39 @@ pub fn command_help(of desc: String, with f: fn() -> Command(a)) -> Command(a) {
   Command(..f(), description: desc)
 }
 
-/// Specify a specific number of unnamed args that a given command expects.
+/// Require at least N arguments be provided for a command to execute.
+/// This requirement does not apply to named arguments, which are matched before this constraint is applied.
 ///
-/// Use in conjunction with [`glint.ArgsCount`](#ArgsCount) to specify either a minimum or a specific number of args.
+/// The name and description given are used for help text generation.
 ///
-/// ### Example:
-///
-/// ```gleam
-/// ...
-/// // for a command that accets only 1 unnamed argument:
-/// use <- glint.unnamed_args(glint.EqArgs(1))
-/// ...
-/// named, unnamed, flags <- glint.command()
-/// let assert Ok([arg]) = unnamed
-/// ```
-///
-pub fn unnamed_args(
-  of count: ArgsCount,
+pub fn min_args(
+  named name: String,
+  of count: Int,
+  described help: String,
   with f: fn() -> Command(b),
 ) -> Command(b) {
-  Command(..f(), unnamed_args: Some(count))
+  Command(..f(), unnamed_args: Some(MinArgs(name, help, count)))
+}
+
+/// Require exactly N arguments be provided for a command to execute.
+/// This requirement does not apply to named arguments, which are matched before this constraint is applied.
+///
+/// The name and description given are used for help text generation.
+///
+pub fn eq_args(
+  named name: String,
+  of count: Int,
+  described help: String,
+  with f: fn() -> Command(b),
+) -> Command(b) {
+  Command(..f(), unnamed_args: Some(EqArgs(name, help, count)))
+}
+
+/// Require that no argumenets be provided for a command to execute.
+/// This requirement does not apply to named arguments, which are matched before this constraint is applied.
+///
+pub fn no_args(with f: fn() -> Command(b)) -> Command(b) {
+  Command(..f(), unnamed_args: Some(NoArgs))
 }
 
 /// Add a flag for a group of commands.
@@ -505,10 +520,12 @@ fn do_execute(
 
 fn args_compare(expected: ArgsCount, actual: Int) -> snag.Result(Nil) {
   use err <- result.map_error(case expected {
-    EqArgs(expected) if actual == expected -> Ok(Nil)
-    MinArgs(expected) if actual >= expected -> Ok(Nil)
-    EqArgs(expected) -> Error(int.to_string(expected))
-    MinArgs(expected) -> Error("at least " <> int.to_string(expected))
+    NoArgs if actual == 0 -> Ok(Nil)
+    NoArgs -> Error("no")
+    EqArgs(_, _, expected) if actual == expected -> Ok(Nil)
+    MinArgs(_, _, expected) if actual >= expected -> Ok(Nil)
+    EqArgs(_, _, expected) -> Error(int.to_string(expected))
+    MinArgs(_, _, expected) -> Error("at least " <> int.to_string(expected))
   })
   snag.new(
     "expected: " <> err <> " argument(s), provided: " <> int.to_string(actual),
@@ -685,8 +702,9 @@ fn build_command_help(name: String, node: CommandNode(_)) -> help.Command {
     unnamed_args: {
       use args <- option.map(unnamed_args)
       case args {
-        EqArgs(n) -> help.EqArgs(n)
-        MinArgs(n) -> help.MinArgs(n)
+        EqArgs(name, help, n) -> help.EqArgs(name, help, n)
+        MinArgs(name, help, n) -> help.MinArgs(name, help, n)
+        NoArgs -> help.NoArgs
       }
     },
     named_args: named_args,
@@ -697,13 +715,13 @@ fn build_command_help(name: String, node: CommandNode(_)) -> help.Command {
 ///
 fn parameters_type_info(p: Parameters(a)) {
   case p {
-    I(_) -> "INT"
-    B(_) -> "BOOL"
-    F(_) -> "FLOAT"
-    LF(_) -> "FLOAT_LIST"
-    LI(_) -> "INT_LIST"
-    LS(_) -> "STRING_LIST"
-    S(_) -> "STRING"
+    B(_) -> "bool"
+    I(_) -> "int"
+    F(_) -> "float"
+    S(_) -> "string"
+    LF(_) -> "float list (comma-separated)"
+    LI(_) -> "int list (comma-separated)"
+    LS(_) -> "string list (comma-separated)"
   }
 }
 
@@ -1134,16 +1152,14 @@ pub fn flag(
   )
 }
 
-/// Add a list of named arguments to a [`Command(a)`](#Command). The value can be retrieved from the command's [`NamedArgs`](#NamedArgs)
-///
-/// These named arguments will be matched with the first N arguments passed to the command.
-///
+/// Add a required argument to a [`Command(a)`](#Command).
+/// The value can be retrieved from the command's [`NamedArgs`](#NamedArgs)
 ///
 /// **IMPORTANT**:
 ///
-/// - Matched named arguments will **not** be present in the commmand's unnamed args list
+/// - Matched required arguments will **not** be present in the commmand's extra args list
 ///
-/// - All named arguments must match for a command to succeed.
+/// - All required arguments must match for a command to succeed.
 ///
 /// ### Example:
 ///
@@ -1151,7 +1167,7 @@ pub fn flag(
 /// ...
 /// use first_name <- glint.named_arg(glint.string("name"))
 /// ...
-/// use named, unnamed, flags <- glint.command()
+/// use required, extra, flags <- glint.command()
 /// let first = first_name(named)
 /// ```
 pub fn named_arg(
@@ -1243,11 +1259,12 @@ fn parse_parameter(
     LS(param) -> {
       use x <- result.map(param.internal.parser(input))
       #(
-        Parameter(
-          ..param,
-          internal: parameter.Parameter(..param.internal, value: Some(x)),
-        )
-          |> param.constructor,
+        param.constructor(
+          Parameter(
+            ..param,
+            internal: parameter.Parameter(..param.internal, value: Some(x)),
+          ),
+        ),
         param.internal.name,
       )
     }

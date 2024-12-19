@@ -2,6 +2,7 @@ import gleam/bool
 import gleam/int
 import gleam/list
 import gleam/option.{type Option, None, Some}
+import gleam/pair
 import gleam/string
 import glint/internal/utils
 
@@ -15,11 +16,14 @@ const subcommands_heading = "SUBCOMMANDS:"
 
 const usage_heading = "USAGE:"
 
+const named_args_heading = "ARGUMENTS:"
+
 // --- HELP: TYPES ---
 
 pub type ArgsCount {
-  MinArgs(Int)
-  EqArgs(Int)
+  MinArgs(name: String, help: String, cont: Int)
+  EqArgs(name: String, help: String, cont: Int)
+  NoArgs
 }
 
 pub type Config {
@@ -70,11 +74,6 @@ pub type Command {
 
 // -- HELP - FUNCTIONS - STRINGIFIERS --
 pub fn command_help_to_string(help: Command, config: Config) -> String {
-  let command = case help.meta.name {
-    "" -> ""
-    s -> "Command: " <> s
-  }
-
   let command_description =
     help.meta.description
     |> utils.wordwrap(config.max_output_width)
@@ -82,10 +81,10 @@ pub fn command_help_to_string(help: Command, config: Config) -> String {
 
   [
     config.description |> option.unwrap(""),
-    command,
     command_description,
     command_help_to_usage_string(help, config),
     subcommands_help_to_string(help.subcommands, config),
+    args_help_to_string(help.named_args, help.unnamed_args, config),
     flags_help_to_string(help.flags, config),
   ]
   |> list.filter(fn(s) { s != "" })
@@ -97,18 +96,18 @@ pub fn command_help_to_string(help: Command, config: Config) -> String {
 /// generate the usage help text for the flags of a command
 ///
 fn flags_help_to_usage_string(help: List(Parameter)) -> String {
-  use <- bool.guard(help == [], "")
-  "[ FLAGS ]"
+  case help {
+    [] -> ""
+    _ -> "[ flags ]"
+  }
 }
 
 /// convert an ArgsCount to a string for usage text
 ///
 fn args_count_to_usage_string(count: ArgsCount) -> String {
   case count {
-    EqArgs(0) -> ""
-    EqArgs(1) -> "[ 1 argument ]"
-    EqArgs(n) -> "[ " <> int.to_string(n) <> " arguments ]"
-    MinArgs(n) -> "[ " <> int.to_string(n) <> " or more arguments ]"
+    NoArgs -> ""
+    EqArgs(name, _, _) | MinArgs(name, _, _) -> "[ " <> name <> ".. ]"
   }
 }
 
@@ -158,7 +157,7 @@ fn command_help_to_usage_string(help: Command, config: Config) -> String {
 
 // -- HELP - FUNCTIONS - STRINGIFIERS - FLAGS --
 
-/// generate the usage help string for a command
+/// generate the usage help string for a list of flags
 ///
 fn flags_help_to_string(help: List(Parameter), config: Config) -> String {
   use <- bool.guard(help == [], "")
@@ -217,6 +216,63 @@ fn subcommands_help_to_string(help: List(Metadata), config: Config) -> String {
     )
 
   heading <> content
+}
+
+// -- HELP - FUNCTIONS - STRINGIFIERS - NAMED ARGUMENTS --
+/// generate the usage help string for named arguments
+///
+fn args_help_to_string(
+  named: List(Parameter),
+  unnamed: Option(ArgsCount),
+  config: Config,
+) -> String {
+  use <- bool.guard(
+    named == [] && { unnamed == None || unnamed == Some(NoArgs) },
+    "",
+  )
+
+  let unnamed = case unnamed {
+    Some(EqArgs(name, desc, 1)) -> [#(name <> ".. 1 arg", desc)]
+    Some(EqArgs(name, desc, count)) -> [
+      #(name <> ".. " <> int.to_string(count) <> " args", desc),
+    ]
+    Some(MinArgs(name, desc, 1)) -> [#(name <> ".. >= 1 arg", desc)]
+    Some(MinArgs(name, desc, count)) -> [
+      #(name <> ".. >= " <> int.to_string(count) <> " args", desc),
+    ]
+    None | Some(NoArgs) -> []
+  }
+
+  let helps =
+    list.flatten([
+      list.map(named, fn(help) {
+        #(named_arg_help_to_string(help), help.meta.description)
+      }),
+      unnamed,
+    ])
+
+  let longest_arg_length =
+    helps
+    |> list.map(pair.first)
+    |> utils.max_string_length
+    |> int.max(config.min_first_column_width)
+
+  let heading = config.named_args_colour(named_args_heading)
+
+  let content =
+    to_spaced_indented_string(helps, fn(x) { x }, longest_arg_length, config)
+
+  heading <> content
+}
+
+/// generate the help text for a flag without a description
+///
+fn named_arg_help_to_string(help: Parameter) -> String {
+  help.meta.name
+  <> case help.type_ {
+    "" -> ""
+    _ -> ": " <> help.type_
+  }
 }
 
 /// convert a list of items to an indented string with spaced contents

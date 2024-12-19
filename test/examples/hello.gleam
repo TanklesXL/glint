@@ -42,7 +42,16 @@ pub fn capitalize(msg, caps) -> String {
 
 /// hello is a function that says hello
 pub fn hello(names: List(String), caps: Bool, repeat: Int) -> String {
-  { "Hello, " <> join_names(names) <> "!" }
+  greet("Hello", names, caps, repeat)
+}
+
+pub fn greet(
+  greeting: String,
+  names: List(String),
+  caps: Bool,
+  repeat: Int,
+) -> String {
+  { greeting <> ", " <> join_names(names) <> "!" }
   |> capitalize(caps)
   |> list.repeat(repeat)
   |> string.join("\n")
@@ -77,19 +86,34 @@ pub fn repeat_flag() -> glint.Parameter(Int, glint.Flag) {
 ///
 pub fn hello_cmd() -> glint.Command(String) {
   use <- glint.command_help("Prints Hello, <names>!")
-  use <- glint.unnamed_args(glint.MinArgs(1))
+  use <- glint.min_args("names", 1, "Names of people to greet.")
   use _, args, flags <- glint.command()
   let assert Ok(caps) = glint.get_flag(flags, caps_flag())
   let assert Ok(repeat) = glint.get_flag(flags, repeat_flag())
   hello(args, caps, repeat)
 }
 
+pub fn hello_custom_cmd() -> glint.Command(String) {
+  use <- glint.command_help("Prints a greeting for the names provided!")
+  use greeting <- glint.named_arg(
+    glint.string("greeting") |> glint.param_help("The greeting to give."),
+  )
+  use <- glint.min_args("names", 1, "Names of people to greet.")
+  use named_args, args, flags <- glint.command()
+  let assert Ok(caps) = glint.get_flag(flags, caps_flag())
+  let assert Ok(repeat) = glint.get_flag(flags, repeat_flag())
+  greet(greeting(named_args), args, caps, repeat)
+}
+
 /// the command function that will be executed as the "single" command
 ///
 pub fn hello_single_cmd() -> glint.Command(String) {
   use <- glint.command_help("Prints Hello, <name>!")
-  use <- glint.unnamed_args(glint.EqArgs(0))
-  use name <- glint.named_arg(glint.string("name"))
+  use <- glint.no_args()
+  use name <- glint.named_arg(
+    glint.string("name")
+    |> glint.param_help("The name of the person we're saying hello to."),
+  )
   use named_args, _, flags <- glint.command()
   let assert Ok(caps) = glint.get_flag(flags, caps_flag())
   let assert Ok(repeat) = glint.get_flag(flags, repeat_flag())
@@ -124,6 +148,11 @@ pub fn app() {
     // add the hello single command
     at: ["single"],
     do: hello_single_cmd(),
+  )
+  |> glint.add(
+    // add the hello custom command
+    at: ["custom"],
+    do: hello_custom_cmd(),
   )
 }
 

@@ -149,7 +149,7 @@ fn help() {
   |> glint.add(at: ["cmd1", "cmd3"], do: {
     use <- glint.command_help("This is cmd3")
     use _flag3 <- glint.flag(flag_3)
-    use <- glint.unnamed_args(glint.MinArgs(2))
+    use <- glint.min_args("args", 2, "")
     use _woo <- glint.named_arg(glint.bool("woo"))
     glint.command(nil)
   })
@@ -158,12 +158,12 @@ fn help() {
       "This is cmd4 which has a very very very very very very very very long description",
     )
     use _flag4 <- glint.flag(flag_4)
-    use <- glint.unnamed_args(glint.EqArgs(0))
+    use <- glint.no_args()
     glint.command(nil)
   })
   |> glint.add(at: ["cmd2"], do: {
     use <- glint.command_help("This is cmd2")
-    use <- glint.unnamed_args(glint.EqArgs(0))
+    use <- glint.no_args()
     use _arg1 <- glint.named_arg(glint.float("arg1"))
     use _arg2 <- glint.named_arg(glint.strings("arg2"))
     glint.command(nil)
