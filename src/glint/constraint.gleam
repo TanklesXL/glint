@@ -14,7 +14,7 @@ pub type Constraint(a) =
 /// import glint
 /// import glint/constraint
 /// ...
-/// glint.int_flag("my_flag")
+/// glint.int("my_flag")
 /// |> glint.constraint(constraint.one_of([1, 2, 3, 4]))
 /// ```
 ///
@@ -45,7 +45,7 @@ pub fn one_of(allowed: List(a)) -> Constraint(a) {
 /// import glint
 /// import glint/constraint
 /// ...
-/// glint.int_flag("my_flag")
+/// glint.int("my_flag")
 /// |> glint.constraint(constraint.none_of([1, 2, 3, 4]))
 /// ```
 ///
@@ -82,7 +82,7 @@ pub fn none_of(disallowed: List(a)) -> Constraint(a) {
 /// import glint
 /// import glint/constraint
 /// ...
-/// use li <- glint.flag_constraint(glint.int_flag("my_flag"))
+/// use li <- glint.flag_constraint(glint.int("my_flag"))
 /// use i <- constraint.each()
 /// i |> one_of([1, 2, 3, 4])
 /// ```
@@ -92,7 +92,7 @@ pub fn none_of(disallowed: List(a)) -> Constraint(a) {
 /// import glint
 /// import glint/constraint
 /// ...
-/// glint.int_flag("my_flag")
+/// glint.int("my_flag")
 /// |> glint.flag_constraint(
 ///   constraint.one_of([1,2,3,4])
 ///   |> constraint.each
