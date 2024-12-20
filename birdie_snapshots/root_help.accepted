@@ -1,5 +1,5 @@
 ---
-version: 1.1.5
+version: 1.1.8
 title: root help
 file: ./test/glint_test.gleam
 test_name: root_help_test
@@ -10,12 +10,7 @@ This is the root command
 
 USAGE:
     gleam run -m test ( cmd1 | cmd2 | cmd5 | cmd8-very-very-very-very-long )
-        <arg1> <arg2> [ ARGS ] [ --flag1=<STRING> --global=<STRING> ]
-
-FLAGS:
-    --flag1=<STRING>      This is flag1
-    --global=<STRING>     This is a global flag
-    --help                Print help information
+        <arg1> <arg2> [ ARGS ] [ FLAGS ]
 
 SUBCOMMANDS:
     cmd1                           This is cmd1
@@ -33,3 +28,8 @@ SUBCOMMANDS:
 
 
                                    New new new line.
+
+FLAGS:
+    --flag1=<STRING>      This is flag1
+    --global=<STRING>     This is a global flag
+    --help                Print help information
