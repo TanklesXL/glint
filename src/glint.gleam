@@ -315,6 +315,19 @@ pub fn command(do runner: Runner(a)) -> Command(a) {
   )
 }
 
+/// Map the output of a [`Command`](#Command)
+///
+/// This function can be useful when you are handling user-defined commands or commands from other packages and need to make sure the return type matches your own commands.
+///
+pub fn map_command(command: Command(a), with fun: fn(a) -> b) -> Command(b) {
+  Command(
+    ..command,
+    runner: fn(named_args, args, flags) {
+      f(command.runner(named_args, args, flags))
+    },
+  )
+}
+
 /// Attach a helptext description to a [`Command(a)`](#Command)
 ///
 /// This function allows for user-supplied newlines in long text strings. Individual newline characters are instead converted to spaces.
