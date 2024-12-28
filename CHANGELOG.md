@@ -5,6 +5,10 @@
 
 # v1
 
+## [1.2.0](https://github.com/TanklesXL/glint/compare/v1.2.0...v1.1.1)
+
+- add the `glint.map_command` function
+
 ## [1.1.1](https://github.com/TanklesXL/glint/compare/v1.1.1...v1.1.0)
 
 - updated gleam stdlib to >= 0.43
