@@ -1,0 +1,17 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "fileMatch": ["(^|/)gleam.toml$"],
+  "versioning": "hex",
+  "rangeStrategy": "widen",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "recreateWhen": "always",
+    "rebaseStalePrs": true,
+    "branchTopic": "lock-file-maintenance",
+    "commitMessageAction": "Lock file maintenance",
+    "commitMessageTopic": "chore(deps): lock file maintenance",
+    "prBodyDefinitions": {
+      "Change": "All locks refreshed"
+    }
+  }
+}
