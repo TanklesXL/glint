@@ -1262,15 +1262,12 @@ fn do_update_at(
   case path {
     [] -> f(node)
     [next, ..rest] -> {
-      CommandNode(
-        ..node,
-        subcommands: {
-          use found <- dict.upsert(node.subcommands, next)
-          found
-          |> option.lazy_unwrap(empty_command)
-          |> do_update_at(rest, f)
-        },
-      )
+      CommandNode(..node, subcommands: {
+        use found <- dict.upsert(node.subcommands, next)
+        found
+        |> option.lazy_unwrap(empty_command)
+        |> do_update_at(rest, f)
+      })
     }
   }
 }
