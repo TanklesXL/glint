@@ -6,13 +6,15 @@ test_name: cmd2_help_test
 ---
 Some awesome global help text!
 
-Command: cmd2
-
 This is cmd2
 
 USAGE:
-    gleam run -m test cmd2 <arg1> <arg2> [ FLAGS ]
+    gleam run -m test cmd2 <arg1> <arg2> [ flags ]
+
+ARGUMENTS:
+    arg1: float                          
+    arg2: string list (comma-separated)  
 
 FLAGS:
-    --global=<STRING>     This is a global flag
+    --global=<string>     This is a global flag
     --help                Print help information
