@@ -6,16 +6,14 @@ test_name: call_help_with_residual_args_test
 ---
 Some awesome global help text!
 
-Command: cmd5 cmd6
-
 This is cmd6
 
 USAGE:
-    gleam run -m test cmd5 cmd6 ( cmd7 ) [ ARGS ] [ FLAGS ]
+    gleam run -m test cmd5 cmd6 ( cmd7 ) [ args ] [ flags ]
 
 SUBCOMMANDS:
     cmd7                  This is cmd7
 
 FLAGS:
-    --global=<STRING>     This is a global flag
+    --global=<string>     This is a global flag
     --help                Print help information

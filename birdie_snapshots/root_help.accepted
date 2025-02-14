@@ -10,7 +10,7 @@ This is the root command
 
 USAGE:
     gleam run -m test ( cmd1 | cmd2 | cmd5 | cmd8-very-very-very-very-long )
-        <arg1> <arg2> [ ARGS ] [ FLAGS ]
+        <arg1> <arg2> [ args ] [ flags ]
 
 SUBCOMMANDS:
     cmd1                           This is cmd1
@@ -29,7 +29,11 @@ SUBCOMMANDS:
 
                                    New new new line.
 
+ARGUMENTS:
+    arg1: string          
+    arg2: int             
+
 FLAGS:
-    --flag1=<STRING>      This is flag1
-    --global=<STRING>     This is a global flag
+    --flag1=<string>      This is flag1
+    --global=<string>     This is a global flag
     --help                Print help information

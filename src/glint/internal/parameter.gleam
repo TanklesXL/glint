@@ -14,12 +14,9 @@ pub fn add_constraint(
   p: Parameter(kind, error),
   constraint: fn(kind) -> Result(kind, error),
 ) -> Parameter(kind, error) {
-  Parameter(
-    ..p,
-    parser: fn(s) {
-      s
-      |> p.parser
-      |> result.try(constraint)
-    },
-  )
+  Parameter(..p, parser: fn(s) {
+    s
+    |> p.parser
+    |> result.try(constraint)
+  })
 }

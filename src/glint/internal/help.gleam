@@ -137,7 +137,7 @@ fn command_help_to_usage_string(help: Command, config: Config) -> String {
 
   let unnamed_args =
     option.map(help.unnamed_args, args_count_to_usage_string)
-    |> option.unwrap("[ ARGS ]")
+    |> option.unwrap("[ args ]")
 
   // The max width of the usage accounts for the constant indent
   let max_usage_width = config.max_output_width - config.indent_width
