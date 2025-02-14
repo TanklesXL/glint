@@ -6,12 +6,10 @@ test_name: cmd1_help_test
 ---
 Some awesome global help text!
 
-Command: cmd1
-
 This is cmd1
 
 USAGE:
-    gleam run -m test cmd1 ( cmd3 | cmd4 ) [ ARGS ] [ FLAGS ]
+    gleam run -m test cmd1 ( cmd3 | cmd4 ) [ args ] [ flags ]
 
 SUBCOMMANDS:
     cmd3                  This is cmd3
@@ -20,12 +18,16 @@ SUBCOMMANDS:
                           very very long description
 
 FLAGS:
-    --flag2=<INT>                            This is flag2
+    --flag2=<int>                                              This is flag2
 
-    --global=<STRING>                        This is a global flag
+    --global=<string>                                          This is a global
+                                                               flag
 
-    --help                                   Print help information
+    --help                                                     Print help
+                                                               information
 
-    --very-very-very-long-flag=<FLOAT_LIST>  This is a very long flag with a
-                                             very very very very very very long
-                                             description
+    --very-very-very-long-flag=<float list (comma-separated)>  This is a very long
+                                                               flag with a very
+                                                               very very very very
+                                                               very long
+                                                               description
