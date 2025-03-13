@@ -458,9 +458,11 @@ pub fn execute(glint: Glint(a), args: List(String)) -> Result(Out(a), String) {
   let help_flag = flag_prefix <> help.help_flag.meta.name
 
   // check if help flag is present
-  let #(help, args) = case list.pop(args, fn(s) { s == help_flag }) {
-    Ok(#(_, args)) -> #(True, args)
-    _ -> #(False, args)
+  let #(help, args) = case list.partition(args, fn(s) { s == help_flag }) {
+    // help flag not in args
+    #([], args) -> #(False, args)
+    // help flag in args
+    #(_, args) -> #(True, args)
   }
 
   // split flags out from the args list
@@ -1262,15 +1264,12 @@ fn do_update_at(
   case path {
     [] -> f(node)
     [next, ..rest] -> {
-      CommandNode(
-        ..node,
-        subcommands: {
-          use found <- dict.upsert(node.subcommands, next)
-          found
-          |> option.lazy_unwrap(empty_command)
-          |> do_update_at(rest, f)
-        },
-      )
+      CommandNode(..node, subcommands: {
+        use found <- dict.upsert(node.subcommands, next)
+        found
+        |> option.lazy_unwrap(empty_command)
+        |> do_update_at(rest, f)
+      })
     }
   }
 }
