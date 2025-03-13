@@ -2,8 +2,11 @@
 
 ## [Unreleased](https://github.com/TanklesXL/glint/compare/v1.1.0...HEAD)
 
-
 # v1
+
+## [1.2.1](https://github.com/TanklesXL/glint/compare/v1.2.1...v1.2.0)
+
+- remove use of deprecated `list.pop` function
 
 ## [1.2.0](https://github.com/TanklesXL/glint/compare/v1.2.0...v1.1.1)
 
