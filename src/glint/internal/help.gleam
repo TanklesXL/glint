@@ -10,6 +10,11 @@ import glint/internal/utils
 //
 pub const help_flag = Parameter(Metadata("help", "Print help information"), "")
 
+pub const version_flag = Parameter(
+  Metadata("version", "Print the app version"),
+  "",
+)
+
 const flags_heading = "FLAGS:"
 
 const subcommands_heading = "SUBCOMMANDS:"
@@ -172,7 +177,7 @@ fn flags_help_to_string(help: List(Parameter), config: Config) -> String {
 
   let content =
     to_spaced_indented_string(
-      [help_flag, ..help],
+      [help_flag, version_flag, ..help],
       fn(help) { #(flag_help_to_string(help, config), help.meta.description) },
       longest_flag_length,
       config,
