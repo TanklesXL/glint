@@ -1,4 +1,5 @@
 import birdie
+import gleam/option
 import gleeunit
 import gleeunit/should
 import glint.{Help, Out}
@@ -352,4 +353,11 @@ pub fn global_and_group_flags_test() {
 
   cli
   |> glint.execute(["sub", "sub", "--sub_group_flag=2"])
+}
+
+pub fn version_test() {
+  glint.new()
+  |> glint.with_version("test")
+  |> glint.execute(["--version"])
+  |> should.equal(Ok(glint.Version(option.Some("test"))))
 }

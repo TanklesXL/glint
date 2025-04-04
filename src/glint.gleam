@@ -1,3 +1,4 @@
+import gleam/bool
 import gleam/dict
 import gleam/function
 import gleam/int
@@ -30,6 +31,7 @@ type Config {
     max_output_width: Int,
     min_first_column_width: Int,
     column_gap: Int,
+    version: Option(String),
   )
 }
 
@@ -61,9 +63,15 @@ const default_config = Config(
   max_output_width: 80,
   min_first_column_width: 20,
   column_gap: 2,
+  version: None,
 )
 
 // -- CONFIGURATION: FUNCTIONS --
+
+/// Set the version to be
+pub fn with_version(glint: Glint(a), version: String) -> Glint(a) {
+  Glint(..glint, config: Config(..glint.config, version: Some(version)))
+}
 
 /// Set the style for each of the glint helptext headers (usage, flags, subcommands).
 ///
@@ -255,6 +263,8 @@ pub type Out(a) {
   Out(a)
   /// Container for the generated help string
   Help(String)
+  /// Container for the version string
+  Version(Option(String))
 }
 
 // -- CORE: BUILDER FUNCTIONS --
@@ -453,8 +463,14 @@ pub fn group_flag(
 ///
 @internal
 pub fn execute(glint: Glint(a), args: List(String)) -> Result(Out(a), String) {
-  // create help flag to check for
+  // create help and version flags to check for
   let help_flag = flag_prefix <> help.help_flag.meta.name
+  let version_flag = flag_prefix <> help.version_flag.meta.name
+
+  use <- bool.guard(
+    when: list.contains(args, version_flag),
+    return: Ok(Version(glint.config.version)),
+  )
 
   // check if help flag is present
   let #(help, args) = case list.partition(args, fn(s) { s == help_flag }) {
@@ -642,6 +658,7 @@ pub fn run_and_handle(
       handle(out)
       Nil
     }
+    Ok(Version(_)) -> io.println(glint.config.version |> option.unwrap(""))
   }
 }
 
