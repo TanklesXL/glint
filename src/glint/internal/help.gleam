@@ -2,25 +2,18 @@ import gleam/bool
 import gleam/int
 import gleam/list
 import gleam/option.{type Option, None, Some}
+import gleam/pair
 import gleam/string
-import gleam_community/ansi
-import gleam_community/colour.{type Colour}
 import glint/internal/utils
-
-/// Style heading text with the provided rgb colouring
-/// this is only intended for use within glint itself.
-///
-fn heading_style(heading: String, colour: Colour) -> String {
-  heading
-  |> ansi.bold
-  |> ansi.underline
-  |> ansi.italic
-  |> ansi.hex(colour.to_rgb_hex(colour))
-}
 
 // --- HELP: CONSTANTS ---
 //
-pub const help_flag = Flag(Metadata("help", "Print help information"), "")
+pub const help_flag = Parameter(Metadata("help", "Print help information"), "")
+
+pub const version_flag = Parameter(
+  Metadata("version", "Print the app version"),
+  "",
+)
 
 const flags_heading = "FLAGS:"
 
@@ -28,19 +21,23 @@ const subcommands_heading = "SUBCOMMANDS:"
 
 const usage_heading = "USAGE:"
 
+const named_args_heading = "ARGUMENTS:"
+
 // --- HELP: TYPES ---
 
 pub type ArgsCount {
-  MinArgs(Int)
-  EqArgs(Int)
+  MinArgs(name: String, help: String, cont: Int)
+  EqArgs(name: String, help: String, cont: Int)
+  NoArgs
 }
 
 pub type Config {
   Config(
     name: Option(String),
-    usage_colour: Option(Colour),
-    flags_colour: Option(Colour),
-    subcommands_colour: Option(Colour),
+    usage_colour: fn(String) -> String,
+    named_args_colour: fn(String) -> String,
+    flags_colour: fn(String) -> String,
+    subcommands_colour: fn(String) -> String,
     as_module: Bool,
     description: Option(String),
     indent_width: Int,
@@ -60,8 +57,8 @@ pub type Metadata {
 
 /// Help type for flag metadata
 ///
-pub type Flag {
-  Flag(meta: Metadata, type_: String)
+pub type Parameter {
+  Parameter(meta: Metadata, type_: String)
 }
 
 /// Help type for command metadata
@@ -70,23 +67,18 @@ pub type Command {
     // Every command has a name and description
     meta: Metadata,
     // A command can have >= 0 flags associated with it
-    flags: List(Flag),
+    flags: List(Parameter),
     // A command can have >= 0 subcommands associated with it
     subcommands: List(Metadata),
     // A command can have a set number of unnamed arguments
     unnamed_args: Option(ArgsCount),
     // A command can specify named arguments
-    named_args: List(String),
+    named_args: List(Parameter),
   )
 }
 
 // -- HELP - FUNCTIONS - STRINGIFIERS --
 pub fn command_help_to_string(help: Command, config: Config) -> String {
-  let command = case help.meta.name {
-    "" -> ""
-    s -> "Command: " <> s
-  }
-
   let command_description =
     help.meta.description
     |> utils.wordwrap(config.max_output_width)
@@ -94,11 +86,11 @@ pub fn command_help_to_string(help: Command, config: Config) -> String {
 
   [
     config.description |> option.unwrap(""),
-    command,
     command_description,
     command_help_to_usage_string(help, config),
-    flags_help_to_string(help.flags, config),
     subcommands_help_to_string(help.subcommands, config),
+    args_help_to_string(help.named_args, help.unnamed_args, config),
+    flags_help_to_string(help.flags, config),
   ]
   |> list.filter(fn(s) { s != "" })
   |> string.join("\n\n")
@@ -106,34 +98,21 @@ pub fn command_help_to_string(help: Command, config: Config) -> String {
 
 // -- HELP - FUNCTIONS - STRINGIFIERS - USAGE --
 
-/// convert a List(Flag) to a list of strings for use in usage text
-///
-fn flags_help_to_usage_strings(help: List(Flag), config: Config) -> List(String) {
-  help
-  |> list.map(flag_help_to_string(_, config))
-  |> list.sort(string.compare)
-}
-
 /// generate the usage help text for the flags of a command
 ///
-fn flags_help_to_usage_string(config: Config, help: List(Flag)) -> String {
-  use <- bool.guard(help == [], "")
-  let content =
-    help
-    |> flags_help_to_usage_strings(config)
-    |> string.join(" ")
-
-  "[ " <> content <> " ]"
+fn flags_help_to_usage_string(help: List(Parameter)) -> String {
+  case help {
+    [] -> ""
+    _ -> "[ flags ]"
+  }
 }
 
 /// convert an ArgsCount to a string for usage text
 ///
 fn args_count_to_usage_string(count: ArgsCount) -> String {
   case count {
-    EqArgs(0) -> ""
-    EqArgs(1) -> "[ 1 argument ]"
-    EqArgs(n) -> "[ " <> int.to_string(n) <> " arguments ]"
-    MinArgs(n) -> "[ " <> int.to_string(n) <> " or more arguments ]"
+    NoArgs -> ""
+    EqArgs(name, _, _) | MinArgs(name, _, _) -> "[ " <> name <> ".. ]"
   }
 }
 
@@ -146,7 +125,7 @@ fn command_help_to_usage_string(help: Command, config: Config) -> String {
     None -> "gleam run"
   }
 
-  let flags = flags_help_to_usage_string(config, help.flags)
+  let flags = flags_help_to_usage_string(help.flags)
   let subcommands = case
     list.map(help.subcommands, fn(sc) { sc.name })
     |> list.sort(string.compare)
@@ -158,12 +137,12 @@ fn command_help_to_usage_string(help: Command, config: Config) -> String {
 
   let named_args =
     help.named_args
-    |> list.map(fn(s) { "<" <> s <> ">" })
+    |> list.map(fn(s) { "<" <> s.meta.name <> ">" })
     |> string.join(" ")
 
   let unnamed_args =
     option.map(help.unnamed_args, args_count_to_usage_string)
-    |> option.unwrap("[ ARGS ]")
+    |> option.unwrap("[ args ]")
 
   // The max width of the usage accounts for the constant indent
   let max_usage_width = config.max_output_width - config.indent_width
@@ -175,10 +154,7 @@ fn command_help_to_usage_string(help: Command, config: Config) -> String {
     |> utils.wordwrap(max_usage_width)
     |> string.join("\n" <> string.repeat(" ", config.indent_width * 2))
 
-  case config.usage_colour {
-    None -> usage_heading
-    Some(pretty) -> heading_style(usage_heading, pretty)
-  }
+  config.usage_colour(usage_heading)
   <> "\n"
   <> string.repeat(" ", config.indent_width)
   <> content
@@ -186,9 +162,9 @@ fn command_help_to_usage_string(help: Command, config: Config) -> String {
 
 // -- HELP - FUNCTIONS - STRINGIFIERS - FLAGS --
 
-/// generate the usage help string for a command
+/// generate the usage help string for a list of flags
 ///
-fn flags_help_to_string(help: List(Flag), config: Config) -> String {
+fn flags_help_to_string(help: List(Parameter), config: Config) -> String {
   use <- bool.guard(help == [], "")
 
   let longest_flag_length =
@@ -197,14 +173,11 @@ fn flags_help_to_string(help: List(Flag), config: Config) -> String {
     |> utils.max_string_length
     |> int.max(config.min_first_column_width)
 
-  let heading = case config.flags_colour {
-    None -> flags_heading
-    Some(pretty) -> heading_style(flags_heading, pretty)
-  }
+  let heading = config.flags_colour(flags_heading)
 
   let content =
     to_spaced_indented_string(
-      [help_flag, ..help],
+      [help_flag, version_flag, ..help],
       fn(help) { #(flag_help_to_string(help, config), help.meta.description) },
       longest_flag_length,
       config,
@@ -215,7 +188,7 @@ fn flags_help_to_string(help: List(Flag), config: Config) -> String {
 
 /// generate the help text for a flag without a description
 ///
-fn flag_help_to_string(help: Flag, config: Config) -> String {
+fn flag_help_to_string(help: Parameter, config: Config) -> String {
   config.flag_prefix
   <> help.meta.name
   <> case help.type_ {
@@ -237,10 +210,7 @@ fn subcommands_help_to_string(help: List(Metadata), config: Config) -> String {
     |> utils.max_string_length
     |> int.max(config.min_first_column_width)
 
-  let heading = case config.subcommands_colour {
-    None -> subcommands_heading
-    Some(pretty) -> heading_style(subcommands_heading, pretty)
-  }
+  let heading = config.subcommands_colour(subcommands_heading)
 
   let content =
     to_spaced_indented_string(
@@ -251,6 +221,63 @@ fn subcommands_help_to_string(help: List(Metadata), config: Config) -> String {
     )
 
   heading <> content
+}
+
+// -- HELP - FUNCTIONS - STRINGIFIERS - NAMED ARGUMENTS --
+/// generate the usage help string for named arguments
+///
+fn args_help_to_string(
+  named: List(Parameter),
+  unnamed: Option(ArgsCount),
+  config: Config,
+) -> String {
+  use <- bool.guard(
+    named == [] && { unnamed == None || unnamed == Some(NoArgs) },
+    "",
+  )
+
+  let unnamed = case unnamed {
+    Some(EqArgs(name, desc, 1)) -> [#(name <> ".. 1 arg", desc)]
+    Some(EqArgs(name, desc, count)) -> [
+      #(name <> ".. " <> int.to_string(count) <> " args", desc),
+    ]
+    Some(MinArgs(name, desc, 1)) -> [#(name <> ".. >= 1 arg", desc)]
+    Some(MinArgs(name, desc, count)) -> [
+      #(name <> ".. >= " <> int.to_string(count) <> " args", desc),
+    ]
+    None | Some(NoArgs) -> []
+  }
+
+  let helps =
+    list.flatten([
+      list.map(named, fn(help) {
+        #(named_arg_help_to_string(help), help.meta.description)
+      }),
+      unnamed,
+    ])
+
+  let longest_arg_length =
+    helps
+    |> list.map(pair.first)
+    |> utils.max_string_length
+    |> int.max(config.min_first_column_width)
+
+  let heading = config.named_args_colour(named_args_heading)
+
+  let content =
+    to_spaced_indented_string(helps, fn(x) { x }, longest_arg_length, config)
+
+  heading <> content
+}
+
+/// generate the help text for a flag without a description
+///
+fn named_arg_help_to_string(help: Parameter) -> String {
+  help.meta.name
+  <> case help.type_ {
+    "" -> ""
+    _ -> ": " <> help.type_
+  }
 }
 
 /// convert a list of items to an indented string with spaced contents

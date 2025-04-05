@@ -1,20 +1,22 @@
 ---
-version: 1.1.5
+version: 1.2.6
 title: cmd3 help
 file: ./test/glint_test.gleam
-test_name: help_test
+test_name: cmd3_help_test
 ---
 Some awesome global help text!
-
-Command: cmd1 cmd3
 
 This is cmd3
 
 USAGE:
-    gleam run -m test cmd1 cmd3 <woo> [ 2 or more arguments ] [ --flag3=<BOOL>
-        --global=<STRING> ]
+    gleam run -m test cmd1 cmd3 <woo> [ args.. ] [ flags ]
+
+ARGUMENTS:
+    args.. >= 2 args      
+    woo: bool             
 
 FLAGS:
-    --flag3=<BOOL>        This is flag3
-    --global=<STRING>     This is a global flag
+    --flag3=<bool>        This is flag3
+    --global=<string>     This is a global flag
     --help                Print help information
+    --version             Print the app version

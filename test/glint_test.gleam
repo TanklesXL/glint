@@ -1,4 +1,5 @@
 import birdie
+import gleam/option
 import gleeunit
 import gleeunit/should
 import glint.{Help, Out}
@@ -99,32 +100,32 @@ pub fn runner_test() {
 fn help() {
   let nil = fn(_, _, _) { Nil }
   let global_flag =
-    glint.string_flag("global")
-    |> glint.flag_help("This is a global flag")
+    glint.string("global")
+    |> glint.param_help("This is a global flag")
 
   let flag_1 =
     "flag1"
-    |> glint.string_flag()
-    |> glint.flag_help("This is flag1")
+    |> glint.string()
+    |> glint.param_help("This is flag1")
 
   let flag_2 =
     "flag2"
-    |> glint.int_flag()
-    |> glint.flag_help("This is flag2")
+    |> glint.int()
+    |> glint.param_help("This is flag2")
   let flag_3 =
     "flag3"
-    |> glint.bool_flag()
-    |> glint.flag_help("This is flag3")
+    |> glint.bool()
+    |> glint.param_help("This is flag3")
 
   let flag_4 =
     "flag4"
-    |> glint.float_flag()
-    |> glint.flag_help("This is flag4")
+    |> glint.float()
+    |> glint.param_help("This is flag4")
 
   let flag_5 =
     "very-very-very-long-flag"
-    |> glint.floats_flag()
-    |> glint.flag_help(
+    |> glint.floats()
+    |> glint.param_help(
       "This is a very long flag with a very very very very very very long description",
     )
 
@@ -135,8 +136,8 @@ fn help() {
   |> glint.group_flag([], global_flag)
   |> glint.add(at: [], do: {
     use <- glint.command_help("This is the root command")
-    use _arg1 <- glint.named_arg("arg1")
-    use _arg2 <- glint.named_arg("arg2")
+    use _arg1 <- glint.named_arg(glint.string("arg1"))
+    use _arg2 <- glint.named_arg(glint.int("arg2"))
     use _flag <- glint.flag(flag_1)
     glint.command(nil)
   })
@@ -149,8 +150,8 @@ fn help() {
   |> glint.add(at: ["cmd1", "cmd3"], do: {
     use <- glint.command_help("This is cmd3")
     use _flag3 <- glint.flag(flag_3)
-    use <- glint.unnamed_args(glint.MinArgs(2))
-    use _woo <- glint.named_arg("woo")
+    use <- glint.min_args("args", 2, "")
+    use _woo <- glint.named_arg(glint.bool("woo"))
     glint.command(nil)
   })
   |> glint.add(at: ["cmd1", "cmd4"], do: {
@@ -158,14 +159,14 @@ fn help() {
       "This is cmd4 which has a very very very very very very very very long description",
     )
     use _flag4 <- glint.flag(flag_4)
-    use <- glint.unnamed_args(glint.EqArgs(0))
+    use <- glint.no_args()
     glint.command(nil)
   })
   |> glint.add(at: ["cmd2"], do: {
     use <- glint.command_help("This is cmd2")
-    use <- glint.unnamed_args(glint.EqArgs(0))
-    use _arg1 <- glint.named_arg("arg1")
-    use _arg2 <- glint.named_arg("arg2")
+    use <- glint.no_args()
+    use _arg1 <- glint.named_arg(glint.float("arg1"))
+    use _arg2 <- glint.named_arg(glint.strings("arg2"))
     glint.command(nil)
   })
   |> glint.add(
@@ -197,7 +198,7 @@ fn assert_unwrap_help(res: Result(glint.Out(a), String)) -> String {
 pub fn help_test() {
   let cli = help()
   // execute root command
-  glint.execute(cli, ["a", "b"])
+  glint.execute(cli, ["a", "1"])
   |> should.equal(Ok(Out(Nil)))
 
   glint.execute(cli, ["a"])
@@ -285,14 +286,14 @@ pub fn call_leaf_help_with_residual_args_test() {
 
 pub fn global_and_group_flags_test() {
   let flag_f =
-    glint.int_flag("f")
-    |> glint.flag_default(2)
-    |> glint.flag_help("global flag example")
+    glint.int("f")
+    |> glint.default(2)
+    |> glint.param_help("global flag example")
 
   let sub_group_flag =
     "sub_group_flag"
-    |> glint.int_flag()
-    |> glint.flag_default(1)
+    |> glint.int()
+    |> glint.default(1)
 
   let cli =
     glint.new()
@@ -307,9 +308,9 @@ pub fn global_and_group_flags_test() {
     |> glint.add(["sub"], {
       use f <- glint.flag(
         "f"
-        |> glint.bool_flag()
-        |> glint.flag_default(True)
-        |> glint.flag_help("i decided to override the global flag"),
+        |> glint.bool()
+        |> glint.default(True)
+        |> glint.param_help("i decided to override the global flag"),
       )
       use _, _, flags <- glint.command()
       f(flags)
@@ -319,9 +320,9 @@ pub fn global_and_group_flags_test() {
     |> glint.add(["sub", "sub"], {
       use f <- glint.flag(
         "f"
-        |> glint.bool_flag()
-        |> glint.flag_default(True)
-        |> glint.flag_help("i decided to override the global flag"),
+        |> glint.bool()
+        |> glint.default(True)
+        |> glint.param_help("i decided to override the global flag"),
       )
       use _, _, flags <- glint.command()
       f(flags)
@@ -354,8 +355,9 @@ pub fn global_and_group_flags_test() {
   |> glint.execute(["sub", "sub", "--sub_group_flag=2"])
 }
 
-pub fn default_pretty_help_test() {
-  // default_pretty_help has asserts
-  // we need to call the function to make sure it does not crash
-  glint.default_pretty_help()
+pub fn version_test() {
+  glint.new()
+  |> glint.with_version("test")
+  |> glint.execute(["--version"])
+  |> should.equal(Ok(glint.Version(option.Some("test"))))
 }
