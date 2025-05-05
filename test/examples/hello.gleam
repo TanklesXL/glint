@@ -1,63 +1,4 @@
 //// This module demonstrates a simple glint app with 2 commands
-////
-//// ## Usage
-////
-//// ### Running the application
-////
-//// You can run this example with `gleam run -m examples/hello -- <NAMES>` from the root of the repo
-////
-//// The application prints: `Hello, <NAMES>!`
-//// The `hello` application accepts at least one argument, being the names of people to say hello to.
-//// - No input: `gleam run` -> prints "Hello, Joe!"
-//// - One input: `gleam run Joe` -> prints "Hello, Joe!"
-//// - Two inputs: `gleam run Rob Louis` -> prints "Hello, Rob and Louis!"
-//// - \>2 inputs: `gleam run Rob Louis Hayleigh` -> prints "Hello, Rob, Louis and Hayleigh!"
-////
-//// ### Flags
-////
-//// All commands accepts two flags:
-//// - `--caps`: capitalizes the output, so if output would be "Hello, Joe!" it prints "HELLO, JOE!"
-//// - `--repeat=N`: repeats the output N times separated , so with N=2 if output would be "Hello, Joe!" it prints "Hello, Joe!\nHello, Joe!"
-////
-//// ### Help Text
-////
-//// Here is the help text for the root command:
-////
-//// ```txt
-//// It's time to say hello!
-////
-//// Prints Hello, <names>!
-////
-//// USAGE:
-////     gleam run -m examples/hello ( single ) [ 1 or more arguments ] [
-////         --caps=<BOOL> --repeat=<INT> ]
-////
-//// FLAGS:
-////     --caps=<BOOL>         Capitalize the hello message
-////     --help                Print help information
-////     --repeat=<INT>        Repeat the message n-times
-////
-//// SUBCOMMANDS:
-////     single                Prints Hello, <name>!
-//// ```
-////
-//// Here is the help text for the `single` command:
-////
-//// ```
-//// It's time to say hello!
-////
-//// Command: single
-////
-//// Prints Hello, <name>!
-////
-//// USAGE:
-////     gleam run -m examples/hello single <name> [ --caps=<BOOL> --repeat=<INT> ]
-////
-//// FLAGS:
-////     --caps=<BOOL>         Capitalize the hello message
-////     --help                Print help information
-////     --repeat=<INT>        Repeat the message n-times
-//// ```
 
 // stdlib imports
 import gleam/io
@@ -77,7 +18,9 @@ import glint
 fn join_names(names: List(String)) -> String {
   case names {
     [] -> ""
-    _ -> do_join_names(names, "")
+    [name] -> name
+    [name_1, name_2] -> name_1 <> " and " <> name_2
+    [name, ..names] -> do_join_names(names, name)
   }
 }
 
@@ -98,13 +41,17 @@ pub fn capitalize(msg, caps) -> String {
 }
 
 /// hello is a function that says hello
-pub fn hello(
-  primary: String,
-  rest: List(String),
+pub fn hello(names: List(String), caps: Bool, repeat: Int) -> String {
+  greet("Hello", names, caps, repeat)
+}
+
+pub fn greet(
+  greeting: String,
+  names: List(String),
   caps: Bool,
   repeat: Int,
 ) -> String {
-  { "Hello, " <> primary <> join_names(rest) <> "!" }
+  { greeting <> ", " <> join_names(names) <> "!" }
   |> capitalize(caps)
   |> list.repeat(repeat)
   |> string.join("\n")
@@ -114,24 +61,24 @@ pub fn hello(
 
 /// a boolean flag with default False to control message capitalization.
 ///
-pub fn caps_flag() -> glint.Flag(Bool) {
-  glint.bool_flag("caps")
-  |> glint.flag_default(False)
-  |> glint.flag_help("Capitalize the hello message")
+pub fn caps_flag() -> glint.Parameter(Bool, glint.Flag) {
+  glint.bool("caps")
+  |> glint.default(False)
+  |> glint.param_help("Capitalize the hello message")
 }
 
 /// an int flag with default 1 to control how many times to repeat the message.
 /// this flag is constrained to values greater than 0.
 ///
-pub fn repeat_flag() -> glint.Flag(Int) {
-  use n <- glint.flag_constraint(
-    glint.int_flag("repeat")
-    |> glint.flag_default(1)
-    |> glint.flag_help("Repeat the message n-times"),
+pub fn repeat_flag() -> glint.Parameter(Int, glint.Flag) {
+  use n <- glint.constraint(
+    glint.int("repeat")
+    |> glint.default(1)
+    |> glint.param_help("Repeat the message n-times"),
   )
   case n {
     _ if n > 0 -> Ok(n)
-    _ -> snag.error("Value must be greater than 0.")
+    _ -> Error(snag.new("repeat value must be a positive integer"))
   }
 }
 
@@ -139,25 +86,39 @@ pub fn repeat_flag() -> glint.Flag(Int) {
 ///
 pub fn hello_cmd() -> glint.Command(String) {
   use <- glint.command_help("Prints Hello, <names>!")
-  use <- glint.unnamed_args(glint.MinArgs(1))
+  use <- glint.min_args("names", 1, "Names of people to greet.")
   use _, args, flags <- glint.command()
   let assert Ok(caps) = glint.get_flag(flags, caps_flag())
   let assert Ok(repeat) = glint.get_flag(flags, repeat_flag())
-  let assert [name, ..rest] = args
-  hello(name, rest, caps, repeat)
+  hello(args, caps, repeat)
+}
+
+pub fn hello_custom_cmd() -> glint.Command(String) {
+  use <- glint.command_help("Prints a greeting for the names provided!")
+  use greeting <- glint.named_arg(
+    glint.string("greeting") |> glint.param_help("The greeting to give."),
+  )
+  use <- glint.min_args("names", 1, "Names of people to greet.")
+  use named_args, args, flags <- glint.command()
+  let assert Ok(caps) = glint.get_flag(flags, caps_flag())
+  let assert Ok(repeat) = glint.get_flag(flags, repeat_flag())
+  greet(greeting(named_args), args, caps, repeat)
 }
 
 /// the command function that will be executed as the "single" command
 ///
 pub fn hello_single_cmd() -> glint.Command(String) {
   use <- glint.command_help("Prints Hello, <name>!")
-  use <- glint.unnamed_args(glint.EqArgs(0))
-  use name <- glint.named_arg("name")
+  use <- glint.no_args()
+  use name <- glint.named_arg(
+    glint.string("name")
+    |> glint.param_help("The name of the person we're saying hello to."),
+  )
   use named_args, _, flags <- glint.command()
   let assert Ok(caps) = glint.get_flag(flags, caps_flag())
   let assert Ok(repeat) = glint.get_flag(flags, repeat_flag())
   let name = name(named_args)
-  hello(name, [], caps, repeat)
+  hello([name], caps, repeat)
 }
 
 // the function that describes our cli structure
@@ -171,7 +132,7 @@ pub fn app() {
   // show in usage text that the current app is run as a gleam module
   |> glint.as_module
   // with pretty help enabled, using the built-in colours
-  |> glint.pretty_help(glint.default_pretty_help())
+  |> glint.with_default_header_style
   // with group level flags
   // with flag `caps` for all commands (equivalent of using glint.global_flag)
   |> glint.group_flag([], caps_flag())
@@ -187,6 +148,11 @@ pub fn app() {
     // add the hello single command
     at: ["single"],
     do: hello_single_cmd(),
+  )
+  |> glint.add(
+    // add the hello custom command
+    at: ["custom"],
+    do: hello_custom_cmd(),
   )
 }
 
