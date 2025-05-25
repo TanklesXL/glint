@@ -71,7 +71,7 @@ pub fn flag_one_of_none_of_test() {
     |> access
     |> should.be_ok
   })
-  |> glint.execute(["--i=" <> success])
+  |> glint.run(["--i=" <> success])
   |> should.be_ok
 
   glint.new()
@@ -80,7 +80,7 @@ pub fn flag_one_of_none_of_test() {
     use _, _, _flags <- glint.command()
     Nil
   })
-  |> glint.execute(["--i=" <> failure])
+  |> glint.run(["--i=" <> failure])
   |> should.be_error
 
   let #(test_flag, success, failure) = #(
@@ -107,7 +107,7 @@ pub fn flag_one_of_none_of_test() {
     |> access
     |> should.be_ok
   })
-  |> glint.execute(["--li=" <> success])
+  |> glint.run(["--li=" <> success])
   |> should.be_ok
 
   glint.new()
@@ -116,7 +116,7 @@ pub fn flag_one_of_none_of_test() {
     use _, _, _flags <- glint.command()
     panic
   })
-  |> glint.execute(["--li=" <> failure])
+  |> glint.run(["--li=" <> failure])
   |> should.be_error
 
   let #(test_flag, success, failure) = #(
@@ -134,7 +134,7 @@ pub fn flag_one_of_none_of_test() {
     |> access
     |> should.be_ok
   })
-  |> glint.execute(["--f=" <> success])
+  |> glint.run(["--f=" <> success])
   |> should.be_ok
 
   glint.new()
@@ -143,7 +143,7 @@ pub fn flag_one_of_none_of_test() {
     use _, _, _flags <- glint.command()
     panic
   })
-  |> glint.execute(["--f=" <> failure])
+  |> glint.run(["--f=" <> failure])
   |> should.be_error
 
   let #(test_flag, success, failure) = #(
@@ -169,7 +169,7 @@ pub fn flag_one_of_none_of_test() {
     |> access
     |> should.be_ok
   })
-  |> glint.execute(["--lf=" <> success])
+  |> glint.run(["--lf=" <> success])
   |> should.be_ok
 
   glint.new()
@@ -178,7 +178,7 @@ pub fn flag_one_of_none_of_test() {
     use _, _, _flags <- glint.command()
     panic
   })
-  |> glint.execute(["--lf=" <> failure])
+  |> glint.run(["--lf=" <> failure])
   |> should.be_error
 
   let #(test_flag, success, failure) = #(
@@ -197,7 +197,7 @@ pub fn flag_one_of_none_of_test() {
     |> access
     |> should.be_ok
   })
-  |> glint.execute(["--s=" <> success])
+  |> glint.run(["--s=" <> success])
   |> should.be_ok
 
   glint.new()
@@ -206,7 +206,7 @@ pub fn flag_one_of_none_of_test() {
     use _, _, _flags <- glint.command()
     panic
   })
-  |> glint.execute(["--s=" <> failure])
+  |> glint.run(["--s=" <> failure])
   |> should.be_error
 
   let #(test_flag, success, failure) = #(
@@ -233,7 +233,7 @@ pub fn flag_one_of_none_of_test() {
     |> access
     |> should.be_ok
   })
-  |> glint.execute(["--ls=" <> success])
+  |> glint.run(["--ls=" <> success])
   |> should.be_ok
 
   glint.new()
@@ -242,6 +242,6 @@ pub fn flag_one_of_none_of_test() {
     use _, _, _flags <- glint.command()
     panic
   })
-  |> glint.execute(["--ls=" <> failure])
+  |> glint.run(["--ls=" <> failure])
   |> should.be_error
 }

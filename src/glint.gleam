@@ -2,7 +2,6 @@ import gleam/bool
 import gleam/dict
 import gleam/function
 import gleam/int
-import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
@@ -26,7 +25,6 @@ type Config {
     name: Option(String),
     as_module: Bool,
     description: Option(String),
-    exit: Bool,
     indent_width: Int,
     max_output_width: Int,
     min_first_column_width: Int,
@@ -58,7 +56,6 @@ const default_config = Config(
   name: None,
   as_module: False,
   description: None,
-  exit: True,
   indent_width: 4,
   max_output_width: 80,
   min_first_column_width: 20,
@@ -145,10 +142,6 @@ pub fn with_name(glint: Glint(a), name: String) -> Glint(a) {
 ///
 /// Calling this function disables that feature.
 ///
-pub fn without_exit(glint: Glint(a)) -> Glint(a) {
-  Glint(..glint, config: Config(..glint.config, exit: False))
-}
-
 /// Adjust the generated help text to reflect that the current glint app should be run as a gleam module.
 ///
 /// Use in conjunction with [`glint.with_name`](#with_name) to get usage text output like `gleam run -m <name>`
@@ -255,15 +248,13 @@ type CommandNode(a) {
   )
 }
 
-/// Ok type for command execution
-///
-@internal
+/// This type defines the success cases for running a glint application.
 pub type Out(a) {
-  /// Container for the command return value
+  /// Contains the command return value
   Out(a)
-  /// Container for the generated help string
+  /// Contains the generated help string
   Help(String)
-  /// Container for the version string
+  /// Contains the version string
   Version(Option(String))
 }
 
@@ -452,17 +443,14 @@ pub fn group_flag(
 
 // -- CORE: EXECUTION FUNCTIONS --
 
-/// Determines which command to run and executes it.
+/// Run a glint app and return the result.
 ///
-/// Sets any provided flags if necessary.
+/// This function will return `Error(String)` if glint itself encountered an error with the provided input.
+/// This function will return `Ok(glint.Out(a))` if glint successfully ran with the provided input
+/// .
+/// If you would like to do handle the command output please see the `glintio` package.
 ///
-/// Each value prefixed with `--` is parsed as a flag.
-///
-/// This function does not print its output and is mainly intended for use within `glint` itself.
-/// If you would like to print or handle the output of a command please see the `run_and_handle` function.
-///
-@internal
-pub fn execute(glint: Glint(a), args: List(String)) -> Result(Out(a), String) {
+pub fn run(glint: Glint(a), args: List(String)) -> Result(Out(a), String) {
   // create help and version flags to check for
   let help_flag = flag_prefix <> help.help_flag.meta.name
   let version_flag = flag_prefix <> help.version_flag.meta.name
@@ -621,45 +609,6 @@ fn execute_root(
     <> "\nSee the following help text, available via the '--help' flag.\n\n"
     <> cmd_help(path, cmd, config)
   })
-}
-
-/// Run a glint app and print any errors enountered, or the help text if requested.
-/// This function ignores any value returned by the command that was run.
-/// If you would like to do handle the command output please see the [`glint.run_and_handle`](#run_and_handle) function.
-///
-/// IMPORTANT: This function exits with code 1 if an error was encountered.
-/// If this behaviour is not desired please disable it with [`glint.without_exit`](#without_exit)
-///
-pub fn run(from glint: Glint(a), for args: List(String)) -> Nil {
-  run_and_handle(from: glint, for: args, with: fn(_) { Nil })
-}
-
-/// Run a glint app with a custom handler for command output.
-/// This function prints any errors enountered or the help text if requested.
-///
-/// IMPORTANT: This function exits with code 1 if an error was encountered.
-/// If this behaviour is not desired please disable it with [`glint.without_exit`](#without_exit)
-///
-pub fn run_and_handle(
-  from glint: Glint(a),
-  for args: List(String),
-  with handle: fn(a) -> _,
-) -> Nil {
-  case execute(glint, args) {
-    Error(s) -> {
-      io.println(s)
-      case glint.config.exit {
-        True -> exit(1)
-        False -> Nil
-      }
-    }
-    Ok(Help(s)) -> io.println(s)
-    Ok(Out(out)) -> {
-      handle(out)
-      Nil
-    }
-    Ok(Version(_)) -> io.println(glint.config.version |> option.unwrap(""))
-  }
 }
 
 // -- HELP: FUNCTIONS --
@@ -943,10 +892,6 @@ fn do_update_at(
     }
   }
 }
-
-@external(erlang, "erlang", "halt")
-@external(javascript, "node:process", "exit")
-fn exit(status: Int) -> Nil
 
 pub type NamedArg
 
