@@ -1,57 +1,44 @@
-import gleeunit/should
 import glint
 import glint/constraint
 
 pub fn one_of_test() {
-  1
-  |> constraint.one_of([1, 2, 3])
-  |> should.equal(Ok(1))
+  assert constraint.one_of([1, 2, 3])(1) == Ok(1)
 
-  1
-  |> constraint.one_of([2, 3, 4])
-  |> should.be_error()
+  let assert Error(_) = constraint.one_of([2, 3, 4])(1)
 
-  [1, 2, 3]
-  |> {
-    [5, 4, 3, 2, 1]
-    |> constraint.one_of
-    |> constraint.each
-  }
-  |> should.equal(Ok([1, 2, 3]))
+  assert {
+      [5, 4, 3, 2, 1]
+      |> constraint.one_of
+      |> constraint.each
+    }([1, 2, 3])
+    == Ok([1, 2, 3])
 
-  [1, 6, 3]
-  |> {
-    [5, 4, 3, 2, 1]
-    |> constraint.one_of
-    |> constraint.each
-  }
-  |> should.be_error()
+  let assert Error(_) =
+    {
+      [5, 4, 3, 2, 1]
+      |> constraint.one_of
+      |> constraint.each
+    }([1, 6, 3])
 }
 
 pub fn none_of_test() {
-  1
-  |> constraint.none_of([1, 2, 3])
-  |> should.be_error
+  let assert Error(_) = constraint.none_of([1, 2, 3])(1)
 
-  1
-  |> constraint.none_of([2, 3, 4])
-  |> should.equal(Ok(1))
+  assert constraint.none_of([2, 3, 4])(1) == Ok(1)
 
-  [1, 2, 3]
-  |> {
-    [4, 5, 6, 7, 8]
-    |> constraint.none_of
-    |> constraint.each
-  }
-  |> should.equal(Ok([1, 2, 3]))
+  assert {
+      [4, 5, 6, 7, 8]
+      |> constraint.none_of
+      |> constraint.each
+    }([1, 2, 3])
+    == Ok([1, 2, 3])
 
-  [1, 6, 3]
-  |> {
-    [4, 5, 6, 7, 8]
-    |> constraint.none_of
-    |> constraint.each
-  }
-  |> should.be_error()
+  let assert Error(_) =
+    {
+      [4, 5, 6, 7, 8]
+      |> constraint.none_of
+      |> constraint.each
+    }([1, 6, 3])
 }
 
 pub fn flag_one_of_none_of_test() {
@@ -63,25 +50,23 @@ pub fn flag_one_of_none_of_test() {
     "6",
   )
 
-  glint.new()
-  |> glint.add([], {
-    use access <- glint.flag(test_flag)
-    use _, _, flags <- glint.command()
-    flags
-    |> access
-    |> should.be_ok
-  })
-  |> glint.run(["--i=" <> success])
-  |> should.be_ok
+  let assert Ok(_) =
+    glint.new()
+    |> glint.add([], {
+      use access <- glint.flag(test_flag)
+      use _, _, flags <- glint.command()
+      let assert Ok(_) = access(flags)
+    })
+    |> glint.run(["--i=" <> success])
 
-  glint.new()
-  |> glint.add([], {
-    use _access <- glint.flag(test_flag)
-    use _, _, _flags <- glint.command()
-    Nil
-  })
-  |> glint.run(["--i=" <> failure])
-  |> should.be_error
+  let assert Error(_) =
+    glint.new()
+    |> glint.add([], {
+      use _access <- glint.flag(test_flag)
+      use _, _, _flags <- glint.command()
+      Nil
+    })
+    |> glint.run(["--i=" <> failure])
 
   let #(test_flag, success, failure) = #(
     glint.ints("li")
@@ -99,25 +84,23 @@ pub fn flag_one_of_none_of_test() {
     "2,2,6",
   )
 
-  glint.new()
-  |> glint.add([], {
-    use access <- glint.flag(test_flag)
-    use _, _, flags <- glint.command()
-    flags
-    |> access
-    |> should.be_ok
-  })
-  |> glint.run(["--li=" <> success])
-  |> should.be_ok
+  let assert Ok(_) =
+    glint.new()
+    |> glint.add([], {
+      use access <- glint.flag(test_flag)
+      use _, _, flags <- glint.command()
+      let assert Ok(_) = access(flags)
+    })
+    |> glint.run(["--li=" <> success])
 
-  glint.new()
-  |> glint.add([], {
-    use _access <- glint.flag(test_flag)
-    use _, _, _flags <- glint.command()
-    panic
-  })
-  |> glint.run(["--li=" <> failure])
-  |> should.be_error
+  let assert Error(_) =
+    glint.new()
+    |> glint.add([], {
+      use _access <- glint.flag(test_flag)
+      use _, _, _flags <- glint.command()
+      panic
+    })
+    |> glint.run(["--li=" <> failure])
 
   let #(test_flag, success, failure) = #(
     glint.float("f")
@@ -126,25 +109,23 @@ pub fn flag_one_of_none_of_test() {
     "1.0",
     "6.0",
   )
-  glint.new()
-  |> glint.add([], {
-    use access <- glint.flag(test_flag)
-    use _, _, flags <- glint.command()
-    flags
-    |> access
-    |> should.be_ok
-  })
-  |> glint.run(["--f=" <> success])
-  |> should.be_ok
+  let assert Ok(_) =
+    glint.new()
+    |> glint.add([], {
+      use access <- glint.flag(test_flag)
+      use _, _, flags <- glint.command()
+      let assert Ok(_) = access(flags)
+    })
+    |> glint.run(["--f=" <> success])
 
-  glint.new()
-  |> glint.add([], {
-    use _access <- glint.flag(test_flag)
-    use _, _, _flags <- glint.command()
-    panic
-  })
-  |> glint.run(["--f=" <> failure])
-  |> should.be_error
+  let assert Error(_) =
+    glint.new()
+    |> glint.add([], {
+      use _access <- glint.flag(test_flag)
+      use _, _, _flags <- glint.command()
+      panic
+    })
+    |> glint.run(["--f=" <> failure])
 
   let #(test_flag, success, failure) = #(
     glint.floats("lf")
@@ -161,25 +142,23 @@ pub fn flag_one_of_none_of_test() {
     "3.0,2.0,1.0",
     "2.0,3.0,6.0",
   )
-  glint.new()
-  |> glint.add([], {
-    use access <- glint.flag(test_flag)
-    use _, _, flags <- glint.command()
-    flags
-    |> access
-    |> should.be_ok
-  })
-  |> glint.run(["--lf=" <> success])
-  |> should.be_ok
+  let assert Ok(_) =
+    glint.new()
+    |> glint.add([], {
+      use access <- glint.flag(test_flag)
+      use _, _, flags <- glint.command()
+      let assert Ok(_) = access(flags)
+    })
+    |> glint.run(["--lf=" <> success])
 
-  glint.new()
-  |> glint.add([], {
-    use _access <- glint.flag(test_flag)
-    use _, _, _flags <- glint.command()
-    panic
-  })
-  |> glint.run(["--lf=" <> failure])
-  |> should.be_error
+  let assert Error(_) =
+    glint.new()
+    |> glint.add([], {
+      use _access <- glint.flag(test_flag)
+      use _, _, _flags <- glint.command()
+      panic
+    })
+    |> glint.run(["--lf=" <> failure])
 
   let #(test_flag, success, failure) = #(
     glint.string("s")
@@ -189,25 +168,23 @@ pub fn flag_one_of_none_of_test() {
     "t4",
   )
 
-  glint.new()
-  |> glint.add([], {
-    use access <- glint.flag(test_flag)
-    use _, _, flags <- glint.command()
-    flags
-    |> access
-    |> should.be_ok
-  })
-  |> glint.run(["--s=" <> success])
-  |> should.be_ok
+  let assert Ok(_) =
+    glint.new()
+    |> glint.add([], {
+      use access <- glint.flag(test_flag)
+      use _, _, flags <- glint.command()
+      let assert Ok(_) = access(flags)
+    })
+    |> glint.run(["--s=" <> success])
 
-  glint.new()
-  |> glint.add([], {
-    use _access <- glint.flag(test_flag)
-    use _, _, _flags <- glint.command()
-    panic
-  })
-  |> glint.run(["--s=" <> failure])
-  |> should.be_error
+  let assert Error(_) =
+    glint.new()
+    |> glint.add([], {
+      use _access <- glint.flag(test_flag)
+      use _, _, _flags <- glint.command()
+      panic
+    })
+    |> glint.run(["--s=" <> failure])
 
   let #(test_flag, success, failure) = #(
     glint.strings("ls")
@@ -225,23 +202,21 @@ pub fn flag_one_of_none_of_test() {
     "t2,t4,t1",
   )
 
-  glint.new()
-  |> glint.add([], {
-    use access <- glint.flag(test_flag)
-    use _, _, flags <- glint.command()
-    flags
-    |> access
-    |> should.be_ok
-  })
-  |> glint.run(["--ls=" <> success])
-  |> should.be_ok
+  let assert Ok(_) =
+    glint.new()
+    |> glint.add([], {
+      use access <- glint.flag(test_flag)
+      use _, _, flags <- glint.command()
+      let assert Ok(_) = access(flags)
+    })
+    |> glint.run(["--ls=" <> success])
 
-  glint.new()
-  |> glint.add([], {
-    use _access <- glint.flag(test_flag)
-    use _, _, _flags <- glint.command()
-    panic
-  })
-  |> glint.run(["--ls=" <> failure])
-  |> should.be_error
+  let assert Error(_) =
+    glint.new()
+    |> glint.add([], {
+      use _access <- glint.flag(test_flag)
+      use _, _, _flags <- glint.command()
+      panic
+    })
+    |> glint.run(["--ls=" <> failure])
 }
