@@ -1,7 +1,6 @@
 import birdie
 import gleam/option
 import gleeunit
-import gleeunit/should
 import glint.{Help, Out}
 import snag
 
@@ -10,56 +9,60 @@ pub fn main() {
 }
 
 pub fn path_clean_test() {
-  glint.new()
-  |> glint.add(
-    ["", " ", " cmd", "subcmd\t"],
-    glint.command(fn(_, _, _) { Nil }),
-  )
-  |> glint.execute(["cmd", "subcmd"])
-  |> should.be_ok()
+  let assert Ok(_) =
+    glint.new()
+    |> glint.add(
+      ["", " ", " cmd", "subcmd\t"],
+      glint.command(fn(_, _, _) { Nil }),
+    )
+    |> glint.run(["cmd", "subcmd"])
 }
 
 pub fn root_command_test() {
   // expecting no args
-  glint.new()
-  |> glint.add(
-    at: [],
-    do: glint.command(fn(_, args, _) { should.equal(args, []) }),
-  )
-  |> glint.execute([])
-  |> should.be_ok()
+  let assert Ok(_) =
+    glint.new()
+    |> glint.add(
+      at: [],
+      do: glint.command(fn(_, args, _) {
+        assert args == []
+      }),
+    )
+    |> glint.run([])
 
   // expecting some args
   let args = ["arg1", "arg2"]
-  let is_args = fn(_, in_args, _) { should.equal(in_args, args) }
+  let is_args = fn(_, in_args, _) {
+    assert in_args == args
+  }
 
-  glint.new()
-  |> glint.add(at: [], do: glint.command(is_args))
-  |> glint.execute(args)
-  |> should.be_ok()
+  let assert Ok(_) =
+    glint.new()
+    |> glint.add(at: [], do: glint.command(is_args))
+    |> glint.run(args)
 }
 
 pub fn command_routing_test() {
   let args = ["arg1", "arg2"]
-  let is_args = fn(_, in_args, _) { should.equal(in_args, args) }
+  let is_args = fn(_, in_args, _) {
+    assert in_args == args
+  }
   let has_subcommand =
     glint.new()
     |> glint.add(["subcommand"], glint.command(is_args))
 
   // execute subommand with args
-  has_subcommand
-  |> glint.execute(["subcommand", ..args])
-  |> should.be_ok()
+  let assert Ok(_) = glint.run(has_subcommand, ["subcommand", ..args])
 
   // no root command set, will return error
-  has_subcommand
-  |> glint.execute([])
-  |> should.be_error()
+  let assert Error(_) = glint.run(has_subcommand, [])
 }
 
 pub fn nested_commands_test() {
   let args = ["arg1", "arg2"]
-  let is_args = fn(_, in_args, _) { should.equal(in_args, args) }
+  let is_args = fn(_, in_args, _) {
+    assert in_args == args
+  }
 
   let cmd =
     glint.new()
@@ -67,14 +70,10 @@ pub fn nested_commands_test() {
     |> glint.add(["subcommand", "subsubcommand"], glint.command(is_args))
 
   // call subcommand with args
-  cmd
-  |> glint.execute(["subcommand", ..args])
-  |> should.be_ok()
+  let assert Ok(_) = glint.run(cmd, ["subcommand", ..args])
 
   // call subcommand subsubcommand with args
-  cmd
-  |> glint.execute(["subcommand", "subsubcommand", ..args])
-  |> should.be_ok()
+  let assert Ok(_) = glint.run(cmd, ["subcommand", "subsubcommand", ..args])
 }
 
 pub fn runner_test() {
@@ -87,14 +86,10 @@ pub fn runner_test() {
     )
 
   // command returns its own successful result
-  cmd
-  |> glint.execute([])
-  |> should.equal(Ok(glint.Out(Ok("success"))))
+  assert glint.run(cmd, []) == Ok(glint.Out(Ok("success")))
 
   // command returns its own error result
-  cmd
-  |> glint.execute(["subcommand"])
-  |> should.equal(Ok(Out(snag.error("failed"))))
+  assert glint.run(cmd, ["subcommand"]) == Ok(Out(snag.error("failed")))
 }
 
 fn help() {
@@ -198,66 +193,59 @@ fn assert_unwrap_help(res: Result(glint.Out(a), String)) -> String {
 pub fn help_test() {
   let cli = help()
   // execute root command
-  glint.execute(cli, ["a", "1"])
-  |> should.equal(Ok(Out(Nil)))
+  assert glint.run(cli, ["a", "1"]) == Ok(Out(Nil))
 
-  glint.execute(cli, ["a"])
-  |> should.be_error()
+  let assert Error(_) = glint.run(cli, ["a"])
 
-  glint.execute(cli, [])
-  |> should.be_error()
+  let assert Error(_) = glint.run(cli, [])
 
-  glint.execute(cli, ["cmd2"])
-  |> should.be_error()
+  let assert Error(_) = glint.run(cli, ["cmd2"])
 
-  glint.execute(cli, ["cmd2", "1"])
-  |> should.be_error()
+  let assert Error(_) = glint.run(cli, ["cmd2", "1"])
 
-  glint.execute(cli, ["cmd2", "1", "2"])
-  |> should.equal(Ok(Out(Nil)))
+  assert glint.run(cli, ["cmd2", "1", "2"]) == Ok(Out(Nil))
 
-  glint.execute(cli, ["cmd2", "1", "2", "3"])
-  |> should.be_error()
+  let assert Error(_) = glint.run(cli, ["cmd2", "1", "2", "3"])
 }
 
 pub fn root_help_test() {
   // help message for root command
-  glint.execute(help(), ["--help"])
+  glint.run(help(), ["--help"])
   |> assert_unwrap_help
   |> birdie.snap("root help")
 }
 
 pub fn cmd1_help_test() {
   // help message for command
-  glint.execute(help(), ["cmd1", "--help"])
+  glint.run(help(), ["cmd1", "--help"])
   |> assert_unwrap_help
   |> birdie.snap("cmd1 help")
 }
 
 pub fn cmd4_help_test() {
   // help message for nested command
-  glint.execute(help(), ["cmd1", "cmd4", "--help"])
+  glint.run(help(), ["cmd1", "cmd4", "--help"])
   |> assert_unwrap_help
   |> birdie.snap("cmd4 help")
 }
 
 pub fn cmd2_help_test() {
   // help message for command with no additional flags
-  glint.execute(help(), ["cmd2", "--help"])
+  glint.run(help(), ["cmd2", "--help"])
   |> assert_unwrap_help
   |> birdie.snap("cmd2 help")
 }
 
 pub fn cmd3_help_test() {
   // help message for command with no additional flags
-  glint.execute(help(), ["cmd1", "cmd3", "--help"])
+  glint.run(help(), ["cmd1", "cmd3", "--help"])
   |> assert_unwrap_help
   |> birdie.snap("cmd3 help")
 }
 
 pub fn cmd6_help_test() {
   // help message for command a subcommand whose help was set with glint.path_help
-  glint.execute(help(), ["cmd5", "cmd6", "--help"])
+  glint.run(help(), ["cmd5", "cmd6", "--help"])
   |> assert_unwrap_help
   |> birdie.snap("cmd6 help")
 }
@@ -265,21 +253,21 @@ pub fn cmd6_help_test() {
 pub fn cmd7_help_test() {
   // help message for command that had help_text set with glint.glint.path_help
   // has no children or command runner set so no other details are available
-  glint.execute(help(), ["cmd5", "cmd6", "cmd7", "--help"])
+  glint.run(help(), ["cmd5", "cmd6", "cmd7", "--help"])
   |> assert_unwrap_help
   |> birdie.snap("cmd7 help")
 }
 
 pub fn call_help_with_residual_args_test() {
   // help message for command a subcommand whose help was set with glint.path_help
-  glint.execute(help(), ["cmd5", "cmd6", "arg", "--help"])
+  glint.run(help(), ["cmd5", "cmd6", "arg", "--help"])
   |> assert_unwrap_help
   |> birdie.snap("cmd6 help with residual args")
 }
 
 pub fn call_leaf_help_with_residual_args_test() {
   // help message for command a subcommand whose help was set with glint.path_help
-  glint.execute(help(), ["cmd5", "cmd6", "cmd7", "arg", "--help"])
+  glint.run(help(), ["cmd5", "cmd6", "cmd7", "arg", "--help"])
   |> assert_unwrap_help
   |> birdie.snap("cmd7 help with residual args")
 }
@@ -301,8 +289,7 @@ pub fn global_and_group_flags_test() {
     |> glint.add(
       [],
       glint.command(fn(_, _, flags) {
-        glint.get_flag(flags, flag_f)
-        |> should.equal(Ok(2))
+        assert glint.get_flag(flags, flag_f) == Ok(2)
       }),
     )
     |> glint.add(["sub"], {
@@ -313,8 +300,7 @@ pub fn global_and_group_flags_test() {
         |> glint.param_help("i decided to override the global flag"),
       )
       use _, _, flags <- glint.command()
-      f(flags)
-      |> should.equal(Ok(True))
+      assert f(flags) == Ok(True)
     })
     |> glint.group_flag(["sub"], sub_group_flag)
     |> glint.add(["sub", "sub"], {
@@ -325,39 +311,28 @@ pub fn global_and_group_flags_test() {
         |> glint.param_help("i decided to override the global flag"),
       )
       use _, _, flags <- glint.command()
-      f(flags)
-      |> should.equal(Ok(True))
+      assert f(flags) == Ok(True)
 
-      flags
-      |> glint.get_flag(sub_group_flag)
-      |> should.equal(Ok(2))
+      assert glint.get_flag(flags, sub_group_flag) == Ok(2)
     })
 
   // root command keeps the global flag as an int
-  cli
-  |> glint.execute(["--f=2"])
-  |> should.be_ok
+  let assert Ok(_) = glint.run(cli, ["--f=2"])
 
-  cli
-  |> glint.execute(["--f=hello"])
-  |> should.be_error
+  let assert Error(_) = glint.run(cli, ["--f=hello"])
 
   // sub command overrides the global flag with a bool
-  cli
-  |> glint.execute(["sub", "--f=true"])
-  |> should.be_ok
+  let assert Ok(_) = glint.run(cli, ["sub", "--f=true"])
+
+  let assert Error(_) = glint.run(cli, ["sub", "--f=123"])
 
   cli
-  |> glint.execute(["sub", "--f=123"])
-  |> should.be_error
-
-  cli
-  |> glint.execute(["sub", "sub", "--sub_group_flag=2"])
+  |> glint.run(["sub", "sub", "--sub_group_flag=2"])
 }
 
 pub fn version_test() {
-  glint.new()
-  |> glint.with_version("test")
-  |> glint.execute(["--version"])
-  |> should.equal(Ok(glint.Version(option.Some("test"))))
+  assert glint.new()
+    |> glint.with_version("test")
+    |> glint.run(["--version"])
+    == Ok(glint.Version(option.Some("test")))
 }

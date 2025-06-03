@@ -1,6 +1,5 @@
 import examples/hello
 import gleam/list
-import gleeunit/should
 import glint
 
 type TestCase {
@@ -27,13 +26,10 @@ pub fn hello_test() {
     ),
   ])
 
-  hello.hello(tc.input, tc.caps, tc.repeat)
-  |> should.equal(tc.expected)
+  assert hello.hello(tc.input, tc.caps, tc.repeat) == tc.expected
 }
 
 pub fn app_test() {
-  use output <- glint.run_and_handle(hello.app(), [
-    "Joe", "Gleamlins", "--repeat=2", "--caps",
-  ])
-  should.equal(output, "HELLO, JOE AND GLEAMLINS!\nHELLO, JOE AND GLEAMLINS!")
+  assert glint.run(hello.app(), ["Joe", "Gleamlins", "--repeat=2", "--caps"])
+    == Ok(glint.Out("HELLO, JOE AND GLEAMLINS!\nHELLO, JOE AND GLEAMLINS!"))
 }

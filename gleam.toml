@@ -15,7 +15,7 @@ links = [
     { title = "Docs", href = "https://hexdocs.pm/glint/" },
 ]
 
-gleam = ">= 1.4.0 and < 2.0.0"
+gleam = ">= 1.11.0 and < 2.0.0"
 
 [dependencies]
 gleam_stdlib = ">= 0.43.0 and < 2.0.0"
@@ -29,3 +29,4 @@ gleam_deque = ">= 1.0.0 and < 2.0.0"
 gleeunit = "~> 1.0"
 argv = ">= 1.0.2 and < 2.0.0"
 birdie = ">= 1.1.8 and < 2.0.0"
+asset = ">= 1.2.0 and < 2.0.0"

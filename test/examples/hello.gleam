@@ -1,9 +1,10 @@
 //// This module demonstrates a simple glint app with 2 commands
 
 // stdlib imports
-import gleam/io
+import gleam/function
 import gleam/list
 import gleam/string.{uppercase}
+import glintio
 
 // external dep imports
 import snag
@@ -157,6 +158,12 @@ pub fn app() {
 }
 
 pub fn main() {
-  // run with a handler that prints the command output
-  glint.run_and_handle(app(), argv.load().arguments, io.println)
+  app()
+  // run the glint app with the command line arguments provided
+  |> glint.run(argv.load().arguments)
+  // print the result of running glint
+  // the command output is already a string so we can pass it as-is
+  |> glintio.print(function.identity)
+  // exit with status 1 if an error was encountered
+  |> glintio.exit
 }
