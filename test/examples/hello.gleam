@@ -85,7 +85,7 @@ pub fn repeat_flag() -> glint.Parameter(Int, glint.Flag) {
 
 /// the command function that will be executed as the root command
 ///
-pub fn hello_cmd() -> glint.Command(String) {
+pub fn hello_cmd() -> glint.Command(String, glint.ArgsSet) {
   use <- glint.command_help("Prints Hello, <names>!")
   use <- glint.min_args("names", 1, "Names of people to greet.")
   use _, args, flags <- glint.command()
@@ -94,7 +94,7 @@ pub fn hello_cmd() -> glint.Command(String) {
   hello(args, caps, repeat)
 }
 
-pub fn hello_custom_cmd() -> glint.Command(String) {
+pub fn hello_custom_cmd() -> glint.Command(String, glint.ArgsSet) {
   use <- glint.command_help("Prints a greeting for the names provided!")
   use greeting <- glint.named_arg(
     glint.string("greeting") |> glint.param_help("The greeting to give."),
@@ -108,7 +108,7 @@ pub fn hello_custom_cmd() -> glint.Command(String) {
 
 /// the command function that will be executed as the "single" command
 ///
-pub fn hello_single_cmd() -> glint.Command(String) {
+pub fn hello_single_cmd() -> glint.Command(String, glint.ArgsSet) {
   use <- glint.command_help("Prints Hello, <name>!")
   use <- glint.no_args()
   use name <- glint.named_arg(

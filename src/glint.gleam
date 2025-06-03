@@ -204,24 +204,28 @@ pub opaque type Glint(a) {
 type ArgsCount {
   /// Specifies that a command must accept a specific number of unnamed arguments
   ///
-  EqArgs(name: String, help: String, cont: Int)
+  EqArgs(name: String, help: String, count: Int)
   /// Specifies that a command must accept a minimum number of unnamed arguments
   ///
-  MinArgs(name: String, help: String, cont: Int)
+  MinArgs(name: String, help: String, count: Int)
   /// Specifies that a command accepts no arguments
   NoArgs
 }
+
+pub type ArgsSet
+
+pub type ArgsNotSet
 
 /// The type representing a glint command.
 ///
 /// To create a new command, use the [`glint.command`](#command) function.
 ///
-pub opaque type Command(a) {
+pub opaque type Command(output, args) {
   Command(
-    do: Runner(a),
+    do: Runner(output),
     flags: Flags,
     description: String,
-    unnamed_args: Option(ArgsCount),
+    unnamed_args: ArgsCount,
     named_args: List(Parameters(NamedArg)),
   )
 }
@@ -241,7 +245,7 @@ pub type Runner(a) =
 ///
 type CommandNode(a) {
   CommandNode(
-    contents: Option(Command(a)),
+    contents: Option(Command(a, ArgsSet)),
     subcommands: dict.Dict(String, CommandNode(a)),
     group_flags: Flags,
     description: String,
@@ -313,10 +317,20 @@ pub fn global_help(in glint: Glint(a), of description: String) -> Glint(a) {
 pub fn add(
   to glint: Glint(a),
   at path: List(String),
-  do command: Command(a),
+  do command: Command(a, b),
 ) -> Glint(a) {
   use node <- update_at(in: glint, at: path)
-  CommandNode(..node, description: command.description, contents: Some(command))
+  CommandNode(
+    ..node,
+    description: command.description,
+    contents: Some(Command(
+      do: command.do,
+      description: command.description,
+      flags: command.flags,
+      unnamed_args: command.unnamed_args,
+      named_args: command.named_args,
+    )),
+  )
 }
 
 /// Helper for initializing empty commands
@@ -351,12 +365,12 @@ fn sanitize_path(path: List(String)) -> List(String) {
 /// let my_arg = named_arg(named)
 /// ...
 /// ```
-pub fn command(do runner: Runner(a)) -> Command(a) {
+pub fn command(do runner: Runner(a)) -> Command(a, ArgsNotSet) {
   Command(
     do: runner,
     flags: Flags(dict.new()),
     description: "",
-    unnamed_args: None,
+    unnamed_args: MinArgs(name: "args", help: "", count: 0),
     named_args: [],
   )
 }
@@ -365,7 +379,10 @@ pub fn command(do runner: Runner(a)) -> Command(a) {
 ///
 /// This function can be useful when you are handling user-defined commands or commands from other packages and need to make sure the return type matches your own commands.
 ///
-pub fn map_command(command: Command(a), with fun: fn(a) -> b) -> Command(b) {
+pub fn map_command(
+  command: Command(a, c),
+  with fun: fn(a) -> b,
+) -> Command(b, c) {
   Command(
     do: fn(named_args, args, flags) { fun(command.do(named_args, args, flags)) },
     description: command.description,
@@ -383,7 +400,10 @@ pub fn map_command(command: Command(a), with fun: fn(a) -> b) -> Command(b) {
 /// For formatted text to appear on a new line, use 2 newline characters.
 /// For formatted text to appear in a new paragraph, use 3 newline characters.
 ///
-pub fn command_help(of desc: String, with f: fn() -> Command(a)) -> Command(a) {
+pub fn command_help(
+  of desc: String,
+  with f: fn() -> Command(a, b),
+) -> Command(a, b) {
   Command(..f(), description: desc)
 }
 
@@ -396,9 +416,9 @@ pub fn min_args(
   named name: String,
   of count: Int,
   described help: String,
-  with f: fn() -> Command(b),
-) -> Command(b) {
-  Command(..f(), unnamed_args: Some(MinArgs(name, help, count)))
+  with f: fn() -> Command(b, ArgsNotSet),
+) -> Command(b, ArgsSet) {
+  Command(..f(), unnamed_args: MinArgs(name, help, count))
 }
 
 /// Require exactly N arguments be provided for a command to execute.
@@ -410,16 +430,16 @@ pub fn eq_args(
   named name: String,
   of count: Int,
   described help: String,
-  with f: fn() -> Command(b),
-) -> Command(b) {
-  Command(..f(), unnamed_args: Some(EqArgs(name, help, count)))
+  with f: fn() -> Command(b, ArgsNotSet),
+) -> Command(b, ArgsSet) {
+  Command(..f(), unnamed_args: EqArgs(name, help, count))
 }
 
 /// Require that no argumenets be provided for a command to execute.
 /// This requirement does not apply to named arguments, which are matched before this constraint is applied.
 ///
-pub fn no_args(with f: fn() -> Command(b)) -> Command(b) {
-  Command(..f(), unnamed_args: Some(NoArgs))
+pub fn no_args(with f: fn() -> Command(b, ArgsNotSet)) -> Command(b, ArgsSet) {
+  Command(..f(), unnamed_args: NoArgs)
 }
 
 /// Add a flag for a group of commands.
@@ -591,13 +611,11 @@ fn execute_root(
     let args = list.drop(args, dict.size(named_args))
 
     // validate unnamed argument quantity
-    use _ <- result.map(case contents.unnamed_args {
-      Some(count) ->
-        count
-        |> args_compare(list.length(args))
-        |> snag.context("invalid number of unnamed arguments provided")
-      None -> Ok(Nil)
-    })
+    use _ <- result.map(
+      contents.unnamed_args
+      |> args_compare(list.length(args))
+      |> snag.context("invalid number of unnamed arguments provided"),
+    )
 
     // execute the command
     contents.do(NamedArgs(named_args), args, Flags(new_flags))
@@ -659,19 +677,16 @@ fn build_command_help(name: String, node: CommandNode(_)) -> help.Command {
         cmd.named_args |> build_named_args_help,
       )
     })
-    |> option.unwrap(#(node.description, [], None, []))
+    |> option.unwrap(#(node.description, [], MinArgs("args", "", 0), []))
 
   help.Command(
     meta: help.Metadata(name: name, description: description),
     flags: flags,
     subcommands: build_subcommands_help(node.subcommands),
-    unnamed_args: {
-      use args <- option.map(unnamed_args)
-      case args {
-        EqArgs(name, help, n) -> help.EqArgs(name, help, n)
-        MinArgs(name, help, n) -> help.MinArgs(name, help, n)
-        NoArgs -> help.NoArgs
-      }
+    unnamed_args: case unnamed_args {
+      EqArgs(name, help, n) -> help.EqArgs(name, help, n)
+      MinArgs(name, help, n) -> help.MinArgs(name, help, n)
+      NoArgs -> help.NoArgs
     },
     named_args: named_args,
   )
@@ -1101,8 +1116,8 @@ pub fn bool(name: String) -> Parameter(Bool, _) {
 ///
 pub fn flag(
   p: Parameter(a, Flag),
-  f: fn(fn(Flags) -> Result(a, Nil)) -> Command(b),
-) -> Command(b) {
+  f: fn(fn(Flags) -> Result(a, Nil)) -> Command(b, c),
+) -> Command(b, c) {
   let cmd = f(fn(flags) { p.getter(flags.internal) })
   Command(
     ..cmd,
@@ -1134,8 +1149,8 @@ pub fn flag(
 /// ```
 pub fn named_arg(
   p: Parameter(a, NamedArg),
-  f: fn(fn(NamedArgs) -> a) -> Command(b),
-) -> Command(b) {
+  f: fn(fn(NamedArgs) -> a) -> Command(b, c),
+) -> Command(b, c) {
   let cmd =
     f(fn(named_args) {
       let assert Ok(named_arg) = p.getter(named_args.internal)

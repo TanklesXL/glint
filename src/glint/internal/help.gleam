@@ -71,7 +71,7 @@ pub type Command {
     // A command can have >= 0 subcommands associated with it
     subcommands: List(Metadata),
     // A command can have a set number of unnamed arguments
-    unnamed_args: Option(ArgsCount),
+    unnamed_args: ArgsCount,
     // A command can specify named arguments
     named_args: List(Parameter),
   )
@@ -140,9 +140,7 @@ fn command_help_to_usage_string(help: Command, config: Config) -> String {
     |> list.map(fn(s) { "<" <> s.meta.name <> ">" })
     |> string.join(" ")
 
-  let unnamed_args =
-    option.map(help.unnamed_args, args_count_to_usage_string)
-    |> option.unwrap("[ args ]")
+  let unnamed_args = help.unnamed_args |> args_count_to_usage_string
 
   // The max width of the usage accounts for the constant indent
   let max_usage_width = config.max_output_width - config.indent_width
@@ -228,24 +226,21 @@ fn subcommands_help_to_string(help: List(Metadata), config: Config) -> String {
 ///
 fn args_help_to_string(
   named: List(Parameter),
-  unnamed: Option(ArgsCount),
+  unnamed: ArgsCount,
   config: Config,
 ) -> String {
-  use <- bool.guard(
-    named == [] && { unnamed == None || unnamed == Some(NoArgs) },
-    "",
-  )
+  use <- bool.guard(named == [] && { unnamed == NoArgs }, "")
 
   let unnamed = case unnamed {
-    Some(EqArgs(name, desc, 1)) -> [#(name <> ".. 1 arg", desc)]
-    Some(EqArgs(name, desc, count)) -> [
+    EqArgs(name, desc, 1) -> [#(name <> ".. 1 arg", desc)]
+    EqArgs(name, desc, count) -> [
       #(name <> ".. " <> int.to_string(count) <> " args", desc),
     ]
-    Some(MinArgs(name, desc, 1)) -> [#(name <> ".. >= 1 arg", desc)]
-    Some(MinArgs(name, desc, count)) -> [
+    MinArgs(name, desc, 1) -> [#(name <> ".. >= 1 arg", desc)]
+    MinArgs(name, desc, count) -> [
       #(name <> ".. >= " <> int.to_string(count) <> " args", desc),
     ]
-    None | Some(NoArgs) -> []
+    NoArgs -> []
   }
 
   let helps =
