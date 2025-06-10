@@ -239,7 +239,7 @@ pub opaque type NamedArgs {
 /// Functions that execute when glint commands are run.
 ///
 pub type Runner(a) =
-  fn(NamedArgs, List(String), Flags) -> a
+  fn(NamedArgs, List(String), Flags) -> Out(a)
 
 /// CommandNode tree representation.
 ///
@@ -254,12 +254,9 @@ type CommandNode(a) {
 
 /// This type defines the success cases for running a glint application.
 pub type Out(a) {
-  /// Contains the command return value
-  Out(a)
-  /// Contains the generated help string
-  Help(String)
-  /// Contains the version string
-  Version(Option(String))
+  Success(a)
+  Failure(Snag)
+  Info(String)
 }
 
 // -- CORE: BUILDER FUNCTIONS --
@@ -384,12 +381,22 @@ pub fn map_command(
   with fun: fn(a) -> b,
 ) -> Command(b, c) {
   Command(
-    do: fn(named_args, args, flags) { fun(command.do(named_args, args, flags)) },
+    do: fn(named_args, args, flags) {
+      map_out(command.do(named_args, args, flags), fun)
+    },
     description: command.description,
     flags: command.flags,
     named_args: command.named_args,
     unnamed_args: command.unnamed_args,
   )
+}
+
+fn map_out(out: Out(a), f: fn(a) -> b) -> Out(b) {
+  case out {
+    Success(a) -> Success(f(a))
+    Failure(snag) -> Failure(snag)
+    Info(info) -> Info(info)
+  }
 }
 
 /// Attach a helptext description to a [`Command(a)`](#Command)
@@ -470,14 +477,14 @@ pub fn group_flag(
 /// .
 /// If you would like to do handle the command output please see the `glintio` package.
 ///
-pub fn run(glint: Glint(a), args: List(String)) -> Result(Out(a), Snag) {
+pub fn run(glint: Glint(a), args: List(String)) -> Out(a) {
   // create help and version flags to check for
   let help_flag = flag_prefix <> help.help_flag.meta.name
   let version_flag = flag_prefix <> help.version_flag.meta.name
 
   use <- bool.guard(
     when: list.contains(args, version_flag),
-    return: Ok(Version(glint.config.version)),
+    return: Info(glint.config.version |> option.unwrap("")),
   )
 
   // check if help flag is present
@@ -504,15 +511,15 @@ fn do_execute(
   flags: List(String),
   help: Bool,
   command_path: List(String),
-) -> Result(Out(a), Snag) {
+) -> Out(a) {
   case args {
     // when there are no more available arguments
     // and help flag has been passed, generate help message
-    [] if help -> Ok(Help(cmd_help(command_path, cmd, config)))
+    [] if help -> Info(cmd_help(command_path, cmd, config))
 
     // when there are no more available arguments
     // run the current command
-    [] -> execute_root(command_path, config, cmd, [], flags) |> result.map(Out)
+    [] -> execute_root(command_path, config, cmd, [], flags)
 
     // when there are arguments remaining
     // check if the next one is a subcommand of the current command
@@ -531,13 +538,11 @@ fn do_execute(
 
         // subcommand not found, but help flag has been passed
         // generate and return help message
-        _ if help -> Ok(Help(cmd_help(command_path, cmd, config)))
+        _ if help -> Info(cmd_help(command_path, cmd, config))
 
         // subcommand not found, but help flag has not been passed
         // execute the current command
-        _ ->
-          execute_root(command_path, config, cmd, args, flags)
-          |> result.map(Out)
+        _ -> execute_root(command_path, config, cmd, args, flags)
       }
   }
 }
@@ -564,7 +569,10 @@ fn execute_root(
   cmd: CommandNode(a),
   args: List(String),
   flag_inputs: List(String),
-) -> Result(a, Snag) {
+) -> Out(a) {
+  use <- flatten
+  use <- result_to_out
+
   {
     // check if the command can actually be executed
     use contents <- result.try(option.to_result(
@@ -573,6 +581,7 @@ fn execute_root(
     ))
 
     // merge flags and parse flag inputs
+    //
     use new_flags <- result.try(list.try_fold(
       over: flag_inputs,
       from: dict.merge(cmd.group_flags.internal, contents.flags.internal),
@@ -580,6 +589,7 @@ fn execute_root(
     ))
 
     // get named arguments
+    //
     use named_args <- result.try({
       let named = list.zip(contents.named_args, args)
       case list.length(named) == list.length(contents.named_args) {
@@ -1321,12 +1331,26 @@ pub type Parameters(a) {
   LF(value: Parameter(List(Float), a))
 }
 
-pub fn flatten(r: Result(Out(Result(a, Snag)), Snag)) -> Result(Out(a), Snag) {
+pub fn result_to_out(r: fn() -> Result(a, Snag)) -> Out(a) {
+  case r() {
+    Ok(a) -> Success(a)
+    Error(e) -> Failure(e)
+  }
+}
+
+fn flatten(f: fn() -> Out(Out(a))) -> Out(a) {
+  case f() {
+    Success(Success(a)) -> Success(a)
+    Success(Failure(snag)) -> Failure(snag)
+    Success(Info(info)) -> Info(info)
+    Failure(snag) -> Failure(snag)
+    Info(info) -> Info(info)
+  }
+}
+
+pub fn try(r: Result(a, Snag), f: fn(a) -> Out(b)) -> Out(b) {
   case r {
-    Ok(Out(Ok(a))) -> Ok(Out(a))
-    Ok(Out(Error(e))) -> Error(e)
-    Ok(Help(help)) -> Ok(Help(help))
-    Ok(Version(version)) -> Ok(Version(version))
-    Error(e) -> Error(e)
+    Ok(a) -> f(a)
+    Error(snag) -> Failure(snag)
   }
 }

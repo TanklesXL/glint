@@ -1,7 +1,6 @@
 import birdie
-import gleam/option
 import gleeunit
-import glint.{Help, Out}
+import glint
 import snag
 
 pub fn main() {
@@ -9,23 +8,24 @@ pub fn main() {
 }
 
 pub fn path_clean_test() {
-  let assert Ok(_) =
+  let assert glint.Success(_) =
     glint.new()
     |> glint.add(
       ["", " ", " cmd", "subcmd\t"],
-      glint.command(fn(_, _, _) { Nil }),
+      glint.command(fn(_, _, _) { glint.Success(Nil) }),
     )
     |> glint.run(["cmd", "subcmd"])
 }
 
 pub fn root_command_test() {
   // expecting no args
-  let assert Ok(_) =
+  let assert glint.Success(_) =
     glint.new()
     |> glint.add(
       at: [],
       do: glint.command(fn(_, args, _) {
         assert args == []
+        glint.Success(Nil)
       }),
     )
     |> glint.run([])
@@ -34,9 +34,10 @@ pub fn root_command_test() {
   let args = ["arg1", "arg2"]
   let is_args = fn(_, in_args, _) {
     assert in_args == args
+    glint.Success(Nil)
   }
 
-  let assert Ok(_) =
+  let assert glint.Success(_) =
     glint.new()
     |> glint.add(at: [], do: glint.command(is_args))
     |> glint.run(args)
@@ -46,22 +47,25 @@ pub fn command_routing_test() {
   let args = ["arg1", "arg2"]
   let is_args = fn(_, in_args, _) {
     assert in_args == args
+    glint.Success(Nil)
   }
   let has_subcommand =
     glint.new()
     |> glint.add(["subcommand"], glint.command(is_args))
 
   // execute subommand with args
-  let assert Ok(_) = glint.run(has_subcommand, ["subcommand", ..args])
+  let assert glint.Success(_) =
+    glint.run(has_subcommand, ["subcommand", ..args])
 
   // no root command set, will return error
-  let assert Error(_) = glint.run(has_subcommand, [])
+  let assert glint.Failure(_) = glint.run(has_subcommand, [])
 }
 
 pub fn nested_commands_test() {
   let args = ["arg1", "arg2"]
   let is_args = fn(_, in_args, _) {
     assert in_args == args
+    glint.Success(Nil)
   }
 
   let cmd =
@@ -70,30 +74,34 @@ pub fn nested_commands_test() {
     |> glint.add(["subcommand", "subsubcommand"], glint.command(is_args))
 
   // call subcommand with args
-  let assert Ok(_) = glint.run(cmd, ["subcommand", ..args])
+  let assert glint.Success(_) = glint.run(cmd, ["subcommand", ..args])
 
   // call subcommand subsubcommand with args
-  let assert Ok(_) = glint.run(cmd, ["subcommand", "subsubcommand", ..args])
+  let assert glint.Success(_) =
+    glint.run(cmd, ["subcommand", "subsubcommand", ..args])
 }
 
 pub fn runner_test() {
   let cmd =
     glint.new()
-    |> glint.add(at: [], do: glint.command(fn(_, _, _) { Ok("success") }))
+    |> glint.add(
+      at: [],
+      do: glint.command(fn(_, _, _) { glint.Success("success") }),
+    )
     |> glint.add(
       at: ["subcommand"],
-      do: glint.command(fn(_, _, _) { snag.error("failed") }),
+      do: glint.command(fn(_, _, _) { glint.Failure(snag.new("failed")) }),
     )
 
   // command returns its own successful result
-  assert glint.run(cmd, []) == Ok(glint.Out(Ok("success")))
+  assert glint.run(cmd, []) == glint.Success("success")
 
   // command returns its own error result
-  assert glint.run(cmd, ["subcommand"]) == Ok(Out(snag.error("failed")))
+  assert glint.run(cmd, ["subcommand"]) == glint.Failure(snag.new("failed"))
 }
 
 fn help() {
-  let nil = fn(_, _, _) { Nil }
+  let nil = fn(_, _, _) { glint.Success(Nil) }
   let global_flag =
     glint.string("global")
     |> glint.param_help("This is a global flag")
@@ -185,27 +193,27 @@ New new new line.",
   )
 }
 
-fn assert_unwrap_help(res: Result(glint.Out(a), snag.Snag)) -> String {
-  let assert Ok(Help(help)) = res
+fn assert_unwrap_help(res: glint.Out(a)) -> String {
+  let assert glint.Info(help) = res
   help
 }
 
 pub fn help_test() {
   let cli = help()
   // execute root command
-  assert glint.run(cli, ["a", "1"]) == Ok(Out(Nil))
+  assert glint.run(cli, ["a", "1"]) == glint.Success(Nil)
 
-  let assert Error(_) = glint.run(cli, ["a"])
+  let assert glint.Failure(_) = glint.run(cli, ["a"])
 
-  let assert Error(_) = glint.run(cli, [])
+  let assert glint.Failure(_) = glint.run(cli, [])
 
-  let assert Error(_) = glint.run(cli, ["cmd2"])
+  let assert glint.Failure(_) = glint.run(cli, ["cmd2"])
 
-  let assert Error(_) = glint.run(cli, ["cmd2", "1"])
+  let assert glint.Failure(_) = glint.run(cli, ["cmd2", "1"])
 
-  assert glint.run(cli, ["cmd2", "1", "2"]) == Ok(Out(Nil))
+  assert glint.run(cli, ["cmd2", "1", "2"]) == glint.Success(Nil)
 
-  let assert Error(_) = glint.run(cli, ["cmd2", "1", "2", "3"])
+  let assert glint.Failure(_) = glint.run(cli, ["cmd2", "1", "2", "3"])
 }
 
 pub fn root_help_test() {
@@ -290,6 +298,7 @@ pub fn global_and_group_flags_test() {
       [],
       glint.command(fn(_, _, flags) {
         assert glint.get_flag(flags, flag_f) == Ok(2)
+        glint.Success(Nil)
       }),
     )
     |> glint.add(["sub"], {
@@ -301,6 +310,7 @@ pub fn global_and_group_flags_test() {
       )
       use _, _, flags <- glint.command()
       assert f(flags) == Ok(True)
+      glint.Success(Nil)
     })
     |> glint.group_flag(["sub"], sub_group_flag)
     |> glint.add(["sub", "sub"], {
@@ -314,17 +324,18 @@ pub fn global_and_group_flags_test() {
       assert f(flags) == Ok(True)
 
       assert glint.get_flag(flags, sub_group_flag) == Ok(2)
+      glint.Success(Nil)
     })
 
   // root command keeps the global flag as an int
-  let assert Ok(_) = glint.run(cli, ["--f=2"])
+  let assert glint.Success(_) = glint.run(cli, ["--f=2"])
 
-  let assert Error(_) = glint.run(cli, ["--f=hello"])
+  let assert glint.Failure(_) = glint.run(cli, ["--f=hello"])
 
   // sub command overrides the global flag with a bool
-  let assert Ok(_) = glint.run(cli, ["sub", "--f=true"])
+  let assert glint.Success(_) = glint.run(cli, ["sub", "--f=true"])
 
-  let assert Error(_) = glint.run(cli, ["sub", "--f=123"])
+  let assert glint.Failure(_) = glint.run(cli, ["sub", "--f=123"])
 
   cli
   |> glint.run(["sub", "sub", "--sub_group_flag=2"])
@@ -334,5 +345,5 @@ pub fn version_test() {
   assert glint.new()
     |> glint.with_version("test")
     |> glint.run(["--version"])
-    == Ok(glint.Version(option.Some("test")))
+    == glint.Info("test")
 }

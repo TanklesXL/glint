@@ -1,7 +1,6 @@
 import gleam/io
-import gleam/option
-import glint.{type Out, Help, Out, Version}
-import snag.{type Snag}
+import glint.{type Out}
+import snag
 
 @external(erlang, "erlang", "halt")
 @external(javascript, "node:process", "exit")
@@ -18,10 +17,11 @@ fn do_exit(status: Int) -> a
 /// |> glintio.exit
 /// ```
 ///
-pub fn exit(res: Result(a, b)) -> a {
+pub fn exit(res: glint.Out(a)) -> a {
   case res {
-    Ok(a) -> a
-    Error(_) -> do_exit(1)
+    glint.Success(a) -> a
+    glint.Info(_) -> do_exit(0)
+    glint.Failure(_) -> do_exit(1)
   }
 }
 
@@ -29,15 +29,11 @@ pub fn exit(res: Result(a, b)) -> a {
 /// This function accepts as input a function to convert the command output to a String before printing it.
 ///
 /// If you do not wish to print the command execution result, but still want to print the help or error text, see the [print_ignore_output](#print_ignore_output) function.
-pub fn print(
-  res: Result(Out(a), Snag),
-  f: fn(a) -> String,
-) -> Result(Out(a), Snag) {
+pub fn print(res: Out(a), f: fn(a) -> String) -> Out(a) {
   case res {
-    Ok(Out(o)) -> f(o)
-    Ok(Help(s)) -> s
-    Ok(Version(s)) -> option.unwrap(s, "")
-    Error(s) -> snag.pretty_print(s)
+    glint.Success(o) -> f(o)
+    glint.Info(s) -> s
+    glint.Failure(s) -> snag.pretty_print(s)
   }
   |> io.println
 
@@ -48,12 +44,11 @@ pub fn print(
 /// This function accepts as input a function to convert the output value to a String before printing it.
 ///
 /// If you also wish to print the command execution result, see the [print](#print) function.
-pub fn print_ignore_output(res: Result(Out(a), Snag)) -> Result(Out(a), Snag) {
+pub fn print_ignore_output(res: Out(a)) -> Out(a) {
   case res {
-    Ok(Out(_)) -> Nil
-    Ok(Help(s)) -> io.println(s)
-    Ok(Version(s)) -> s |> option.unwrap("") |> io.println
-    Error(s) -> s |> snag.pretty_print |> io.println
+    glint.Success(_) -> Nil
+    glint.Info(s) -> io.println(s)
+    glint.Failure(s) -> s |> snag.pretty_print |> io.println
   }
 
   res
