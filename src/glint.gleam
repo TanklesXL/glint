@@ -871,8 +871,12 @@ fn undefined_flag_err(key: String) -> Snag {
 pub fn get_flag(
   from flags: Flags,
   for flag: Parameter(a, Flag),
-) -> Result(a, Snag) {
-  flag.getter(flags.internal)
+  in body: fn(a) -> Out(b),
+) -> Out(b) {
+  flags.internal
+  |> flag.getter
+  |> snag.context("failed to retrieve flag value")
+  |> try(body)
 }
 
 /// Gets the value for the associated named argument.
@@ -1144,11 +1148,14 @@ fn parameter_access_error(
 ///
 pub fn flag(
   p: Parameter(a, Flag),
-  f: fn(fn(Flags) -> Result(a, Snag)) -> Command(b, c),
+  f: fn(fn(Flags, fn(a) -> Out(b)) -> Out(b)) -> Command(b, c),
 ) -> Command(b, c) {
   let cmd =
-    f(fn(flags) {
-      p.getter(flags.internal) |> snag.context("failed to retrieve flag value")
+    f(fn(flags, body) {
+      flags.internal
+      |> p.getter
+      |> snag.context("failed to retrieve flag value")
+      |> try(body)
     })
   Command(
     ..cmd,

@@ -55,7 +55,8 @@ pub fn flag_one_of_none_of_test() {
     |> glint.add([], {
       use access <- glint.flag(test_flag)
       use _, _, flags <- glint.command()
-      let assert Ok(_) = access(flags)
+      use flag <- access(flags)
+      assert flag == 1
       Success(Nil)
     })
     |> glint.run(["--i=" <> success])
@@ -90,7 +91,7 @@ pub fn flag_one_of_none_of_test() {
     |> glint.add([], {
       use access <- glint.flag(test_flag)
       use _, _, flags <- glint.command()
-      let assert Ok(_) = access(flags)
+      use _ <- access(flags)
       Success(Nil)
     })
     |> glint.run(["--li=" <> success])
@@ -116,7 +117,7 @@ pub fn flag_one_of_none_of_test() {
     |> glint.add([], {
       use access <- glint.flag(test_flag)
       use _, _, flags <- glint.command()
-      let assert Ok(_) = access(flags)
+      use _ <- access(flags)
       Success(Nil)
     })
     |> glint.run(["--f=" <> success])
@@ -124,8 +125,9 @@ pub fn flag_one_of_none_of_test() {
   let assert Failure(_) =
     glint.new()
     |> glint.add([], {
-      use _access <- glint.flag(test_flag)
-      use _, _, _flags <- glint.command()
+      use access <- glint.flag(test_flag)
+      use _, _, flags <- glint.command()
+      use _flag <- access(flags)
       panic
     })
     |> glint.run(["--f=" <> failure])
@@ -150,7 +152,7 @@ pub fn flag_one_of_none_of_test() {
     |> glint.add([], {
       use access <- glint.flag(test_flag)
       use _, _, flags <- glint.command()
-      let assert Ok(_) = access(flags)
+      use _ <- access(flags)
       Success(Nil)
     })
     |> glint.run(["--lf=" <> success])
@@ -177,7 +179,7 @@ pub fn flag_one_of_none_of_test() {
     |> glint.add([], {
       use access <- glint.flag(test_flag)
       use _, _, flags <- glint.command()
-      let assert Ok(_) = access(flags)
+      use _ <- access(flags)
       Success(Nil)
     })
     |> glint.run(["--s=" <> success])
@@ -212,7 +214,7 @@ pub fn flag_one_of_none_of_test() {
     |> glint.add([], {
       use access <- glint.flag(test_flag)
       use _, _, flags <- glint.command()
-      let assert Ok(_) = access(flags)
+      use _ <- access(flags)
       Success(Nil)
     })
     |> glint.run(["--ls=" <> success])

@@ -297,7 +297,8 @@ pub fn global_and_group_flags_test() {
     |> glint.add(
       [],
       glint.command(fn(_, _, flags) {
-        assert glint.get_flag(flags, flag_f) == Ok(2)
+        use flag <- glint.get_flag(flags, flag_f)
+        assert flag == 2
         glint.Success(Nil)
       }),
     )
@@ -309,7 +310,8 @@ pub fn global_and_group_flags_test() {
         |> glint.param_help("i decided to override the global flag"),
       )
       use _, _, flags <- glint.command()
-      assert f(flags) == Ok(True)
+      use f <- f(flags)
+      assert f == True
       glint.Success(Nil)
     })
     |> glint.group_flag(["sub"], sub_group_flag)
@@ -321,9 +323,11 @@ pub fn global_and_group_flags_test() {
         |> glint.param_help("i decided to override the global flag"),
       )
       use _, _, flags <- glint.command()
-      assert f(flags) == Ok(True)
+      use f <- f(flags)
+      assert f == True
 
-      assert glint.get_flag(flags, sub_group_flag) == Ok(2)
+      use flag <- glint.get_flag(flags, sub_group_flag)
+      assert flag == 2
       glint.Success(Nil)
     })
 

@@ -73,10 +73,11 @@ pub fn flag_default_test() {
   let assert glint.Success(_) =
     glint.new()
     |> glint.add(["cmd"], {
-      use flag_ <- glint.flag(flag)
+      use flag <- glint.flag(flag)
       use _, unnamed, flags <- glint.command()
       assert args == unnamed
-      assert flag_(flags) == Ok("default")
+      use flag <- flag(flags)
+      assert flag == "default"
       glint.Success(Nil)
     })
     |> glint.run(["cmd", ..args])
@@ -87,11 +88,11 @@ pub fn flag_value_test() {
   let flag = glint.string("flag")
   let flag_input = "--flag=flag_value"
   let flag_value_should_be_set = {
-    use flag_ <- glint.flag(flag)
+    use flag <- glint.flag(flag)
     use _, in_args, flags <- glint.command()
     assert in_args == args
-
-    assert flag_(flags) == Ok("flag_value")
+    use flag <- flag(flags)
+    assert flag == "flag_value"
     glint.Success(Nil)
   }
 
@@ -118,9 +119,10 @@ pub fn int_flag_test() {
   // parses flag input as int, sets value
   let flag_input = "--flag=10"
   let expect_flag_value_of_10 = {
-    use flag_ <- glint.flag(flags)
+    use flag <- glint.flag(flags)
     use _, _, flags <- glint.command()
-    assert flag_(flags) == Ok(10)
+    use flag <- flag(flags)
+    assert flag == 10
     glint.Success(Nil)
   }
 
@@ -149,7 +151,8 @@ pub fn bool_flag_test() {
   let flag_input = "--flag=false"
   let expect_flag_value_of_false = fn(flag) {
     glint.command(fn(_, _, flags) {
-      assert flag(flags) == Ok(False)
+      use flag <- flag(flags)
+      assert flag == False
       glint.Success(Nil)
     })
   }
@@ -165,7 +168,8 @@ pub fn strings_flag_test() {
   let flag_input = "--flag=val3,val4"
   let expect_flag_value_list = fn(flag) {
     glint.command(fn(_, _, flags) {
-      assert flag(flags) == Ok(["val3", "val4"])
+      use flag <- flag(flags)
+      assert flag == ["val3", "val4"]
       glint.Success(Nil)
     })
   }
@@ -195,7 +199,8 @@ pub fn ints_flag_test() {
   let flag_input = "--flag=3,4"
   let expect_flag_value_list = fn(flag) {
     glint.command(fn(_, _, flags) {
-      assert flag(flags) == Ok([3, 4])
+      use flag <- flag(flags)
+      assert flag == [3, 4]
       glint.Success(Nil)
     })
   }
@@ -222,16 +227,17 @@ pub fn float_flag_test() {
 
   // parses flag input as float, sets value
   let flag_input = "--flag=10.0"
-  let expect_flag_value_of_10 = {
-    use flag <- glint.flag(flag)
-    use _, _, flags <- glint.command()
-    assert flag(flags) == Ok(10.0)
-    glint.Success(Nil)
+  let expect_flag_value_of_10 = fn(flag) {
+    glint.command(fn(_, _, flags) {
+      use flag <- flag(flags)
+      assert flag == 10.0
+      glint.Success(Nil)
+    })
   }
 
   let assert glint.Success(_) =
     glint.new()
-    |> glint.add([], expect_flag_value_of_10)
+    |> glint.add([], glint.flag(flag, expect_flag_value_of_10))
     |> glint.run([flag_input])
 }
 
@@ -254,7 +260,8 @@ pub fn floats_flag_test() {
   let expect_flag_value_list = {
     use flag <- glint.flag(flag)
     use _, _, flags <- glint.command
-    assert flag(flags) == Ok([3.0, 4.0])
+    use flag <- flag(flags)
+    assert flag == [3.0, 4.0]
     glint.Success(Nil)
   }
   let assert glint.Success(_) =
@@ -267,7 +274,8 @@ pub fn global_flag_test() {
   let flag = glint.floats("flag")
   let testcase = fn(vals: List(Float)) {
     use _, _, flags <- glint.command()
-    assert glint.get_flag(flags, flag) == Ok(vals)
+    use flag_vals <- glint.get_flag(flags, flag)
+    assert vals == flag_vals
     glint.Success(Nil)
   }
 
@@ -332,7 +340,8 @@ pub fn toggle_test() {
     |> glint.add([], {
       use flag <- glint.flag(glint.bool("flag"))
       use _, _, flags <- glint.command()
-      assert flag(flags) == Ok(True)
+      use flag <- flag(flags)
+      assert flag == True
       glint.Success(Nil)
     })
     |> glint.run([flag_input])
@@ -348,7 +357,9 @@ pub fn toggle_test() {
         |> glint.default(True),
       )
       use _, _, flags <- glint.command()
-      assert flag(flags) == Ok(False)
+
+      use flag <- flag(flags)
+      assert flag == False
       glint.Success(Nil)
     })
     |> glint.run([flag_input])
@@ -359,7 +370,8 @@ pub fn toggle_test() {
     |> glint.add([], {
       use flag <- glint.flag(glint.bool("flag"))
       use _, _, flags <- glint.command()
-      assert flag(flags) == Ok(True)
+      use flag <- flag(flags)
+      assert flag == True
       glint.Success(Nil)
     })
     |> glint.run([flag_input])
@@ -411,19 +423,26 @@ pub fn getters_test() {
     )
 
     use _, _, flags <- glint.command()
-    assert bflag(flags) == Ok(True)
+    use bflag <- bflag(flags)
+    assert bflag == True
 
-    assert sflag(flags) == Ok("")
+    use sflag <- sflag(flags)
+    assert sflag == ""
 
-    assert lsflag(flags) == Ok([])
+    use lsflag <- lsflag(flags)
+    assert lsflag == []
 
-    assert iflag(flags) == Ok(1)
+    use iflag <- iflag(flags)
+    assert iflag == 1
 
-    assert liflag(flags) == Ok([])
+    use lflag <- liflag(flags)
+    assert lflag == []
 
-    assert fflag(flags) == Ok(1.0)
+    use fflag <- fflag(flags)
+    assert fflag == 1.0
 
-    assert lfflag(flags) == Ok([])
+    use lfflag <- lfflag(flags)
+    assert lfflag == []
 
     glint.Success(Nil)
   })
