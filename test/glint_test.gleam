@@ -185,7 +185,7 @@ New new new line.",
   )
 }
 
-fn assert_unwrap_help(res: Result(glint.Out(a), String)) -> String {
+fn assert_unwrap_help(res: Result(glint.Out(a), snag.Snag)) -> String {
   let assert Ok(Help(help)) = res
   help
 }

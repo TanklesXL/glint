@@ -3,11 +3,12 @@
 // stdlib imports
 import gleam/function
 import gleam/list
+import gleam/result
 import gleam/string.{uppercase}
 import glintio
 
 // external dep imports
-import snag
+import snag.{type Snag}
 
 // glint imports
 import argv
@@ -85,30 +86,31 @@ pub fn repeat_flag() -> glint.Parameter(Int, glint.Flag) {
 
 /// the command function that will be executed as the root command
 ///
-pub fn hello_cmd() -> glint.Command(String, glint.ArgsSet) {
+pub fn hello_cmd() -> glint.Command(Result(String, Snag), glint.ArgsSet) {
   use <- glint.command_help("Prints Hello, <names>!")
   use <- glint.min_args("names", 1, "Names of people to greet.")
   use _, args, flags <- glint.command()
-  let assert Ok(caps) = glint.get_flag(flags, caps_flag())
-  let assert Ok(repeat) = glint.get_flag(flags, repeat_flag())
-  hello(args, caps, repeat)
+  use caps <- result.try(glint.get_flag(flags, caps_flag()))
+  use repeat <- result.try(glint.get_flag(flags, repeat_flag()))
+  Ok(hello(args, caps, repeat))
 }
 
-pub fn hello_custom_cmd() -> glint.Command(String, glint.ArgsSet) {
+pub fn hello_custom_cmd() -> glint.Command(Result(String, Snag), glint.ArgsSet) {
   use <- glint.command_help("Prints a greeting for the names provided!")
   use greeting <- glint.named_arg(
     glint.string("greeting") |> glint.param_help("The greeting to give."),
   )
   use <- glint.min_args("names", 1, "Names of people to greet.")
   use named_args, args, flags <- glint.command()
-  let assert Ok(caps) = glint.get_flag(flags, caps_flag())
-  let assert Ok(repeat) = glint.get_flag(flags, repeat_flag())
-  greet(greeting(named_args), args, caps, repeat)
+  use caps <- result.try(glint.get_flag(flags, caps_flag()))
+  use repeat <- result.try(glint.get_flag(flags, repeat_flag()))
+
+  greeting(named_args) |> greet(args, caps, repeat) |> Ok
 }
 
 /// the command function that will be executed as the "single" command
 ///
-pub fn hello_single_cmd() -> glint.Command(String, glint.ArgsSet) {
+pub fn hello_single_cmd() -> glint.Command(Result(String, Snag), glint.ArgsSet) {
   use <- glint.command_help("Prints Hello, <name>!")
   use <- glint.no_args()
   use name <- glint.named_arg(
@@ -116,10 +118,10 @@ pub fn hello_single_cmd() -> glint.Command(String, glint.ArgsSet) {
     |> glint.param_help("The name of the person we're saying hello to."),
   )
   use named_args, _, flags <- glint.command()
-  let assert Ok(caps) = glint.get_flag(flags, caps_flag())
-  let assert Ok(repeat) = glint.get_flag(flags, repeat_flag())
+  use caps <- result.try(glint.get_flag(flags, caps_flag()))
+  use repeat <- result.try(glint.get_flag(flags, repeat_flag()))
   let name = name(named_args)
-  hello([name], caps, repeat)
+  Ok(hello([name], caps, repeat))
 }
 
 // the function that describes our cli structure
@@ -161,6 +163,8 @@ pub fn main() {
   app()
   // run the glint app with the command line arguments provided
   |> glint.run(argv.load().arguments)
+  // since our Commands returnt Result(String,Snag), we can flatten these for glint to print if an error occured in a result
+  |> glint.flatten
   // print the result of running glint
   // the command output is already a string so we can pass it as-is
   |> glintio.print(function.identity)

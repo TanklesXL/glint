@@ -470,7 +470,7 @@ pub fn group_flag(
 /// .
 /// If you would like to do handle the command output please see the `glintio` package.
 ///
-pub fn run(glint: Glint(a), args: List(String)) -> Result(Out(a), String) {
+pub fn run(glint: Glint(a), args: List(String)) -> Result(Out(a), Snag) {
   // create help and version flags to check for
   let help_flag = flag_prefix <> help.help_flag.meta.name
   let version_flag = flag_prefix <> help.version_flag.meta.name
@@ -504,7 +504,7 @@ fn do_execute(
   flags: List(String),
   help: Bool,
   command_path: List(String),
-) -> Result(Out(a), String) {
+) -> Result(Out(a), Snag) {
   case args {
     // when there are no more available arguments
     // and help flag has been passed, generate help message
@@ -564,7 +564,7 @@ fn execute_root(
   cmd: CommandNode(a),
   args: List(String),
   flag_inputs: List(String),
-) -> Result(a, String) {
+) -> Result(a, Snag) {
   {
     // check if the command can actually be executed
     use contents <- result.try(option.to_result(
@@ -623,9 +623,10 @@ fn execute_root(
   |> result.map_error(fn(err) {
     err
     |> snag.layer("failed to run command")
-    |> snag.pretty_print
-    <> "\nSee the following help text, available via the '--help' flag.\n\n"
-    <> cmd_help(path, cmd, config)
+    |> snag.layer(
+      "\nSee the following help text, available via the '--help' flag.\n\n"
+      <> cmd_help(path, cmd, config),
+    )
   })
 }
 
@@ -860,7 +861,7 @@ fn undefined_flag_err(key: String) -> Snag {
 pub fn get_flag(
   from flags: Flags,
   for flag: Parameter(a, Flag),
-) -> Result(a, Nil) {
+) -> Result(a, Snag) {
   flag.getter(flags.internal)
 }
 
@@ -916,7 +917,7 @@ fn new_parameter(
   name: String,
   constructor: fn(Parameter(a, b)) -> Parameters(b),
   parse: fn(String) -> Result(a, Snag),
-  getter: fn(dict.Dict(String, Parameters(b))) -> Result(a, Nil),
+  getter: fn(dict.Dict(String, Parameters(b))) -> Result(a, Snag),
 ) -> Parameter(a, b) {
   Parameter(
     internal: parameter.Parameter(
@@ -1002,12 +1003,13 @@ pub fn param_help(p: Parameter(a, b), description: String) {
   Parameter(..p, internal: parameter.Parameter(..p.internal, description:))
 }
 
-pub fn int(name: String) -> Parameter(Int, _) {
+pub fn int(name: String) -> Parameter(Int, a) {
   use params <- new_parameter(name, I, fn(s) {
     s
     |> parse.int
     |> result.map_error(fn(e) { e |> parse.error_to_string |> snag.new })
   })
+  use <- parameter_access_error(name)
   use v <- result.try(dict.get(params, name))
   case v {
     I(param) -> option.to_result(param.internal.value, Nil)
@@ -1015,12 +1017,13 @@ pub fn int(name: String) -> Parameter(Int, _) {
   }
 }
 
-pub fn ints(name: String) -> Parameter(List(Int), _) {
+pub fn ints(name: String) -> Parameter(List(Int), a) {
   use params <- new_parameter(name, LI, fn(s) {
     s
     |> parse.ints
     |> result.map_error(fn(e) { e |> parse.error_to_string |> snag.new })
   })
+  use <- parameter_access_error(name)
   use v <- result.try(dict.get(params, name))
   case v {
     LI(param) -> option.to_result(param.internal.value, Nil)
@@ -1028,12 +1031,13 @@ pub fn ints(name: String) -> Parameter(List(Int), _) {
   }
 }
 
-pub fn string(name: String) -> Parameter(String, _) {
+pub fn string(name: String) -> Parameter(String, a) {
   use params <- new_parameter(name, S, fn(s) {
     s
     |> parse.string
     |> result.map_error(fn(e) { e |> parse.error_to_string |> snag.new })
   })
+  use <- parameter_access_error(name)
   use v <- result.try(dict.get(params, name))
   case v {
     S(param) -> option.to_result(param.internal.value, Nil)
@@ -1041,12 +1045,14 @@ pub fn string(name: String) -> Parameter(String, _) {
   }
 }
 
-pub fn strings(name: String) -> Parameter(List(String), _) {
+pub fn strings(name: String) -> Parameter(List(String), a) {
   use params <- new_parameter(name, LS, fn(s) {
     s
     |> parse.strings
     |> result.map_error(fn(e) { e |> parse.error_to_string |> snag.new })
   })
+
+  use <- parameter_access_error(name)
   use v <- result.try(dict.get(params, name))
   case v {
     LS(param) -> option.to_result(param.internal.value, Nil)
@@ -1054,12 +1060,13 @@ pub fn strings(name: String) -> Parameter(List(String), _) {
   }
 }
 
-pub fn float(name: String) -> Parameter(Float, _) {
+pub fn float(name: String) -> Parameter(Float, a) {
   use params <- new_parameter(name, F, fn(s) {
     s
     |> parse.float
     |> result.map_error(fn(e) { e |> parse.error_to_string |> snag.new })
   })
+  use <- parameter_access_error(name)
   use v <- result.try(dict.get(params, name))
   case v {
     F(param) -> option.to_result(param.internal.value, Nil)
@@ -1067,13 +1074,13 @@ pub fn float(name: String) -> Parameter(Float, _) {
   }
 }
 
-pub fn floats(name: String) -> Parameter(List(Float), _) {
+pub fn floats(name: String) -> Parameter(List(Float), a) {
   use params <- new_parameter(name, LF, fn(s) {
     s
     |> parse.floats
     |> result.map_error(fn(e) { e |> parse.error_to_string |> snag.new })
   })
-
+  use <- parameter_access_error(name)
   use v <- result.try(dict.get(params, name))
   case v {
     LF(param) -> option.to_result(param.internal.value, Nil)
@@ -1081,16 +1088,27 @@ pub fn floats(name: String) -> Parameter(List(Float), _) {
   }
 }
 
-pub fn bool(name: String) -> Parameter(Bool, _) {
+pub fn bool(name: String) -> Parameter(Bool, a) {
   use params <- new_parameter(name, B, fn(s) {
     s
     |> parse.bool
     |> result.map_error(fn(e) { e |> parse.error_to_string |> snag.new })
   })
+  use <- parameter_access_error(name)
   use v <- result.try(dict.get(params, name))
   case v {
     B(param) -> option.to_result(param.internal.value, Nil)
     _ -> Error(Nil)
+  }
+}
+
+fn parameter_access_error(
+  name: String,
+  f: fn() -> Result(a, Nil),
+) -> Result(a, Snag) {
+  case f() {
+    Error(Nil) -> snag.error("failed to retrieve value for: " <> name)
+    Ok(r) -> Ok(r)
   }
 }
 
@@ -1116,9 +1134,12 @@ pub fn bool(name: String) -> Parameter(Bool, _) {
 ///
 pub fn flag(
   p: Parameter(a, Flag),
-  f: fn(fn(Flags) -> Result(a, Nil)) -> Command(b, c),
+  f: fn(fn(Flags) -> Result(a, Snag)) -> Command(b, c),
 ) -> Command(b, c) {
-  let cmd = f(fn(flags) { p.getter(flags.internal) })
+  let cmd =
+    f(fn(flags) {
+      p.getter(flags.internal) |> snag.context("failed to retrieve flag value")
+    })
   Command(
     ..cmd,
     flags: Flags(dict.insert(
@@ -1286,7 +1307,7 @@ pub opaque type Parameter(kind, usage) {
   Parameter(
     internal: parameter.Parameter(kind, Snag),
     constructor: fn(Parameter(kind, usage)) -> Parameters(usage),
-    getter: fn(dict.Dict(String, Parameters(usage))) -> Result(kind, Nil),
+    getter: fn(dict.Dict(String, Parameters(usage))) -> Result(kind, Snag),
   )
 }
 
@@ -1298,4 +1319,14 @@ pub type Parameters(a) {
   B(value: Parameter(Bool, a))
   F(value: Parameter(Float, a))
   LF(value: Parameter(List(Float), a))
+}
+
+pub fn flatten(r: Result(Out(Result(a, Snag)), Snag)) -> Result(Out(a), Snag) {
+  case r {
+    Ok(Out(Ok(a))) -> Ok(Out(a))
+    Ok(Out(Error(e))) -> Error(e)
+    Ok(Help(help)) -> Ok(Help(help))
+    Ok(Version(version)) -> Ok(Version(version))
+    Error(e) -> Error(e)
+  }
 }
