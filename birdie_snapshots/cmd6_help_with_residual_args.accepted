@@ -1,5 +1,5 @@
 ---
-version: 1.2.6
+version: 1.3.1
 title: cmd6 help with residual args
 file: ./test/glint_test.gleam
 test_name: call_help_with_residual_args_test
@@ -9,10 +9,13 @@ Some awesome global help text!
 This is cmd6
 
 USAGE:
-    gleam run -m test cmd5 cmd6 ( cmd7 ) [ args ] [ flags ]
+    gleam run -m test cmd5 cmd6 ( cmd7 ) [ args.. ] [ flags ]
 
 SUBCOMMANDS:
     cmd7                  This is cmd7
+
+ARGUMENTS:
+    args.. >= 0 args      
 
 FLAGS:
     --global=<string>     This is a global flag

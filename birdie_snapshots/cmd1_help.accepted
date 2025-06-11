@@ -1,5 +1,5 @@
 ---
-version: 1.2.6
+version: 1.3.1
 title: cmd1 help
 file: ./test/glint_test.gleam
 test_name: cmd1_help_test
@@ -9,13 +9,16 @@ Some awesome global help text!
 This is cmd1
 
 USAGE:
-    gleam run -m test cmd1 ( cmd3 | cmd4 ) [ args ] [ flags ]
+    gleam run -m test cmd1 ( cmd3 | cmd4 ) [ args.. ] [ flags ]
 
 SUBCOMMANDS:
     cmd3                  This is cmd3
 
     cmd4                  This is cmd4 which has a very very very very very very
                           very very long description
+
+ARGUMENTS:
+    args.. >= 0 args      
 
 FLAGS:
     --flag2=<int>                                              This is flag2

@@ -1,5 +1,5 @@
 ---
-version: 1.2.6
+version: 1.3.1
 title: root help
 file: ./test/glint_test.gleam
 test_name: root_help_test
@@ -10,7 +10,7 @@ This is the root command
 
 USAGE:
     gleam run -m test ( cmd1 | cmd2 | cmd5 | cmd8-very-very-very-very-long )
-        <arg1> <arg2> [ args ] [ flags ]
+        <arg1> <arg2> [ args.. ] [ flags ]
 
 SUBCOMMANDS:
     cmd1                           This is cmd1
@@ -32,6 +32,7 @@ SUBCOMMANDS:
 ARGUMENTS:
     arg1: string          
     arg2: int             
+    args.. >= 0 args      
 
 FLAGS:
     --flag1=<string>      This is flag1

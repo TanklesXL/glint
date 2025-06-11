@@ -31,5 +31,5 @@ pub fn hello_test() {
 
 pub fn app_test() {
   assert glint.run(hello.app(), ["Joe", "Gleamlins", "--repeat=2", "--caps"])
-    == Ok(glint.Out("HELLO, JOE AND GLEAMLINS!\nHELLO, JOE AND GLEAMLINS!"))
+    == glint.Success("HELLO, JOE AND GLEAMLINS!\nHELLO, JOE AND GLEAMLINS!")
 }

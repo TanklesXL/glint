@@ -204,24 +204,28 @@ pub opaque type Glint(a) {
 type ArgsCount {
   /// Specifies that a command must accept a specific number of unnamed arguments
   ///
-  EqArgs(name: String, help: String, cont: Int)
+  EqArgs(name: String, help: String, count: Int)
   /// Specifies that a command must accept a minimum number of unnamed arguments
   ///
-  MinArgs(name: String, help: String, cont: Int)
+  MinArgs(name: String, help: String, count: Int)
   /// Specifies that a command accepts no arguments
   NoArgs
 }
+
+pub type ArgsSet
+
+pub type ArgsNotSet
 
 /// The type representing a glint command.
 ///
 /// To create a new command, use the [`glint.command`](#command) function.
 ///
-pub opaque type Command(a) {
+pub opaque type Command(output, args) {
   Command(
-    do: Runner(a),
+    do: Runner(output),
     flags: Flags,
     description: String,
-    unnamed_args: Option(ArgsCount),
+    unnamed_args: ArgsCount,
     named_args: List(Parameters(NamedArg)),
   )
 }
@@ -235,13 +239,13 @@ pub opaque type NamedArgs {
 /// Functions that execute when glint commands are run.
 ///
 pub type Runner(a) =
-  fn(NamedArgs, List(String), Flags) -> a
+  fn(NamedArgs, List(String), Flags) -> Out(a)
 
 /// CommandNode tree representation.
 ///
 type CommandNode(a) {
   CommandNode(
-    contents: Option(Command(a)),
+    contents: Option(Command(a, ArgsSet)),
     subcommands: dict.Dict(String, CommandNode(a)),
     group_flags: Flags,
     description: String,
@@ -250,12 +254,9 @@ type CommandNode(a) {
 
 /// This type defines the success cases for running a glint application.
 pub type Out(a) {
-  /// Contains the command return value
-  Out(a)
-  /// Contains the generated help string
-  Help(String)
-  /// Contains the version string
-  Version(Option(String))
+  Success(a)
+  Failure(Snag)
+  Info(String)
 }
 
 // -- CORE: BUILDER FUNCTIONS --
@@ -313,10 +314,20 @@ pub fn global_help(in glint: Glint(a), of description: String) -> Glint(a) {
 pub fn add(
   to glint: Glint(a),
   at path: List(String),
-  do command: Command(a),
+  do command: Command(a, b),
 ) -> Glint(a) {
   use node <- update_at(in: glint, at: path)
-  CommandNode(..node, description: command.description, contents: Some(command))
+  CommandNode(
+    ..node,
+    description: command.description,
+    contents: Some(Command(
+      do: command.do,
+      description: command.description,
+      flags: command.flags,
+      unnamed_args: command.unnamed_args,
+      named_args: command.named_args,
+    )),
+  )
 }
 
 /// Helper for initializing empty commands
@@ -351,12 +362,12 @@ fn sanitize_path(path: List(String)) -> List(String) {
 /// let my_arg = named_arg(named)
 /// ...
 /// ```
-pub fn command(do runner: Runner(a)) -> Command(a) {
+pub fn command(do runner: Runner(a)) -> Command(a, ArgsNotSet) {
   Command(
     do: runner,
     flags: Flags(dict.new()),
     description: "",
-    unnamed_args: None,
+    unnamed_args: MinArgs(name: "args", help: "", count: 0),
     named_args: [],
   )
 }
@@ -365,14 +376,27 @@ pub fn command(do runner: Runner(a)) -> Command(a) {
 ///
 /// This function can be useful when you are handling user-defined commands or commands from other packages and need to make sure the return type matches your own commands.
 ///
-pub fn map_command(command: Command(a), with fun: fn(a) -> b) -> Command(b) {
+pub fn map_command(
+  command: Command(a, c),
+  with fun: fn(a) -> b,
+) -> Command(b, c) {
   Command(
-    do: fn(named_args, args, flags) { fun(command.do(named_args, args, flags)) },
+    do: fn(named_args, args, flags) {
+      map_out(command.do(named_args, args, flags), fun)
+    },
     description: command.description,
     flags: command.flags,
     named_args: command.named_args,
     unnamed_args: command.unnamed_args,
   )
+}
+
+fn map_out(out: Out(a), f: fn(a) -> b) -> Out(b) {
+  case out {
+    Success(a) -> Success(f(a))
+    Failure(snag) -> Failure(snag)
+    Info(info) -> Info(info)
+  }
 }
 
 /// Attach a helptext description to a [`Command(a)`](#Command)
@@ -383,7 +407,10 @@ pub fn map_command(command: Command(a), with fun: fn(a) -> b) -> Command(b) {
 /// For formatted text to appear on a new line, use 2 newline characters.
 /// For formatted text to appear in a new paragraph, use 3 newline characters.
 ///
-pub fn command_help(of desc: String, with f: fn() -> Command(a)) -> Command(a) {
+pub fn command_help(
+  of desc: String,
+  with f: fn() -> Command(a, b),
+) -> Command(a, b) {
   Command(..f(), description: desc)
 }
 
@@ -396,9 +423,9 @@ pub fn min_args(
   named name: String,
   of count: Int,
   described help: String,
-  with f: fn() -> Command(b),
-) -> Command(b) {
-  Command(..f(), unnamed_args: Some(MinArgs(name, help, count)))
+  with f: fn() -> Command(b, ArgsNotSet),
+) -> Command(b, ArgsSet) {
+  Command(..f(), unnamed_args: MinArgs(name, help, count))
 }
 
 /// Require exactly N arguments be provided for a command to execute.
@@ -410,16 +437,16 @@ pub fn eq_args(
   named name: String,
   of count: Int,
   described help: String,
-  with f: fn() -> Command(b),
-) -> Command(b) {
-  Command(..f(), unnamed_args: Some(EqArgs(name, help, count)))
+  with f: fn() -> Command(b, ArgsNotSet),
+) -> Command(b, ArgsSet) {
+  Command(..f(), unnamed_args: EqArgs(name, help, count))
 }
 
 /// Require that no argumenets be provided for a command to execute.
 /// This requirement does not apply to named arguments, which are matched before this constraint is applied.
 ///
-pub fn no_args(with f: fn() -> Command(b)) -> Command(b) {
-  Command(..f(), unnamed_args: Some(NoArgs))
+pub fn no_args(with f: fn() -> Command(b, ArgsNotSet)) -> Command(b, ArgsSet) {
+  Command(..f(), unnamed_args: NoArgs)
 }
 
 /// Add a flag for a group of commands.
@@ -450,14 +477,14 @@ pub fn group_flag(
 /// .
 /// If you would like to do handle the command output please see the `glintio` package.
 ///
-pub fn run(glint: Glint(a), args: List(String)) -> Result(Out(a), String) {
+pub fn run(glint: Glint(a), args: List(String)) -> Out(a) {
   // create help and version flags to check for
   let help_flag = flag_prefix <> help.help_flag.meta.name
   let version_flag = flag_prefix <> help.version_flag.meta.name
 
   use <- bool.guard(
     when: list.contains(args, version_flag),
-    return: Ok(Version(glint.config.version)),
+    return: Info(glint.config.version |> option.unwrap("")),
   )
 
   // check if help flag is present
@@ -484,15 +511,15 @@ fn do_execute(
   flags: List(String),
   help: Bool,
   command_path: List(String),
-) -> Result(Out(a), String) {
+) -> Out(a) {
   case args {
     // when there are no more available arguments
     // and help flag has been passed, generate help message
-    [] if help -> Ok(Help(cmd_help(command_path, cmd, config)))
+    [] if help -> Info(cmd_help(command_path, cmd, config))
 
     // when there are no more available arguments
     // run the current command
-    [] -> execute_root(command_path, config, cmd, [], flags) |> result.map(Out)
+    [] -> execute_root(command_path, config, cmd, [], flags)
 
     // when there are arguments remaining
     // check if the next one is a subcommand of the current command
@@ -511,13 +538,11 @@ fn do_execute(
 
         // subcommand not found, but help flag has been passed
         // generate and return help message
-        _ if help -> Ok(Help(cmd_help(command_path, cmd, config)))
+        _ if help -> Info(cmd_help(command_path, cmd, config))
 
         // subcommand not found, but help flag has not been passed
         // execute the current command
-        _ ->
-          execute_root(command_path, config, cmd, args, flags)
-          |> result.map(Out)
+        _ -> execute_root(command_path, config, cmd, args, flags)
       }
   }
 }
@@ -544,7 +569,9 @@ fn execute_root(
   cmd: CommandNode(a),
   args: List(String),
   flag_inputs: List(String),
-) -> Result(a, String) {
+) -> Out(a) {
+  use <- flatten
+
   {
     // check if the command can actually be executed
     use contents <- result.try(option.to_result(
@@ -553,6 +580,7 @@ fn execute_root(
     ))
 
     // merge flags and parse flag inputs
+    //
     use new_flags <- result.try(list.try_fold(
       over: flag_inputs,
       from: dict.merge(cmd.group_flags.internal, contents.flags.internal),
@@ -560,6 +588,7 @@ fn execute_root(
     ))
 
     // get named arguments
+    //
     use named_args <- result.try({
       let named = list.zip(contents.named_args, args)
       case list.length(named) == list.length(contents.named_args) {
@@ -591,23 +620,24 @@ fn execute_root(
     let args = list.drop(args, dict.size(named_args))
 
     // validate unnamed argument quantity
-    use _ <- result.map(case contents.unnamed_args {
-      Some(count) ->
-        count
-        |> args_compare(list.length(args))
-        |> snag.context("invalid number of unnamed arguments provided")
-      None -> Ok(Nil)
-    })
+    use _ <- result.map(
+      contents.unnamed_args
+      |> args_compare(list.length(args))
+      |> snag.context("invalid number of unnamed arguments provided"),
+    )
 
     // execute the command
     contents.do(NamedArgs(named_args), args, Flags(new_flags))
   }
   |> result.map_error(fn(err) {
-    err
+    snag.Snag(
+      ..err,
+      cause: list.append(err.cause, [
+        "See the following help text, available via the '--help' flag:\n\n"
+        <> cmd_help(path, cmd, config),
+      ]),
+    )
     |> snag.layer("failed to run command")
-    |> snag.pretty_print
-    <> "\nSee the following help text, available via the '--help' flag.\n\n"
-    <> cmd_help(path, cmd, config)
   })
 }
 
@@ -659,19 +689,16 @@ fn build_command_help(name: String, node: CommandNode(_)) -> help.Command {
         cmd.named_args |> build_named_args_help,
       )
     })
-    |> option.unwrap(#(node.description, [], None, []))
+    |> option.unwrap(#(node.description, [], MinArgs("args", "", 0), []))
 
   help.Command(
     meta: help.Metadata(name: name, description: description),
     flags: flags,
     subcommands: build_subcommands_help(node.subcommands),
-    unnamed_args: {
-      use args <- option.map(unnamed_args)
-      case args {
-        EqArgs(name, help, n) -> help.EqArgs(name, help, n)
-        MinArgs(name, help, n) -> help.MinArgs(name, help, n)
-        NoArgs -> help.NoArgs
-      }
+    unnamed_args: case unnamed_args {
+      EqArgs(name, help, n) -> help.EqArgs(name, help, n)
+      MinArgs(name, help, n) -> help.MinArgs(name, help, n)
+      NoArgs -> help.NoArgs
     },
     named_args: named_args,
   )
@@ -845,8 +872,12 @@ fn undefined_flag_err(key: String) -> Snag {
 pub fn get_flag(
   from flags: Flags,
   for flag: Parameter(a, Flag),
-) -> Result(a, Nil) {
-  flag.getter(flags.internal)
+  in body: fn(a) -> Out(b),
+) -> Out(b) {
+  flags.internal
+  |> flag.getter
+  |> snag.context("failed to retrieve flag value")
+  |> try(body)
 }
 
 /// Gets the value for the associated named argument.
@@ -901,7 +932,7 @@ fn new_parameter(
   name: String,
   constructor: fn(Parameter(a, b)) -> Parameters(b),
   parse: fn(String) -> Result(a, Snag),
-  getter: fn(dict.Dict(String, Parameters(b))) -> Result(a, Nil),
+  getter: fn(dict.Dict(String, Parameters(b))) -> Result(a, Snag),
 ) -> Parameter(a, b) {
   Parameter(
     internal: parameter.Parameter(
@@ -987,12 +1018,13 @@ pub fn param_help(p: Parameter(a, b), description: String) {
   Parameter(..p, internal: parameter.Parameter(..p.internal, description:))
 }
 
-pub fn int(name: String) -> Parameter(Int, _) {
+pub fn int(name: String) -> Parameter(Int, a) {
   use params <- new_parameter(name, I, fn(s) {
     s
     |> parse.int
     |> result.map_error(fn(e) { e |> parse.error_to_string |> snag.new })
   })
+  use <- parameter_access_error(name)
   use v <- result.try(dict.get(params, name))
   case v {
     I(param) -> option.to_result(param.internal.value, Nil)
@@ -1000,12 +1032,13 @@ pub fn int(name: String) -> Parameter(Int, _) {
   }
 }
 
-pub fn ints(name: String) -> Parameter(List(Int), _) {
+pub fn ints(name: String) -> Parameter(List(Int), a) {
   use params <- new_parameter(name, LI, fn(s) {
     s
     |> parse.ints
     |> result.map_error(fn(e) { e |> parse.error_to_string |> snag.new })
   })
+  use <- parameter_access_error(name)
   use v <- result.try(dict.get(params, name))
   case v {
     LI(param) -> option.to_result(param.internal.value, Nil)
@@ -1013,12 +1046,13 @@ pub fn ints(name: String) -> Parameter(List(Int), _) {
   }
 }
 
-pub fn string(name: String) -> Parameter(String, _) {
+pub fn string(name: String) -> Parameter(String, a) {
   use params <- new_parameter(name, S, fn(s) {
     s
     |> parse.string
     |> result.map_error(fn(e) { e |> parse.error_to_string |> snag.new })
   })
+  use <- parameter_access_error(name)
   use v <- result.try(dict.get(params, name))
   case v {
     S(param) -> option.to_result(param.internal.value, Nil)
@@ -1026,12 +1060,14 @@ pub fn string(name: String) -> Parameter(String, _) {
   }
 }
 
-pub fn strings(name: String) -> Parameter(List(String), _) {
+pub fn strings(name: String) -> Parameter(List(String), a) {
   use params <- new_parameter(name, LS, fn(s) {
     s
     |> parse.strings
     |> result.map_error(fn(e) { e |> parse.error_to_string |> snag.new })
   })
+
+  use <- parameter_access_error(name)
   use v <- result.try(dict.get(params, name))
   case v {
     LS(param) -> option.to_result(param.internal.value, Nil)
@@ -1039,12 +1075,13 @@ pub fn strings(name: String) -> Parameter(List(String), _) {
   }
 }
 
-pub fn float(name: String) -> Parameter(Float, _) {
+pub fn float(name: String) -> Parameter(Float, a) {
   use params <- new_parameter(name, F, fn(s) {
     s
     |> parse.float
     |> result.map_error(fn(e) { e |> parse.error_to_string |> snag.new })
   })
+  use <- parameter_access_error(name)
   use v <- result.try(dict.get(params, name))
   case v {
     F(param) -> option.to_result(param.internal.value, Nil)
@@ -1052,13 +1089,13 @@ pub fn float(name: String) -> Parameter(Float, _) {
   }
 }
 
-pub fn floats(name: String) -> Parameter(List(Float), _) {
+pub fn floats(name: String) -> Parameter(List(Float), a) {
   use params <- new_parameter(name, LF, fn(s) {
     s
     |> parse.floats
     |> result.map_error(fn(e) { e |> parse.error_to_string |> snag.new })
   })
-
+  use <- parameter_access_error(name)
   use v <- result.try(dict.get(params, name))
   case v {
     LF(param) -> option.to_result(param.internal.value, Nil)
@@ -1066,16 +1103,27 @@ pub fn floats(name: String) -> Parameter(List(Float), _) {
   }
 }
 
-pub fn bool(name: String) -> Parameter(Bool, _) {
+pub fn bool(name: String) -> Parameter(Bool, a) {
   use params <- new_parameter(name, B, fn(s) {
     s
     |> parse.bool
     |> result.map_error(fn(e) { e |> parse.error_to_string |> snag.new })
   })
+  use <- parameter_access_error(name)
   use v <- result.try(dict.get(params, name))
   case v {
     B(param) -> option.to_result(param.internal.value, Nil)
     _ -> Error(Nil)
+  }
+}
+
+fn parameter_access_error(
+  name: String,
+  f: fn() -> Result(a, Nil),
+) -> Result(a, Snag) {
+  case f() {
+    Error(Nil) -> snag.error("failed to retrieve value for: " <> name)
+    Ok(r) -> Ok(r)
   }
 }
 
@@ -1101,9 +1149,15 @@ pub fn bool(name: String) -> Parameter(Bool, _) {
 ///
 pub fn flag(
   p: Parameter(a, Flag),
-  f: fn(fn(Flags) -> Result(a, Nil)) -> Command(b),
-) -> Command(b) {
-  let cmd = f(fn(flags) { p.getter(flags.internal) })
+  f: fn(fn(Flags, fn(a) -> Out(b)) -> Out(b)) -> Command(b, c),
+) -> Command(b, c) {
+  let cmd =
+    f(fn(flags, body) {
+      flags.internal
+      |> p.getter
+      |> snag.context("failed to retrieve flag value")
+      |> try(body)
+    })
   Command(
     ..cmd,
     flags: Flags(dict.insert(
@@ -1134,8 +1188,8 @@ pub fn flag(
 /// ```
 pub fn named_arg(
   p: Parameter(a, NamedArg),
-  f: fn(fn(NamedArgs) -> a) -> Command(b),
-) -> Command(b) {
+  f: fn(fn(NamedArgs) -> a) -> Command(b, c),
+) -> Command(b, c) {
   let cmd =
     f(fn(named_args) {
       let assert Ok(named_arg) = p.getter(named_args.internal)
@@ -1271,11 +1325,11 @@ pub opaque type Parameter(kind, usage) {
   Parameter(
     internal: parameter.Parameter(kind, Snag),
     constructor: fn(Parameter(kind, usage)) -> Parameters(usage),
-    getter: fn(dict.Dict(String, Parameters(usage))) -> Result(kind, Nil),
+    getter: fn(dict.Dict(String, Parameters(usage))) -> Result(kind, Snag),
   )
 }
 
-pub type Parameters(a) {
+type Parameters(a) {
   I(value: Parameter(Int, a))
   LI(value: Parameter(List(Int), a))
   S(value: Parameter(String, a))
@@ -1283,4 +1337,25 @@ pub type Parameters(a) {
   B(value: Parameter(Bool, a))
   F(value: Parameter(Float, a))
   LF(value: Parameter(List(Float), a))
+}
+
+fn flatten(f: fn() -> Result(Out(a), Snag)) -> Out(a) {
+  case f() {
+    Error(snag) -> Failure(snag)
+    Ok(Success(a)) -> Success(a)
+    Ok(Failure(snag)) -> Failure(snag)
+    Ok(Info(info)) -> Info(info)
+  }
+}
+
+/// This is a convenience function for working with `Result(a,Snag)` inside of glint commands.
+///
+/// If the result is `Ok(a)`, it will apply the provided function `f` to `a` and return the result of that function.
+/// If the result is `Error(snag)`, it will return `Failure(snag)`.
+///
+pub fn try(r: Result(a, Snag), f: fn(a) -> Out(b)) -> Out(b) {
+  case r {
+    Ok(a) -> f(a)
+    Error(snag) -> Failure(snag)
+  }
 }
