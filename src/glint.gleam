@@ -571,7 +571,6 @@ fn execute_root(
   flag_inputs: List(String),
 ) -> Out(a) {
   use <- flatten
-  use <- result_to_out
 
   {
     // check if the command can actually be executed
@@ -631,12 +630,14 @@ fn execute_root(
     contents.do(NamedArgs(named_args), args, Flags(new_flags))
   }
   |> result.map_error(fn(err) {
-    err
-    |> snag.layer("failed to run command")
-    |> snag.layer(
-      "\nSee the following help text, available via the '--help' flag.\n\n"
-      <> cmd_help(path, cmd, config),
+    snag.Snag(
+      ..err,
+      cause: list.append(err.cause, [
+        "See the following help text, available via the '--help' flag:\n\n"
+        <> cmd_help(path, cmd, config),
+      ]),
     )
+    |> snag.layer("failed to run command")
   })
 }
 
@@ -1328,7 +1329,7 @@ pub opaque type Parameter(kind, usage) {
   )
 }
 
-pub type Parameters(a) {
+type Parameters(a) {
   I(value: Parameter(Int, a))
   LI(value: Parameter(List(Int), a))
   S(value: Parameter(String, a))
@@ -1338,23 +1339,20 @@ pub type Parameters(a) {
   LF(value: Parameter(List(Float), a))
 }
 
-pub fn result_to_out(r: fn() -> Result(a, Snag)) -> Out(a) {
-  case r() {
-    Ok(a) -> Success(a)
-    Error(e) -> Failure(e)
-  }
-}
-
-fn flatten(f: fn() -> Out(Out(a))) -> Out(a) {
+fn flatten(f: fn() -> Result(Out(a), Snag)) -> Out(a) {
   case f() {
-    Success(Success(a)) -> Success(a)
-    Success(Failure(snag)) -> Failure(snag)
-    Success(Info(info)) -> Info(info)
-    Failure(snag) -> Failure(snag)
-    Info(info) -> Info(info)
+    Error(snag) -> Failure(snag)
+    Ok(Success(a)) -> Success(a)
+    Ok(Failure(snag)) -> Failure(snag)
+    Ok(Info(info)) -> Info(info)
   }
 }
 
+/// This is a convenience function for working with `Result(a,Snag)` inside of glint commands.
+///
+/// If the result is `Ok(a)`, it will apply the provided function `f` to `a` and return the result of that function.
+/// If the result is `Error(snag)`, it will return `Failure(snag)`.
+///
 pub fn try(r: Result(a, Snag), f: fn(a) -> Out(b)) -> Out(b) {
   case r {
     Ok(a) -> f(a)
