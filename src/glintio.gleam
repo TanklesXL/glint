@@ -6,8 +6,8 @@ import snag
 @external(javascript, "node:process", "exit")
 fn do_exit(status: Int) -> a
 
-/// This is a convenience function for exiting when the input Result is an Error.
-/// For convenience, this function returns the Ok value if the Result is Ok.
+/// This is a convenience function for exiting when the glint output output is Info or Failure.
+/// For convenience, this function returns the inner value if the Result is Out(a).
 ///
 /// ### Example:
 ///

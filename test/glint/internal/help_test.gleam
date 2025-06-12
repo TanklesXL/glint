@@ -1,11 +1,11 @@
 import birdie
 import gleam/string
-import glint/internal/utils
+import glint/internal/help
 
 pub fn wordwrap_test() {
-  assert utils.wordwrap("a b c", 3) == ["a b", "c"]
+  assert help.wordwrap("a b c", 3) == ["a b", "c"]
 
-  assert utils.wordwrap("a\nb\n\nc\n\n\nd\n\n\n\ne", 1)
+  assert help.wordwrap("a\nb\n\nc\n\n\nd\n\n\n\ne", 1)
     == ["a", "b", "c\n", "d\n\n", "e"]
 }
 
@@ -339,7 +339,7 @@ Nothing in this Declaration may be interpreted as implying for any State, group 
 person any right to engage in any activity or to perform any act aimed at the
 destruction of any of the rights and freedoms set forth herein.
 "
-  |> utils.wordwrap(80)
+  |> help.wordwrap(80)
   |> string.join("\n")
   |> birdie.snap("udhr")
 }

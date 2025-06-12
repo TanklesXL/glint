@@ -222,7 +222,7 @@ pub type ArgsNotSet
 ///
 pub opaque type Command(output, args) {
   Command(
-    do: Runner(output),
+    do: fn(NamedArgs, List(String), Flags) -> Out(output),
     flags: Flags,
     description: String,
     unnamed_args: ArgsCount,
@@ -235,11 +235,6 @@ pub opaque type Command(output, args) {
 pub opaque type NamedArgs {
   NamedArgs(internal: dict.Dict(String, Parameters(NamedArg)))
 }
-
-/// Functions that execute when glint commands are run.
-///
-pub type Runner(a) =
-  fn(NamedArgs, List(String), Flags) -> Out(a)
 
 /// CommandNode tree representation.
 ///
@@ -362,7 +357,9 @@ fn sanitize_path(path: List(String)) -> List(String) {
 /// let my_arg = named_arg(named)
 /// ...
 /// ```
-pub fn command(do runner: Runner(a)) -> Command(a, ArgsNotSet) {
+pub fn command(
+  do runner: fn(NamedArgs, List(String), Flags) -> Out(a),
+) -> Command(a, ArgsNotSet) {
   Command(
     do: runner,
     flags: Flags(dict.new()),

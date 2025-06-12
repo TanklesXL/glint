@@ -4,7 +4,6 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/pair
 import gleam/string
-import glint/internal/utils
 
 // --- HELP: CONSTANTS ---
 //
@@ -81,7 +80,7 @@ pub type Command {
 pub fn command_help_to_string(help: Command, config: Config) -> String {
   let command_description =
     help.meta.description
-    |> utils.wordwrap(config.max_output_width)
+    |> wordwrap(config.max_output_width)
     |> string.join("\n")
 
   [
@@ -149,7 +148,7 @@ fn command_help_to_usage_string(help: Command, config: Config) -> String {
     [app_name, help.meta.name, subcommands, named_args, unnamed_args, flags]
     |> list.filter(fn(s) { s != "" })
     |> string.join(" ")
-    |> utils.wordwrap(max_usage_width)
+    |> wordwrap(max_usage_width)
     |> string.join("\n" <> string.repeat(" ", config.indent_width * 2))
 
   config.usage_colour(usage_heading)
@@ -168,7 +167,7 @@ fn flags_help_to_string(help: List(Parameter), config: Config) -> String {
   let longest_flag_length =
     help
     |> list.map(flag_help_to_string(_, config))
-    |> utils.max_string_length
+    |> max_string_length
     |> int.max(config.min_first_column_width)
 
   let heading = config.flags_colour(flags_heading)
@@ -205,7 +204,7 @@ fn subcommands_help_to_string(help: List(Metadata), config: Config) -> String {
   let longest_subcommand_length =
     help
     |> list.map(fn(h) { h.name })
-    |> utils.max_string_length
+    |> max_string_length
     |> int.max(config.min_first_column_width)
 
   let heading = config.subcommands_colour(subcommands_heading)
@@ -254,7 +253,7 @@ fn args_help_to_string(
   let longest_arg_length =
     helps
     |> list.map(pair.first)
-    |> utils.max_string_length
+    |> max_string_length
     |> int.max(config.min_first_column_width)
 
   let heading = config.named_args_colour(named_args_heading)
@@ -316,7 +315,7 @@ fn format_content(
     config.max_output_width
     |> int.subtract(left_length + config.indent_width)
     |> int.max(config.min_first_column_width)
-    |> utils.wordwrap(right, _)
+    |> wordwrap(right, _)
 
   let right_formatted =
     string.join(
@@ -336,4 +335,88 @@ fn format_content(
       <> right_formatted,
     wrapped,
   )
+}
+
+/// Returns the length of the longest string in the list.
+///
+fn max_string_length(strings: List(String)) -> Int {
+  use max, f <- list.fold(strings, 0)
+
+  f
+  |> string.length
+  |> int.max(max)
+}
+
+/// Wraps the given string so that no lines exceed the given width. Newlines in
+/// the input string are retained.
+///
+pub fn wordwrap(s: String, max_width: Int) -> List(String) {
+  use <- bool.guard(s == "", [])
+  use line <- list.flat_map(space_split_lines(s))
+  line
+  |> string.split(" ")
+  |> do_wordwrap(max_width, "", [])
+}
+
+fn do_wordwrap(
+  tokens: List(String),
+  max_width: Int,
+  line: String,
+  lines: List(String),
+) -> List(String) {
+  case tokens {
+    // Handle the next token
+    [token, ..tokens] -> {
+      let token_length = string.length(token)
+      let line_length = string.length(line)
+
+      case line, line_length + 1 + token_length <= max_width {
+        // When the current line is empty the next token always goes on it
+        // regardless of its length
+        "", _ -> do_wordwrap(tokens, max_width, token, lines)
+
+        // Add the next token to the current line if it fits
+        _, True -> do_wordwrap(tokens, max_width, line <> " " <> token, lines)
+
+        // Start a new line with the next token as it exceeds the max width if
+        // added to the current line
+        _, False -> do_wordwrap(tokens, max_width, token, [line, ..lines])
+      }
+    }
+
+    // There are no more tokens so return the final result, adding the current
+    // line to it if it's not empty
+    [] if line == "" -> list.reverse(lines)
+    [] -> list.reverse([line, ..lines])
+  }
+}
+
+/// split a string for consecutive newline groups
+/// replaces individual newlines with a spacet
+/// groups of newlines > 1 are replaced with n-2 newlines followed by a new item
+fn space_split_lines(s: String) -> List(String) {
+  let chunks =
+    s
+    |> string.trim
+    |> string.to_graphemes
+    |> list.chunk(fn(s) { s == "\n" })
+
+  let lines = {
+    use acc, chunk <- list.fold(chunks, #([], False))
+    case chunk, acc.0 {
+      // convert newline chunks into n-2 newlines
+      ["\n", "\n", ..rest], [s, ..accs] -> #(
+        [s <> string.concat(rest), ..accs],
+        True,
+      )
+      // convert single newlines into spaces
+      ["\n"], [s, ..accs] -> #([s <> " ", ..accs], False)
+      // add the next string to the end of the last IFF the last was not a multi newline
+      _, [s, ..accs] if !acc.1 -> #([s <> string.concat(chunk), ..accs], False)
+      // add the next string as the next value in the accumulated list
+      _, _ -> #([string.concat(chunk), ..acc.0], False)
+    }
+  }
+
+  list.reverse(lines.0)
 }
