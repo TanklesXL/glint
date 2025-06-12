@@ -448,3 +448,23 @@ pub fn getters_test() {
   })
   |> glint.run([])
 }
+
+pub fn optional_flag_test() {
+  let optional_group_flag = glint.int("optional_group")
+  let cli =
+    glint.new()
+    |> glint.add([], {
+      use o <- glint.optional_flag(
+        glint.string("optional")
+        |> glint.default("default_value"),
+      )
+      use _, _, flags <- glint.command()
+      assert Ok("hello") == o(flags)
+      assert Ok(1) == glint.get_optional_flag(flags, optional_group_flag)
+      glint.Success(Nil)
+    })
+    |> glint.group_flag([], optional_group_flag)
+
+  assert glint.Success(Nil)
+    == glint.run(cli, ["--optional=hello", "--optional_group=1"])
+}
