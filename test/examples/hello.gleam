@@ -89,8 +89,8 @@ pub fn hello_cmd() -> glint.Command(String, glint.ArgsSet) {
   use <- glint.command_help("Prints Hello, <names>!")
   use <- glint.min_args("names", 1, "Names of people to greet.")
   use _, args, flags <- glint.command()
-  use caps <- glint.get_flag(flags, caps_flag())
-  use repeat <- glint.get_flag(flags, repeat_flag())
+  use caps <- glint.with_flag(flags, caps_flag())
+  use repeat <- glint.with_flag(flags, repeat_flag())
   glint.Success(hello(args, caps, repeat))
 }
 
@@ -102,8 +102,8 @@ pub fn hello_custom_cmd() -> glint.Command(String, glint.ArgsSet) {
   use <- glint.min_args("names", 1, "Names of people to greet.")
 
   use named_args, args, flags <- glint.command()
-  use caps <- glint.get_flag(flags, caps_flag())
-  use repeat <- glint.get_flag(flags, repeat_flag())
+  use caps <- glint.with_flag(flags, caps_flag())
+  use repeat <- glint.with_flag(flags, repeat_flag())
 
   greeting(named_args) |> greet(args, caps, repeat) |> glint.Success
 }
@@ -118,8 +118,8 @@ pub fn hello_single_cmd() -> glint.Command(String, glint.ArgsSet) {
     |> glint.param_help("The name of the person we're saying hello to."),
   )
   use named_args, _, flags <- glint.command()
-  use caps <- glint.get_flag(flags, caps_flag())
-  use repeat <- glint.get_flag(flags, repeat_flag())
+  use caps <- glint.with_flag(flags, caps_flag())
+  use repeat <- glint.with_flag(flags, repeat_flag())
   let name = name(named_args)
   glint.Success(hello([name], caps, repeat))
 }

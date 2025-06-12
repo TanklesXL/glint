@@ -297,7 +297,7 @@ pub fn global_and_group_flags_test() {
     |> glint.add(
       [],
       glint.command(fn(_, _, flags) {
-        use flag <- glint.get_flag(flags, flag_f)
+        use flag <- glint.with_flag(flags, flag_f)
         assert flag == 2
         glint.Success(Nil)
       }),
@@ -326,7 +326,7 @@ pub fn global_and_group_flags_test() {
       use f <- f(flags)
       assert f == True
 
-      use flag <- glint.get_flag(flags, sub_group_flag)
+      use flag <- glint.with_flag(flags, sub_group_flag)
       assert flag == 2
       glint.Success(Nil)
     })

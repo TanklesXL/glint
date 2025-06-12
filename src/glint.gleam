@@ -865,11 +865,7 @@ fn undefined_flag_err(key: String) -> Snag {
 
 // -- FLAG ACCESS FUNCTIONS --
 
-/// Gets the value for the associated flag.
-///
-/// In most cases you should use the getter functions provided when calling [`glint.flag`](#flag).
-///
-pub fn get_flag(
+pub fn with_flag(
   from flags: Flags,
   for flag: Parameter(a, Flag),
   in body: fn(a) -> Out(b),
@@ -880,7 +876,11 @@ pub fn get_flag(
   |> try(body)
 }
 
-pub fn get_optional_flag(
+/// Gets the value for the associated flag.
+///
+/// In most cases you should use the getter functions provided when calling [`glint.flag`](#flag).
+///
+pub fn get_flag(
   from flags: Flags,
   for flag: Parameter(a, Flag),
 ) -> Result(a, Snag) {

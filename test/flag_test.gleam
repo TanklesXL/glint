@@ -274,7 +274,7 @@ pub fn global_flag_test() {
   let flag = glint.floats("flag")
   let testcase = fn(vals: List(Float)) {
     use _, _, flags <- glint.command()
-    use flag_vals <- glint.get_flag(flags, flag)
+    use flag_vals <- glint.with_flag(flags, flag)
     assert vals == flag_vals
     glint.Success(Nil)
   }
@@ -460,7 +460,7 @@ pub fn optional_flag_test() {
       )
       use _, _, flags <- glint.command()
       assert Ok("hello") == o(flags)
-      assert Ok(1) == glint.get_optional_flag(flags, optional_group_flag)
+      assert Ok(1) == glint.get_flag(flags, optional_group_flag)
       glint.Success(Nil)
     })
     |> glint.group_flag([], optional_group_flag)
