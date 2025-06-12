@@ -880,6 +880,15 @@ pub fn get_flag(
   |> try(body)
 }
 
+pub fn get_optional_flag(
+  from flags: Flags,
+  for flag: Parameter(a, Flag),
+) -> Result(a, Snag) {
+  flags.internal
+  |> flag.getter
+  |> snag.context("failed to retrieve flag value")
+}
+
 /// Gets the value for the associated named argument.
 ///
 /// In most cases you should use the getter functions provided when calling [`glint.named_arg`](#named_arg).
@@ -1157,6 +1166,26 @@ pub fn flag(
       |> p.getter
       |> snag.context("failed to retrieve flag value")
       |> try(body)
+    })
+  Command(
+    ..cmd,
+    flags: Flags(dict.insert(
+      cmd.flags.internal,
+      p.internal.name,
+      p.constructor(p),
+    )),
+  )
+}
+
+pub fn optional_flag(
+  p: Parameter(a, Flag),
+  f: fn(fn(Flags) -> Result(a, Snag)) -> Command(b, c),
+) -> Command(b, c) {
+  let cmd =
+    f(fn(flags) {
+      flags.internal
+      |> p.getter
+      |> snag.context("failed to retrieve flag value")
     })
   Command(
     ..cmd,
