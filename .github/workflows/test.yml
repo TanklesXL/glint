@@ -1,16 +1,16 @@
 name: Test
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-  workflow_call:
+    push:
+        branches:
+            - main
+    pull_request:
+    workflow_call:
 
 jobs:
-  test:
-    uses: TanklesXL/gleam_actions/.github/workflows/test.yaml@main
-    with:
-      gleam_version: 1.11.0
-      test_node: true
-      test_erlang: true
+    test:
+        uses: TanklesXL/gleam_actions/.github/workflows/test.yaml@main
+        with:
+            gleam_version: 1.12.0
+            test_node: true
+            test_erlang: true

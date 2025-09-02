@@ -274,7 +274,7 @@ pub fn global_flag_test() {
   let flag = glint.floats("flag")
   let testcase = fn(vals: List(Float)) {
     use _, _, flags <- glint.command()
-    use flag_vals <- glint.with_flag(flags, flag)
+    use flag_vals <- glint.try(glint.get_flag(flags, flag))
     assert vals == flag_vals
     glint.Success(Nil)
   }

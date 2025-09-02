@@ -212,15 +212,11 @@ type ArgsCount {
   NoArgs
 }
 
-pub type ArgsSet
-
-pub type ArgsNotSet
-
 /// The type representing a glint command.
 ///
 /// To create a new command, use the [`glint.command`](#command) function.
 ///
-pub opaque type Command(output, args) {
+pub opaque type Command(output) {
   Command(
     do: fn(NamedArgs, List(String), Flags) -> Out(output),
     flags: Flags,
@@ -240,7 +236,7 @@ pub opaque type NamedArgs {
 ///
 type CommandNode(a) {
   CommandNode(
-    contents: Option(Command(a, ArgsSet)),
+    contents: Option(Command(a)),
     subcommands: dict.Dict(String, CommandNode(a)),
     group_flags: Flags,
     description: String,
@@ -309,7 +305,7 @@ pub fn global_help(in glint: Glint(a), of description: String) -> Glint(a) {
 pub fn add(
   to glint: Glint(a),
   at path: List(String),
-  do command: Command(a, b),
+  do command: Command(a),
 ) -> Glint(a) {
   use node <- update_at(in: glint, at: path)
   CommandNode(
@@ -359,7 +355,7 @@ fn sanitize_path(path: List(String)) -> List(String) {
 /// ```
 pub fn command(
   do runner: fn(NamedArgs, List(String), Flags) -> Out(a),
-) -> Command(a, ArgsNotSet) {
+) -> Command(a) {
   Command(
     do: runner,
     flags: Flags(dict.new()),
@@ -373,10 +369,7 @@ pub fn command(
 ///
 /// This function can be useful when you are handling user-defined commands or commands from other packages and need to make sure the return type matches your own commands.
 ///
-pub fn map_command(
-  command: Command(a, c),
-  with fun: fn(a) -> b,
-) -> Command(b, c) {
+pub fn map_command(command: Command(a), with fun: fn(a) -> b) -> Command(b) {
   Command(
     do: fn(named_args, args, flags) {
       map_out(command.do(named_args, args, flags), fun)
@@ -404,10 +397,7 @@ fn map_out(out: Out(a), f: fn(a) -> b) -> Out(b) {
 /// For formatted text to appear on a new line, use 2 newline characters.
 /// For formatted text to appear in a new paragraph, use 3 newline characters.
 ///
-pub fn command_help(
-  of desc: String,
-  with f: fn() -> Command(a, b),
-) -> Command(a, b) {
+pub fn command_help(of desc: String, with f: fn() -> Command(a)) -> Command(a) {
   Command(..f(), description: desc)
 }
 
@@ -420,8 +410,8 @@ pub fn min_args(
   named name: String,
   of count: Int,
   described help: String,
-  with f: fn() -> Command(b, ArgsNotSet),
-) -> Command(b, ArgsSet) {
+  with f: fn() -> Command(b),
+) -> Command(b) {
   Command(..f(), unnamed_args: MinArgs(name, help, count))
 }
 
@@ -434,15 +424,15 @@ pub fn eq_args(
   named name: String,
   of count: Int,
   described help: String,
-  with f: fn() -> Command(b, ArgsNotSet),
-) -> Command(b, ArgsSet) {
+  with f: fn() -> Command(b),
+) -> Command(b) {
   Command(..f(), unnamed_args: EqArgs(name, help, count))
 }
 
 /// Require that no argumenets be provided for a command to execute.
 /// This requirement does not apply to named arguments, which are matched before this constraint is applied.
 ///
-pub fn no_args(with f: fn() -> Command(b, ArgsNotSet)) -> Command(b, ArgsSet) {
+pub fn no_args(with f: fn() -> Command(b)) -> Command(b) {
   Command(..f(), unnamed_args: NoArgs)
 }
 
@@ -862,19 +852,27 @@ fn undefined_flag_err(key: String) -> Snag {
 
 // -- FLAG ACCESS FUNCTIONS --
 
-pub fn with_flag(
-  from flags: Flags,
-  for flag: Parameter(a, Flag),
-  in body: fn(a) -> Out(b),
-) -> Out(b) {
-  flags.internal
-  |> flag.getter
-  |> snag.context("failed to retrieve flag value")
-  |> try(body)
-}
+/// Gets the value for the associated flag and executes the inner function with the flag value provided as an argument.
+///
+/// This function only runs the callback provided if the flag was successfully retrieved,
+/// returning the relevant error if it was not.
+///
+/// This function is generally only used for fetching flags set at the group level.
+/// In most cases you should use the getter functions provided when calling [`glint.flag`](#flag).
+///
+// pub fn with_flag(
+//   from flags: Flags,
+//   for flag: Parameter(a, Flag),
+//   in body: fn(a) -> Out(b),
+// ) -> Out(b) {
+//   flags
+//   |> get_flag(flag)
+//   |> try(body)
+// }
 
 /// Gets the value for the associated flag.
 ///
+/// This function is generally only used for fetching flags set at the group level.
 /// In most cases you should use the getter functions provided when calling [`glint.flag`](#flag).
 ///
 pub fn get_flag(
@@ -1155,8 +1153,8 @@ fn parameter_access_error(
 ///
 pub fn flag(
   p: Parameter(a, Flag),
-  f: fn(fn(Flags, fn(a) -> Out(b)) -> Out(b)) -> Command(b, c),
-) -> Command(b, c) {
+  f: fn(fn(Flags, fn(a) -> Out(b)) -> Out(b)) -> Command(b),
+) -> Command(b) {
   let cmd =
     f(fn(flags, body) {
       flags.internal
@@ -1176,8 +1174,8 @@ pub fn flag(
 
 pub fn optional_flag(
   p: Parameter(a, Flag),
-  f: fn(fn(Flags) -> Result(a, Snag)) -> Command(b, c),
-) -> Command(b, c) {
+  f: fn(fn(Flags) -> Result(a, Snag)) -> Command(b),
+) -> Command(b) {
   let cmd =
     f(fn(flags) {
       flags.internal
@@ -1214,8 +1212,8 @@ pub fn optional_flag(
 /// ```
 pub fn named_arg(
   p: Parameter(a, NamedArg),
-  f: fn(fn(NamedArgs) -> a) -> Command(b, c),
-) -> Command(b, c) {
+  f: fn(fn(NamedArgs) -> a) -> Command(b),
+) -> Command(b) {
   let cmd =
     f(fn(named_args) {
       let assert Ok(named_arg) = p.getter(named_args.internal)
