@@ -65,7 +65,7 @@ const default_config = Config(
 
 // -- CONFIGURATION: FUNCTIONS --
 
-/// Set the version to be
+/// Set the version to be printed when the --version flag is passed to glint
 pub fn with_version(glint: Glint(a), version: String) -> Glint(a) {
   Glint(..glint, config: Config(..glint.config, version: Some(version)))
 }
@@ -800,13 +800,7 @@ fn attempt_toggle_flag(
   )
   case contents {
     B(
-      Parameter(
-        internal: parameter.Parameter(
-          value: None,
-          ..,
-        ) as internal,
-        ..,
-      ) as param,
+      Parameter(internal: parameter.Parameter(value: None, ..) as internal, ..) as param,
     ) ->
       Parameter(
         ..param,
@@ -817,10 +811,7 @@ fn attempt_toggle_flag(
       |> Ok
     B(
       Parameter(
-        internal: parameter.Parameter(
-          value: Some(val),
-          ..,
-        ) as internal,
+        internal: parameter.Parameter(value: Some(val), ..) as internal,
         ..,
       ) as param,
     ) ->
@@ -851,24 +842,6 @@ fn undefined_flag_err(key: String) -> Snag {
 }
 
 // -- FLAG ACCESS FUNCTIONS --
-
-/// Gets the value for the associated flag and executes the inner function with the flag value provided as an argument.
-///
-/// This function only runs the callback provided if the flag was successfully retrieved,
-/// returning the relevant error if it was not.
-///
-/// This function is generally only used for fetching flags set at the group level.
-/// In most cases you should use the getter functions provided when calling [`glint.flag`](#flag).
-///
-// pub fn with_flag(
-//   from flags: Flags,
-//   for flag: Parameter(a, Flag),
-//   in body: fn(a) -> Out(b),
-// ) -> Out(b) {
-//   flags
-//   |> get_flag(flag)
-//   |> try(body)
-// }
 
 /// Gets the value for the associated flag.
 ///
