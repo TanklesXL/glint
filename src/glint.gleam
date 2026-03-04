@@ -349,7 +349,7 @@ pub fn command_help(of desc: String, with f: fn() -> Command(a)) -> Command(a) {
 ///
 /// ```gleam
 /// ...
-/// // for a command that accets only 1 unnamed argument:
+/// // for a command that accepts only 1 unnamed argument:
 /// use <- glint.unnamed_args(glint.EqArgs(1))
 /// ...
 /// named, unnamed, flags <- glint.command()
