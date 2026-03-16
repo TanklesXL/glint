@@ -1,0 +1,10 @@
+on:
+  push:
+
+jobs:
+  run:
+    uses: tanklesXL/gleam_actions/.github/workflows/default.yaml@new_default_workflow
+    with:
+      target: erlang
+      target-version: latest
+      gleam-version: latest
