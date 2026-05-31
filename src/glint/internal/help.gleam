@@ -108,7 +108,10 @@ pub fn command_help_to_string(help: Command, config: Config) -> String {
 
 /// convert a List(Flag) to a list of strings for use in usage text
 ///
-fn flags_help_to_usage_strings(help: List(Flag), config: Config) -> List(String) {
+fn flags_help_to_usage_strings(
+  help: List(Flag),
+  config: Config,
+) -> List(String) {
   help
   |> list.map(flag_help_to_string(_, config))
   |> list.sort(string.compare)
