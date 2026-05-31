@@ -4,6 +4,10 @@
 
 # v1
 
+## [1.3.0](https://github.com/TanklesXL/glint/compare/v1.3.0...v1.2.1)
+
+- bump dependencies including stdlib v1 
+
 ## [1.2.1](https://github.com/TanklesXL/glint/compare/v1.2.1...v1.2.0)
 
 - remove use of deprecated `list.pop` function
