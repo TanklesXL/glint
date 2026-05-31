@@ -4,25 +4,25 @@
 
 # v1
 
-## [1.3.0](https://github.com/TanklesXL/glint/compare/v1.3.0...v1.2.1)
+## [1.3.0](https://github.com/TanklesXL/glint/compare/v1.2.1...v1.3.0)
 
 - bump dependencies including stdlib v1 
 
-## [1.2.1](https://github.com/TanklesXL/glint/compare/v1.2.1...v1.2.0)
+## [1.2.1](https://github.com/TanklesXL/glint/compare/v1.2.0...v1.2.1)
 
 - remove use of deprecated `list.pop` function
 
-## [1.2.0](https://github.com/TanklesXL/glint/compare/v1.2.0...v1.1.1)
+## [1.2.0](https://github.com/TanklesXL/glint/compare/v1.1.1...v1.2.0)
 
 - add the `glint.map_command` function
 
-## [1.1.1](https://github.com/TanklesXL/glint/compare/v1.1.1...v1.1.0)
+## [1.1.1](https://github.com/TanklesXL/glint/compare/v1.1.0...v1.1.1)
 
 - updated gleam stdlib to >= 0.43
 - fixed deprecation warnings on latest stdlib version
 
 
-## [1.1.0](https://github.com/TanklesXL/glint/compare/v1.1.0...v1.0.1)
+## [1.1.0](https://github.com/TanklesXL/glint/compare/v1.0.1...v1.1.1)
 
 - use punning internally, requires gleam >= 1.4
 
