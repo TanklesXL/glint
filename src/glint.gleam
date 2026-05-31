@@ -101,7 +101,10 @@ pub fn with_indent_width(glint: Glint(a), indent_width: Int) -> Glint(a) {
 ///
 /// Default: 80.
 ///
-pub fn with_max_output_width(glint: Glint(a), max_output_width: Int) -> Glint(a) {
+pub fn with_max_output_width(
+  glint: Glint(a),
+  max_output_width: Int,
+) -> Glint(a) {
   Glint(..glint, config: Config(..glint.config, max_output_width:))
 }
 
@@ -1033,7 +1036,10 @@ fn new_flags() -> Flags {
 /// Assumes that all flag inputs passed in start with --
 /// This function is only intended to be used from glint.execute_root
 ///
-fn update_flags(in flags: Flags, with flag_input: String) -> snag.Result(Flags) {
+fn update_flags(
+  in flags: Flags,
+  with flag_input: String,
+) -> snag.Result(Flags) {
   let flag_input = string.drop_start(flag_input, string.length(flag_prefix))
 
   case string.split_once(flag_input, flag_delimiter) {
@@ -1095,7 +1101,10 @@ fn construct_value(
 
 /// Computes the new flag value given the input and the expected flag type
 ///
-fn compute_flag(with input: String, given current: Value) -> snag.Result(Value) {
+fn compute_flag(
+  with input: String,
+  given current: Value,
+) -> snag.Result(Value) {
   input
   |> case current {
     I(internal) -> construct_value(_, internal, I)
@@ -1172,7 +1181,10 @@ fn get_int_flag(from flags: Flags, for name: String) -> snag.Result(Int) {
 
 /// Gets the current value for the associated ints flag
 ///
-fn get_ints_flag(from flags: Flags, for name: String) -> snag.Result(List(Int)) {
+fn get_ints_flag(
+  from flags: Flags,
+  for name: String,
+) -> snag.Result(List(Int)) {
   use flag <- get_value(flags, name)
   case flag.value {
     LI(FlagInternals(value: Some(val), ..)) -> Ok(val)
