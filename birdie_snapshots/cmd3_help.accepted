@@ -1,8 +1,8 @@
 ---
-version: 1.1.5
+version: 2.0.0
 title: cmd3 help
 file: ./test/glint_test.gleam
-test_name: help_test
+test_name: cmd3_help_test
 ---
 Some awesome global help text!
 
@@ -15,6 +15,6 @@ USAGE:
         --global=<STRING> ]
 
 FLAGS:
-    --flag3=<BOOL>        This is flag3
-    --global=<STRING>     This is a global flag
-    --help                Print help information
+        --flag3=<BOOL>    This is flag3
+        --global=<STRING> This is a global flag
+    -h, --help            Print help information

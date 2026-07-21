@@ -20,7 +20,11 @@ fn heading_style(heading: String, colour: Colour) -> String {
 
 // --- HELP: CONSTANTS ---
 //
-pub const help_flag = Flag(Metadata("help", "Print help information"), "")
+pub const help_flag = Flag(
+  Metadata("help", "Print help information"),
+  Some("h"),
+  "",
+)
 
 const flags_heading = "FLAGS:"
 
@@ -48,6 +52,7 @@ pub type Config {
     min_first_column_width: Int,
     column_gap: Int,
     flag_prefix: String,
+    flag_short_prefix: String,
     flag_delimiter: String,
   )
 }
@@ -61,7 +66,7 @@ pub type Metadata {
 /// Help type for flag metadata
 ///
 pub type Flag {
-  Flag(meta: Metadata, type_: String)
+  Flag(meta: Metadata, short: Option(String), type_: String)
 }
 
 /// Help type for command metadata
@@ -208,7 +213,7 @@ fn flags_help_to_string(help: List(Flag), config: Config) -> String {
   let content =
     to_spaced_indented_string(
       [help_flag, ..help],
-      fn(help) { #(flag_help_to_string(help, config), help.meta.description) },
+      fn(help) { #(flag_help_to_string_with_shorthand(help, config), help.meta.description) },
       longest_flag_length,
       config,
     )
@@ -225,6 +230,16 @@ fn flag_help_to_string(help: Flag, config: Config) -> String {
     "" -> ""
     _ -> config.flag_delimiter <> "<" <> help.type_ <> ">"
   }
+}
+
+/// generate the help text for a flag with shorthand
+///
+fn flag_help_to_string_with_shorthand(help: Flag, config: Config) -> String {
+  case help.short {
+    Some(short) -> config.flag_short_prefix <> short <> ", "
+    None -> string.repeat(" ", string.length(config.flag_short_prefix) + 3)
+  }
+  <> flag_help_to_string(help, config)
 }
 
 // -- HELP - FUNCTIONS - STRINGIFIERS - SUBCOMMANDS --

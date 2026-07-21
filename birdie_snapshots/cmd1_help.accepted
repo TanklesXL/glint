@@ -1,5 +1,5 @@
 ---
-version: 1.1.5
+version: 2.0.0
 title: cmd1 help
 file: ./test/glint_test.gleam
 test_name: cmd1_help_test
@@ -15,15 +15,15 @@ USAGE:
         --global=<STRING> --very-very-very-long-flag=<FLOAT_LIST> ]
 
 FLAGS:
-    --flag2=<INT>                            This is flag2
+        --flag2=<INT>                        This is flag2
 
-    --global=<STRING>                        This is a global flag
+        --global=<STRING>                    This is a global flag
 
-    --help                                   Print help information
-
-    --very-very-very-long-flag=<FLOAT_LIST>  This is a very long flag with a
+        --very-very-very-long-flag=<FLOAT_LIST>This is a very long flag with a
                                              very very very very very very long
                                              description
+
+    -h, --help                               Print help information
 
 SUBCOMMANDS:
     cmd3                  This is cmd3

@@ -1,5 +1,5 @@
 ---
-version: 1.1.8
+version: 2.0.0
 title: cmd6 help with residual args
 file: ./test/glint_test.gleam
 test_name: call_help_with_residual_args_test
@@ -14,8 +14,8 @@ USAGE:
     gleam run -m test cmd5 cmd6 ( cmd7 ) [ ARGS ] [ --global=<STRING> ]
 
 FLAGS:
-    --global=<STRING>     This is a global flag
-    --help                Print help information
+        --global=<STRING> This is a global flag
+    -h, --help            Print help information
 
 SUBCOMMANDS:
     cmd7                  This is cmd7

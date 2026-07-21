@@ -112,6 +112,55 @@ pub fn flag_default_test() {
   |> should.be_ok()
 }
 
+pub fn flag_short_test() {
+  let flags = glint.int_flag("flag") |> glint.flag_short("f")
+
+  // fails to parse input for nonexisting short flag, returns error
+  let flag_input = "-o=X"
+  glint.new()
+  |> glint.add(
+    [],
+    glint.flag(flags, fn(_flag) { glint.command(fn(_, _, _) { Nil }) }),
+  )
+  |> glint.execute([flag_input])
+  |> should.be_error()
+
+  // fails to parse input for flag as int, returns error
+  let flag_input = "-f=X"
+  glint.new()
+  |> glint.add(
+    [],
+    glint.flag(flags, fn(_flag) { glint.command(fn(_, _, _) { Nil }) }),
+  )
+  |> glint.execute([flag_input])
+  |> should.be_error()
+
+  // parses flag input as int, sets value
+  let flag_input = "-f=10"
+  let expect_flag_value_of_10 = {
+    use flag_ <- glint.flag(flags)
+    use _, _, flags <- glint.command()
+    flag_(flags)
+    |> should.equal(Ok(10))
+  }
+
+  glint.new()
+  |> glint.add([], expect_flag_value_of_10)
+  |> glint.execute([flag_input])
+  |> should.be_ok()
+
+  // shorthand is not added if its not exactly one character
+  let flags = glint.int_flag("flag") |> glint.flag_short("ff")
+  let flag_input = "-ff=1"
+  glint.new()
+  |> glint.add(
+    [],
+    glint.flag(flags, fn(_flag) { glint.command(fn(_, _, _) { Nil }) }),
+  )
+  |> glint.execute([flag_input])
+  |> should.be_error()
+}
+
 pub fn flag_value_test() {
   let args = ["arg1", "arg2"]
   let flag = glint.string_flag("flag")
@@ -382,6 +431,34 @@ pub fn toggle_test() {
   glint.new()
   |> glint.add([], {
     use flag <- glint.flag(glint.bool_flag("flag"))
+    use _, _, flags <- glint.command()
+    flag(flags)
+    |> should.equal(Ok(True))
+  })
+  |> glint.execute([flag_input])
+  |> should.be_ok()
+
+  // boolean flag with default of True is toggled, sets value to False
+  let flag_input = "-f"
+
+  glint.new()
+  |> glint.add([], {
+    use flag <- glint.flag(
+      glint.bool_flag("flag")
+      |> glint.flag_short("f")
+      |> glint.flag_default(True),
+    )
+    use _, _, flags <- glint.command()
+    flag(flags)
+    |> should.equal(Ok(False))
+  })
+  |> glint.execute([flag_input])
+  |> should.be_ok()
+
+  // boolean short flag without default toggled, sets value to True
+  glint.new()
+  |> glint.add([], {
+    use flag <- glint.flag(glint.bool_flag("flag") |> glint.flag_short("f"))
     use _, _, flags <- glint.command()
     flag(flags)
     |> should.equal(Ok(True))
