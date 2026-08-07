@@ -20,7 +20,7 @@ fn heading_style(heading: String, colour: Colour) -> String {
 
 // --- HELP: CONSTANTS ---
 //
-pub const help_flag = Flag(Metadata("help", "Print help information"), "")
+pub const help_flag = Flag(Metadata("help", "Print help information"), "", None)
 
 const flags_heading = "FLAGS:"
 
@@ -49,6 +49,7 @@ pub type Config {
     column_gap: Int,
     flag_prefix: String,
     flag_delimiter: String,
+    show_flag_defaults: Bool,
   )
 }
 
@@ -61,7 +62,7 @@ pub type Metadata {
 /// Help type for flag metadata
 ///
 pub type Flag {
-  Flag(meta: Metadata, type_: String)
+  Flag(meta: Metadata, type_: String, default: Option(String))
 }
 
 /// Help type for command metadata
@@ -208,7 +209,15 @@ fn flags_help_to_string(help: List(Flag), config: Config) -> String {
   let content =
     to_spaced_indented_string(
       [help_flag, ..help],
-      fn(help) { #(flag_help_to_string(help, config), help.meta.description) },
+      fn(help) {
+        let description = case config.show_flag_defaults, help.default {
+          True, Some(default) ->
+            help.meta.description <> " (default: " <> default <> ")"
+          _, _ -> help.meta.description
+        }
+
+        #(flag_help_to_string(help, config), description)
+      },
       longest_flag_length,
       config,
     )

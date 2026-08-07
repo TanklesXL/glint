@@ -29,6 +29,7 @@ type Config {
     max_output_width: Int,
     min_first_column_width: Int,
     column_gap: Int,
+    show_flag_defaults: Bool,
   )
 }
 
@@ -52,6 +53,7 @@ const default_config = Config(
   max_output_width: 80,
   min_first_column_width: 20,
   column_gap: 2,
+  show_flag_defaults: False,
 )
 
 // -- CONFIGURATION: FUNCTIONS --
@@ -125,6 +127,15 @@ pub fn with_min_first_column_width(
 ///
 pub fn with_column_gap(glint: Glint(a), column_gap: Int) -> Glint(a) {
   Glint(..glint, config: Config(..glint.config, column_gap:))
+}
+
+/// Enable rendering of flag default values in `--help` output. When enabled,
+/// each flag with a configured default has `(default: <value>)` appended to
+/// its description.
+///
+/// Disabled by default to preserve existing help text formatting.
+pub fn show_flag_defaults(glint: Glint(a), enabled: Bool) -> Glint(a) {
+  Glint(..glint, config: Config(..glint.config, show_flag_defaults: enabled))
 }
 
 // --- CORE ---
@@ -682,6 +693,7 @@ fn build_help_config(config: Config) -> help.Config {
     column_gap: config.column_gap,
     flag_prefix: flag_prefix,
     flag_delimiter: flag_delimiter,
+    show_flag_defaults: config.show_flag_defaults,
   )
 }
 
@@ -729,6 +741,29 @@ fn flag_type_info(flag: FlagEntry) {
   }
 }
 
+fn flag_default_info(flag: FlagEntry) -> Option(String) {
+  case flag.value {
+    I(FlagInternals(value: Some(v), ..)) -> Some(int.to_string(v))
+    F(FlagInternals(value: Some(v), ..)) -> Some(float.to_string(v))
+    S(FlagInternals(value: Some(v), ..)) -> Some(v)
+    B(FlagInternals(value: Some(v), ..)) ->
+      Some(case v {
+        True -> "true"
+        False -> "false"
+      })
+    LI(FlagInternals(value: Some(v), ..)) -> Some(join_csv(v, int.to_string))
+    LF(FlagInternals(value: Some(v), ..)) -> Some(join_csv(v, float.to_string))
+    LS(FlagInternals(value: Some(v), ..)) -> Some(string.join(v, ","))
+    _ -> None
+  }
+}
+
+/// stringify each item and join with commas, for list-flag defaults.
+///
+fn join_csv(items: List(a), to_string: fn(a) -> String) -> String {
+  items |> list.map(to_string) |> string.join(",")
+}
+
 /// build the help representation for a list of flags
 ///
 fn build_flags_help(flags: Flags) -> List(help.Flag) {
@@ -737,6 +772,7 @@ fn build_flags_help(flags: Flags) -> List(help.Flag) {
     help.Flag(
       meta: help.Metadata(name: name, description: flag.description),
       type_: flag_type_info(flag),
+      default: flag_default_info(flag),
     ),
     ..acc
   ]
