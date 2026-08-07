@@ -2,6 +2,10 @@
 
 ## [Unreleased](https://github.com/TanklesXL/glint/compare/v1.1.0...HEAD)
 
+- captured each flag's configured default value in the help data
+  (`help.Flag.default`) and added the `glint.show_flag_defaults` builder
+  to opt in to rendering `(default: <value>)` in `--help` output
+
 # v1
 
 ## [1.3.0](https://github.com/TanklesXL/glint/compare/v1.2.1...v1.3.0)
