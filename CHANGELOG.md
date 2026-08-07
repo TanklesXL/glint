@@ -2,6 +2,15 @@
 
 ## [Unreleased](https://github.com/TanklesXL/glint/compare/v1.1.0...HEAD)
 
+- added the `glint.document/1` accessor and the public `glint/help` module,
+  exposing a recursive `Tree` view of the command graph for downstream
+  documentation generators (closes #49). `glint/help.ArgsCount` is declared
+  as a fresh public type with `EqArgs`/`MinArgs` constructors so that
+  downstream documentation tools never need to import `glint/internal/help`
+- captured each flag's configured default value in the help data
+  (`help.Flag.default`) and added the `glint.show_flag_defaults` builder
+  to opt in to rendering `(default: <value>)` in `--help` output
+
 # v1
 
 ## [1.3.0](https://github.com/TanklesXL/glint/compare/v1.2.1...v1.3.0)

@@ -249,3 +249,56 @@ And here is something that gets its own paragraph.
 In addition to newline formatting, glint also handles wrapping helptext so that it fits within the configured terminal width. This means that if you have a long help text string it will be adjusted to fit on additional lines if it is too long to fit on one line. Spacing is also added to keep descriptions aligned with each other.
 
 There are functions that you can use to tweak glints default wrapping behaviour, but the defaults should be sufficient for the majority of use cases.
+
+
+## Auto-generating documentation
+
+`glint.document/1` returns a recursive `glint/help.Tree` describing every command, flag, and subcommand in a Glint app. Use it to build Markdown, JSON, manpage, or other documentation generators without parsing `--help` output.
+
+```gleam
+import gleam/io
+import gleam/list
+import gleam/option
+import glint
+import glint/help
+
+fn root_command() -> glint.Command(Nil) {
+  use <- glint.command_help("Say hello")
+  glint.command(fn(_, _, _) { Nil })
+}
+
+fn greet_command() -> glint.Command(Nil) {
+  use _name <- glint.flag(
+    glint.string_flag("name")
+    |> glint.flag_default("world")
+    |> glint.flag_help("Name to greet"),
+  )
+  use <- glint.command_help("Greet someone")
+  glint.command(fn(_, _, _) { Nil })
+}
+
+pub fn main() {
+  let app =
+    glint.new()
+    |> glint.with_name("hello")
+    |> glint.add(at: [], do: root_command())
+    |> glint.add(at: ["greet"], do: greet_command())
+
+  let tree: help.Tree = glint.document(app)
+  io.println("Root: " <> tree.meta.description)
+  list.each(tree.subcommands, fn(sub) {
+    io.println(" - " <> sub.meta.name <> ": " <> sub.meta.description)
+    list.each(sub.flags, fn(flag) {
+      io.println("    --" <> flag.meta.name <> " (default: " <>
+        option.unwrap(flag.default, "none") <> ")")
+    })
+  })
+}
+```
+
+The public help types expose these fields:
+
+- `help.Tree(meta: help.Metadata, flags: List(help.Flag), subcommands: List(help.Tree), unnamed_args: Option(help.ArgsCount), named_args: List(String))`
+- `help.Flag(meta: help.Metadata, type_: String, default: Option(String))`
+
+Flag defaults are also surfaced in `--help` output when you opt in with `glint.show_flag_defaults(True)`.
