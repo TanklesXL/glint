@@ -20,7 +20,7 @@ fn heading_style(heading: String, colour: Colour) -> String {
 
 // --- HELP: CONSTANTS ---
 //
-pub const help_flag = Flag(Metadata("help", "Print help information"), "")
+pub const help_flag = Flag(Metadata("help", "Print help information"), "", None)
 
 const flags_heading = "FLAGS:"
 
@@ -61,7 +61,7 @@ pub type Metadata {
 /// Help type for flag metadata
 ///
 pub type Flag {
-  Flag(meta: Metadata, type_: String)
+  Flag(meta: Metadata, type_: String, default: Option(String))
 }
 
 /// Help type for command metadata

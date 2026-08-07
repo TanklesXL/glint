@@ -2,6 +2,9 @@
 
 ## [Unreleased](https://github.com/TanklesXL/glint/compare/v1.1.0...HEAD)
 
+- captured each flag's configured default value in the help data
+  (`help.Flag.default`)
+
 # v1
 
 ## [1.3.0](https://github.com/TanklesXL/glint/compare/v1.2.1...v1.3.0)

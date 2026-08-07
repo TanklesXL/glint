@@ -729,6 +729,29 @@ fn flag_type_info(flag: FlagEntry) {
   }
 }
 
+fn flag_default_info(flag: FlagEntry) -> Option(String) {
+  case flag.value {
+    I(FlagInternals(value: Some(v), ..)) -> Some(int.to_string(v))
+    F(FlagInternals(value: Some(v), ..)) -> Some(float.to_string(v))
+    S(FlagInternals(value: Some(v), ..)) -> Some(v)
+    B(FlagInternals(value: Some(v), ..)) ->
+      Some(case v {
+        True -> "true"
+        False -> "false"
+      })
+    LI(FlagInternals(value: Some(v), ..)) -> Some(join_csv(v, int.to_string))
+    LF(FlagInternals(value: Some(v), ..)) -> Some(join_csv(v, float.to_string))
+    LS(FlagInternals(value: Some(v), ..)) -> Some(string.join(v, ","))
+    _ -> None
+  }
+}
+
+/// stringify each item and join with commas, for list-flag defaults.
+///
+fn join_csv(items: List(a), to_string: fn(a) -> String) -> String {
+  items |> list.map(to_string) |> string.join(",")
+}
+
 /// build the help representation for a list of flags
 ///
 fn build_flags_help(flags: Flags) -> List(help.Flag) {
@@ -737,6 +760,7 @@ fn build_flags_help(flags: Flags) -> List(help.Flag) {
     help.Flag(
       meta: help.Metadata(name: name, description: flag.description),
       type_: flag_type_info(flag),
+      default: flag_default_info(flag),
     ),
     ..acc
   ]
